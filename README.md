@@ -47,7 +47,7 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 
 ```text
 Silhouette/
-├── .github/                  # GitHub Issue / PR 템플릿
+├── .github/                  # GitHub PR 템플릿
 ├── backend/                  # Spring Boot 백엔드
 ├── frontend/                 # React 프론트엔드
 ├── .gitignore
@@ -134,9 +134,16 @@ dongjin0503/Silhouette (원본)
 
 - 원본 `main` 브랜치에 직접 Push 금지
 - 기능별 브랜치에서 작업 후 Pull Request 생성
+- PR 제목은 `[타입] 작업 내용` 형식으로 작성
 - 최소 1명 이상의 코드 리뷰 및 승인 후 병합
-- PR 제목과 커밋 메시지는 Convention 준수
 - 병합 방식은 Squash and merge 사용
+
+PR 제목 작성 예시:
+
+- `[Feat] 알고리즘 매칭 기능 구현`
+- `[Fix] 로그인 오류 수정`
+- `[Refactor] 회원 서비스 구조 개선`
+- `[Docs] README 협업 규칙 수정`
 
 자세한 협업 방법은 [CONVENTION.md](./CONVENTION.md)를 참고하세요.
 
