@@ -1,4 +1,6 @@
 import styles from './post.module.css';
+import axios from 'axios';
+import { useState } from 'react';
 
 /* =========================================================
    실루엣 게시판(Post) 통합 컴포넌트 (B001, B002) - 담당: 권형석
