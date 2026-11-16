@@ -1,0 +1,36 @@
+.lobby {
+  max-width: 360px;
+  margin: 40px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lobby label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lobby input {
+  padding: 8px;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.buttons button {
+  flex: 1;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.error {
+  color: #e5484d;
+}
+
+.room {
+  height: calc(100vh - 120px);
+}
