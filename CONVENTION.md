@@ -56,10 +56,15 @@
 |---|---|---|
 | `feat` | 새 기능 개발 | `feat/C1-blind-matching` |
 | `fix` | 버그 수정 | `fix/C2-login-error` |
-| `refactor` | 코드 구조 개선 | `refactor/C3-member-service` |
-| `docs` | 문서 작업 | `docs/etc-readme` |
-| `chore` | 설정, 빌드, 패키지 | `chore/etc-project-setup` |
 | `hotfix` | 급하게 고쳐야 하는 오류 | `hotfix/C4-db-connection` |
+| `update` | 기존 파일의 내용, 설정 또는 기능 변경 및 개선 | `update/etc-profile-update` |
+| `refactor` | 코드 구조 개선 | `refactor/C3-member-service` |
+| `style` | 코드 포맷, CSS, UI 디자인 수정 | `style/etc-profile-design` |
+| `docs` | 문서 작업 | `docs/etc-readme` |
+| `test` | 테스트 코드 추가 및 수정 | `test/C5-matching-test` |
+| `chore` | 설정, 빌드, 패키지 | `chore/etc-project-setup` |
+| `rename` | 파일 및 폴더 이름 변경 | `rename/etc-file-name` |
+| `remove` | 파일 및 폴더 삭제 | `remove/etc-unused-file` |
 
 > ❌ `feat/내가만든기능`, `Feat/Matching`, `test`, `jin-work`  
 > ⭕ `feat/C1-blind-matching`
@@ -94,12 +99,12 @@ type: 제목
 | `feat` | 새 기능 추가 | `feat: 블라인드 랜덤 매칭 구현` |
 | `fix` | 버그 수정 | `fix: 로그인 시 세션 만료 오류 수정` |
 | `hotfix` | 급한 오류 긴급 수정 | `hotfix: DB 접속 오류 긴급 수정` |
+| `update` | 기존 파일의 내용, 설정 또는 기능 변경 및 개선 | `update: 프로필 정보 표시 항목 수정` |
 | `refactor` | 동작 변화 없는 코드 개선 | `refactor: 매칭 서비스 중복 코드 제거` |
-| `style` | 포맷, 들여쓰기, 세미콜론 등 (로직 변경 X) | `style: 코드 들여쓰기 정리` |
+| `style` | 포맷, 들여쓰기, CSS, UI 디자인 수정 (로직 변경 X) | `style: 프로필 카드 레이아웃 수정` |
 | `docs` | 문서 수정 | `docs: README 실행 방법 추가` |
 | `test` | 테스트 코드 추가/수정 | `test: 매칭 서비스 단위 테스트 추가` |
 | `chore` | 빌드, 설정, 패키지, .gitignore 등 | `chore: MySQL 의존성 추가` |
-| `design` | CSS, UI 디자인 수정 | `design: 프로필 카드 레이아웃 수정` |
 | `rename` | 파일/폴더명 변경 | `rename: MatchDao를 MatchDAO로 변경` |
 | `remove` | 파일 삭제 | `remove: 사용하지 않는 테스트 파일 삭제` |
 
@@ -136,11 +141,14 @@ type: 제목
 | `[Feat]` | 새 기능 개발 | `[Feat] 블라인드 랜덤 매칭 구현` |
 | `[Fix]` | 버그 수정 | `[Fix] 로그인 오류 수정` |
 | `[Hotfix]` | 긴급 오류 수정 | `[Hotfix] DB 접속 오류 수정` |
+| `[Update]` | 기존 파일의 내용, 설정 또는 기능 변경 및 개선 | `[Update] 프로필 정보 표시 항목 수정` |
 | `[Refactor]` | 코드 구조 개선 | `[Refactor] 회원 서비스 구조 개선` |
-| `[Style]` | 포맷, UI 스타일 수정 | `[Style] 프로필 카드 레이아웃 수정` |
+| `[Style]` | 포맷, CSS, UI 디자인 수정 | `[Style] 프로필 카드 레이아웃 수정` |
 | `[Docs]` | 문서 수정 | `[Docs] README 실행 방법 추가` |
 | `[Test]` | 테스트 코드 추가/수정 | `[Test] 매칭 서비스 테스트 추가` |
 | `[Chore]` | 설정, 빌드, 패키지 등 | `[Chore] 프로젝트 설정 변경` |
+| `[Rename]` | 파일 및 폴더 이름 변경 | `[Rename] MatchDao를 MatchDAO로 변경` |
+| `[Remove]` | 파일 및 폴더 삭제 | `[Remove] 사용하지 않는 테스트 파일 삭제` |
 
 ### 리뷰 규칙
 
@@ -359,3 +367,4 @@ git push origin --delete feat/C1-blind-matching
 | 2026.11.12 | DB 네이밍 수정(FK `_seq`, 시퀀스명 규칙), fork main 작업 금지, 요구사항ID 규칙, 본인 PR 머지 규칙, push 후 amend 금지, 템플릿 경로, 자바 코드 기본 규칙, DB 예약어 규칙 추가 | 서현수 |
 | 2026.11.13 | 요구사항ID(C1 등) 대문자 허용, 브랜치 예시를 요구사항ID 형식으로 변경 | 서현수 |
 | 2026.11.16 | 이슈 생성 및 연결 규칙 제거, PR 제목 형식 변경, 작업 흐름 수정 | 서현수 |
+| 2026.11.16 | 커밋 및 PR 타입 통일, `update` 타입 추가, `style`과 `design` 통합 | 서현수 |
