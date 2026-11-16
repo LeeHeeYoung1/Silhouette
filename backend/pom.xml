@@ -100,6 +100,12 @@
 			<version>4.0.1</version>
 			<scope>test</scope>
 		</dependency>
+				<!-- livekit -->
+		<dependency>
+			<groupId>io.livekit</groupId>
+			<artifactId>livekit-server</artifactId>
+			<version>0.5.10</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -109,12 +115,6 @@
 				<version>${spring-ai.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
-			<!-- livekit-->
-			<dependency>
-				<groupId>io.livekit</groupId>
-				<artifactId>livekit-server</artifactId>
-				<version>0.5.10</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
