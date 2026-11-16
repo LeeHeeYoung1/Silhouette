@@ -3,7 +3,7 @@ package com.app.silhouette.live;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.google.auth.oauth2.AccessToken;
+import io.livekit.server.AccessToken;
 
 import io.livekit.server.CanPublish;
 import io.livekit.server.CanSubscribe;
