@@ -3,6 +3,8 @@ import { Routes, Route, NavLink, useNavigate, Navigate } from 'react-router-dom'
 import Home from './pages/home/home';
 import Login from './pages/login/login';
 import Signup from './pages/signup/signup';
+import MyPage from './pages/home/mypage/mypage';
+import Post from './pages/post/post';
 import styles from './App.module.css';
 
 function App() {
@@ -48,6 +50,22 @@ function App() {
               홈
             </NavLink>
             <NavLink
+              to="/post"
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
+            >
+              게시판
+            </NavLink>
+            <NavLink
+              to="/mypage"
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
+            >
+              마이페이지
+            </NavLink>
+            <NavLink
               to="/login"
               className={({ isActive }) =>
                 `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
@@ -82,6 +100,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/post" element={<Post />} />
+          <Route path="/board" element={<Post />} />
+          <Route path="/mypage" element={<MyPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="*" element={<Navigate to="/" replace />} />
