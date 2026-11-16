@@ -1,0 +1,507 @@
+/* signup.module.css */
+
+.card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 600px;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 40px 36px;
+  box-shadow: var(--shadow-glow), var(--card-shadow);
+  transition: all 0.35s ease;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 28px 18px;
+  }
+}
+
+/* 스텝 인디케이터 */
+.stepStepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin-bottom: 34px;
+  padding: 0 10px;
+}
+
+.stepStepper::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: 30px;
+  right: 30px;
+  height: 2px;
+  background: var(--input-border);
+  z-index: 1;
+}
+
+.stepProgressBar {
+  position: absolute;
+  top: 18px;
+  left: 30px;
+  height: 2px;
+  background: var(--primary-gradient);
+  z-index: 2;
+  transition: width 0.3s ease;
+}
+
+.stepProgressStep1 {
+  width: 0%;
+}
+
+.stepProgressStep2 {
+  width: 50%;
+}
+
+.stepProgressStep3 {
+  width: 100%;
+}
+
+.stepItem {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 2px solid var(--input-border);
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.stepItem.active .stepCircle {
+  background: var(--primary-gradient);
+  border-color: var(--accent-pink);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(255, 77, 136, 0.5);
+  transform: scale(1.08);
+}
+
+.stepItem.completed .stepCircle {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+
+.stepLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+
+.stepItem.active .stepLabel {
+  color: var(--accent-pink);
+}
+
+.stepItem.completed .stepLabel {
+  color: var(--text-main);
+}
+
+/* 카드 헤더 */
+.cardHeader {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.cardTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.cardSubtitle {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+
+/* 폼 요소 */
+.formGroup {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.labelRequired {
+  color: var(--accent-pink);
+  margin-left: 4px;
+}
+
+.inputWithButton {
+  display: flex;
+  gap: 8px;
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 14px;
+  transition: all 0.25s ease;
+  outline: none;
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 12px rgba(255, 77, 136, 0.25);
+  background: var(--input-focus-bg);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.select option {
+  background: var(--card-bg);
+  color: var(--text-main);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 500px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 주소 입력 특화 */
+.addressSearchGroup {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.zipcodeInput {
+  width: 130px;
+  cursor: pointer;
+}
+
+.address1Input {
+  cursor: pointer;
+}
+
+.searchBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 검증 메시지 */
+.validationMsg {
+  font-size: 12px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+.validationMsg.error {
+  color: var(--error);
+}
+
+.validationMsg.success {
+  color: var(--success);
+}
+
+/* 버튼 */
+.btnPrimary {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255, 77, 136, 0.35);
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 8px 24px rgba(255, 77, 136, 0.5);
+  transform: translateY(-1px);
+}
+
+.btnSecondary {
+  padding: 12px 18px;
+  background: var(--profile-card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btnSecondary:hover {
+  border-color: var(--accent-pink);
+  color: var(--accent-pink);
+  transform: translateY(-1px);
+}
+
+.btnOutline {
+  width: 100%;
+  padding: 13px;
+  background: transparent;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnOutline:hover {
+  border-color: var(--accent-pink);
+  color: var(--accent-pink);
+  background: rgba(255, 77, 136, 0.06);
+}
+
+.submitBtn {
+  margin-top: 20px;
+}
+
+.backBtnWrapper {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* 약관 */
+.allAgreeCard {
+  background: rgba(255, 77, 136, 0.1);
+  border: 1px solid rgba(255, 77, 136, 0.4);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+
+.allAgreeTitle {
+  font-size: 15px;
+  color: var(--accent-pink);
+}
+
+.termsCard {
+  background: var(--terms-card-bg);
+  border: 1px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s ease, background 0.3s ease;
+}
+
+.termsCard:hover {
+  border-color: var(--card-border);
+}
+
+.termsHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.termsCheckboxWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.termsCheckboxWrap input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.termsCheckboxWrap input[type="checkbox"]:checked {
+  background: var(--accent-pink);
+  border-color: var(--accent-pink);
+}
+
+.termsCheckboxWrap input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.termsTitleText {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.termsTag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.termsTagReq {
+  color: #ff3b68;
+  background: rgba(255, 59, 104, 0.15);
+}
+
+.termsTagOpt {
+  color: var(--accent-purple);
+  background: rgba(124, 58, 237, 0.12);
+}
+
+.termsViewBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.termsContentBox {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--terms-box-bg);
+  border-radius: var(--radius-sm);
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  white-space: pre-wrap;
+  border: 1px solid var(--cell-border);
+}
+
+.termsMeta {
+  font-size: 11px;
+  color: var(--accent-pink);
+  margin-bottom: 4px;
+}
+
+.termsButtonGroup {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.prevStepBtn {
+  width: 40%;
+}
+
+.nextStepBtn {
+  width: 60%;
+}
+
+/* 완료 화면 */
+.successBanner {
+  text-align: center;
+  padding: 30px 10px;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.successIconWrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid #22c55e;
+  color: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 20px;
+  box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
+}
+
+.successTitle {
+  font-size: 26px;
+}
+
+.successSubtitle {
+  margin-bottom: 24px;
+}
+
+.summaryCard {
+  background: var(--terms-card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: left;
+  margin-bottom: 26px;
+}
+
+.summaryCardTitle {
+  font-size: 13px;
+  color: var(--accent-pink);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.summaryCardContent {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-main);
+}

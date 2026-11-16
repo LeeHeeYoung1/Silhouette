@@ -1,0 +1,81 @@
+/* ==========================================================================
+   실루엣 (Silhouette) 전역 디자인 시스템 변수 & 리셋
+   ========================================================================== */
+
+:root {
+  /* [기본 다크 테마 변수] */
+  --bg-gradient: radial-gradient(circle at 50% 20%, #201335 0%, #0c0817 100%);
+  --bg-aurora: radial-gradient(circle, rgba(255, 77, 136, 0.18) 0%, rgba(139, 61, 255, 0.12) 50%, transparent 70%);
+  --header-bg: rgba(25, 20, 44, 0.65);
+  --card-bg: rgba(28, 22, 49, 0.78);
+  --card-border: rgba(255, 120, 180, 0.22);
+  --primary-gradient: linear-gradient(135deg, #ff4d88 0%, #8b3dff 100%);
+  --primary-hover: linear-gradient(135deg, #ff6599 0%, #9e59ff 100%);
+  --accent-pink: #ff4d88;
+  --accent-purple: #8b3dff;
+  --text-main: #f8f7ff;
+  --text-sub: #b3a9c9;
+  --text-muted: #7f749a;
+  --input-bg: rgba(16, 12, 30, 0.65);
+  --input-border: rgba(179, 169, 201, 0.25);
+  --input-focus-bg: rgba(25, 20, 44, 0.95);
+  --cell-bg: rgba(16, 12, 30, 0.5);
+  --cell-border: rgba(255, 255, 255, 0.06);
+  --terms-card-bg: rgba(18, 14, 34, 0.75);
+  --terms-box-bg: rgba(9, 7, 18, 0.85);
+  --profile-card-bg: linear-gradient(135deg, rgba(255, 77, 136, 0.12) 0%, rgba(139, 61, 255, 0.15) 100%);
+  --success: #22c55e;
+  --error: #ff4d6d;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-glow: 0 10px 30px rgba(139, 61, 255, 0.25);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* [라이트 테마: 소프트 블러쉬 핑크 & 라벤더 펄] */
+body.theme-light {
+  --bg-gradient: radial-gradient(circle at 50% 15%, #fff5f8 0%, #f6effa 50%, #f0ebf8 100%);
+  --bg-aurora: radial-gradient(circle, rgba(255, 120, 180, 0.25) 0%, rgba(180, 140, 255, 0.18) 60%, transparent 75%);
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(255, 145, 190, 0.35);
+  --primary-gradient: linear-gradient(135deg, #ff4382 0%, #7c3aed 100%);
+  --primary-hover: linear-gradient(135deg, #ff5c94 0%, #9055ff 100%);
+  --accent-pink: #ff2a73;
+  --accent-purple: #7c3aed;
+  --text-main: #2b1f3d;
+  --text-sub: #63547a;
+  --text-muted: #8e80a5;
+  --input-bg: #ffffff;
+  --input-border: #e2d8ec;
+  --input-focus-bg: #ffffff;
+  --cell-bg: #f9f6fc;
+  --cell-border: #ebdff2;
+  --terms-card-bg: #faf7fd;
+  --terms-box-bg: #f3eef9;
+  --profile-card-bg: linear-gradient(135deg, #ffeef4 0%, #f3ebfc 100%);
+  --shadow-glow: 0 12px 35px rgba(255, 105, 180, 0.18);
+  --card-shadow: 0 15px 35px rgba(120, 90, 150, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  transition: background 0.4s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
