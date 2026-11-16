@@ -1,6 +1,6 @@
 # Silhouette
 
-**블라인드 랜덤 매칭과 프로필 탐색을 통해 새로운 인연을 연결하는 소개팅 플랫폼**
+블라인드 랜덤 매칭과 프로필 탐색을 통해 새로운 인연을 연결하는 소개팅 플랫폼
 
 ## 📌 프로젝트 소개
 
@@ -36,12 +36,24 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 |---|---|
 | Backend | Java, Spring Boot |
 | Frontend | React, JavaScript, HTML, CSS |
-| Database | (확정 DB 입력) |
-| ORM / SQL | (MyBatis 등 실제 사용 기술 입력) |
+| Database | (확정 후 입력) |
+| ORM / SQL | (확정 후 입력) |
 | Real-time | WebSocket, STOMP |
 | Streaming | WebRTC |
 | AI | (실제 적용 기술 및 API 입력) |
 | Tools | Git, GitHub, Notion, Figma |
+
+## 📁 프로젝트 구조
+
+```text
+Silhouette/
+├── .github/                  # GitHub PR 템플릿
+├── backend/                  # Spring Boot 백엔드
+├── frontend/                 # React 프론트엔드
+├── .gitignore
+├── README.md
+└── CONVENTION.md             # 협업 규칙
+```
 
 ## 👥 팀원
 
@@ -54,32 +66,54 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 
 ## 🚀 실행 방법
 
-```bash
-# 프로젝트 클론
-git clone https://github.com/계정/저장소.git
+### 1. 프로젝트 Clone
 
-# 프로젝트 디렉터리 이동
-cd 저장소
+```bash
+git clone https://github.com/dongjin0503/Silhouette.git
+cd Silhouette
 ```
 
-1. 데이터베이스 생성 및 초기 SQL 실행
-2. `application.properties` 환경 설정
-3. 필요한 외부 API 키 및 환경변수 설정
-4. Backend 및 Frontend 실행
+### 2. Backend 실행
 
-※ 상세 실행 방법은 프로젝트 환경 구축 완료 후 업데이트 예정입니다.
+- `backend` 프로젝트를 STS4에서 Import
+- `application.properties` 환경 설정
+- 데이터베이스 및 외부 API 설정
+- Spring Boot 애플리케이션 실행
+
+### 3. Frontend 실행
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+※ 데이터베이스, 환경변수 및 외부 API 설정에 관한 상세 실행 방법은 개발 환경 확정 후 업데이트합니다.
 
 ## 📏 협업 규칙
 
 ### Branch Strategy
 
+원본 저장소의 `main`을 기준으로 각자 Fork한 저장소에서 기능별 브랜치를 생성합니다.
+
 ```text
-main
- └── develop
-      ├── feat/기능명
-      ├── fix/기능명
-      └── refactor/기능명
+dongjin0503/Silhouette (원본)
+└── main
+     ↑
+     └── Pull Request
+          ↑
+팀원 Fork 저장소
+├── feat/C1-blind-matching
+├── fix/C2-login-error
+└── refactor/C3-member-service
 ```
+
+- `main`: 원본 저장소의 통합 브랜치
+- `feat/*`: 새로운 기능 개발
+- `fix/*`: 버그 수정
+- `refactor/*`: 코드 구조 개선
+- `docs/*`: 문서 수정
+- `chore/*`: 설정 및 기타 작업
 
 ### Commit Convention
 
@@ -87,19 +121,38 @@ main
 |---|---|
 | feat | 새로운 기능 추가 |
 | fix | 버그 수정 |
+| hotfix | 긴급 오류 수정 |
 | refactor | 코드 리팩토링 |
 | style | 코드 스타일 및 포맷 수정 |
 | docs | 문서 수정 |
 | test | 테스트 코드 추가 및 수정 |
 | chore | 설정 및 기타 작업 |
 
-**작성 예시:** `feat: 알고리즘 매칭 기능 구현`
+작성 예시: `feat: 알고리즘 매칭 기능 구현`
 
 ### Pull Request 규칙
 
-- `main`, `develop` 브랜치 직접 Push 금지
+- 원본 `main` 브랜치에 직접 Push 금지
 - 기능별 브랜치에서 작업 후 Pull Request 생성
-- 코드 리뷰 및 승인 후 병합
-- 커밋 메시지와 PR 제목은 Convention 준수
+- PR 제목은 `[타입] 작업 내용` 형식으로 작성
+- 최소 1명 이상의 코드 리뷰 및 승인 후 병합
+- 병합 방식은 Squash and merge 사용
 
-자세한 내용은 [CONVENTION.md](./CONVENTION.md)를 참고하세요.
+PR 제목 작성 예시:
+
+- `[Feat] 알고리즘 매칭 기능 구현`
+- `[Fix] 로그인 오류 수정`
+- `[Refactor] 회원 서비스 구조 개선`
+- `[Docs] README 협업 규칙 수정`
+
+자세한 협업 방법은 [CONVENTION.md](./CONVENTION.md)를 참고하세요.
+
+## 🔒 보안 규칙
+
+- DB 비밀번호, API 키 등 민감 정보는 GitHub에 업로드하지 않습니다.
+- 환경변수 및 개인별 설정 파일은 `.gitignore`로 관리합니다.
+- 실제 개인정보를 테스트 데이터로 사용하지 않습니다.
+
+## 📝 참고 문서
+
+- [협업 컨벤션](./CONVENTION.md)
