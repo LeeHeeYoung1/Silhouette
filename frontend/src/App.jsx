@@ -5,6 +5,7 @@ import Login from './pages/login/login';
 import Signup from './pages/signup/signup';
 import MyPage from './pages/home/mypage/mypage';
 import Post from './pages/post/post';
+import Live from './pages/live/live';
 import styles from './App.module.css';
 
 function App() {
@@ -62,7 +63,15 @@ function App() {
               className={({ isActive }) =>
                 `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
               }
+            >              
+            <NavLink
+              to="/live"
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
             >
+              라이브
+            </NavLink>
               마이페이지
             </NavLink>
             <NavLink
@@ -102,6 +111,7 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/post" element={<Post />} />
           <Route path="/board" element={<Post />} />
+          <Route path="/live" element={<Live />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
