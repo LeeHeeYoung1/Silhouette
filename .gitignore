@@ -41,3 +41,6 @@ coverage/
 # ==============================
 .DS_Store
 Thumbs.db
+
+# GCP Key Files
+project-*.json
