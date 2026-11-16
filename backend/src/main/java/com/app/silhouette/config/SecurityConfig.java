@@ -20,7 +20,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/live-test/**").permitAll()
                 .requestMatchers("/error").permitAll()          // 진짜 에러 메시지 보이게
                 .requestMatchers("/*.html", "/js/**", "/css/**").permitAll() // 정적 테스트 페이지를 쓴다면
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
             );
         return http.build();
     }
