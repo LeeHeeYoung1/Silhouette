@@ -59,6 +59,7 @@
     gap: 12px;
     background: linear-gradient(135deg, #fff 40%, #d8b4fe 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     cursor: pointer;
 }
@@ -664,7 +665,7 @@
 }
 
 /* =========================================================
-   새 글 작성 화면 전용 UI (PostWrite / Detail UI)
+   새 글 작성 화면 전용 UI (PostWrite)
    ========================================================= */
 .writeCard {
     background: var(--bg-card);
@@ -771,6 +772,155 @@
 .cancelBtn:hover {
     border-color: var(--primary-light);
     color: #c084fc;
+}
+
+/* ---------- 첨부파일 업로드 (PostWrite) ---------- */
+.uploadZone {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.06) 0%, rgba(236, 72, 153, 0.04) 100%);
+    border: 2px dashed rgba(168, 85, 247, 0.35);
+    border-radius: var(--radius-md);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-sub);
+    font-family: inherit;
+    transition: all 0.25s ease;
+}
+
+.uploadZone i {
+    font-size: 2rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: transform 0.25s ease;
+}
+
+.uploadZone:hover:not(:disabled) {
+    border-color: var(--primary-light);
+    border-style: solid;
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.12) 0%, rgba(236, 72, 153, 0.08) 100%);
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.08), 0 8px 24px rgba(168, 85, 247, 0.18);
+}
+
+.uploadZone:hover:not(:disabled) i {
+    transform: translateY(-3px);
+}
+
+.uploadZone:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.uploadMain {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e9d5ff;
+}
+
+.uploadSub {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+}
+
+.fileList {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+}
+
+.fileItem {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s, transform 0.15s;
+    animation: fileIn 0.25s ease;
+}
+
+.fileItem:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+}
+
+@keyframes fileIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.filePreview {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+}
+
+.fileIconBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: #c084fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.fileInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.fileName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fileSize {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.fileRemoveBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.fileRemoveBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
 }
 
 /* 빈 상태 */

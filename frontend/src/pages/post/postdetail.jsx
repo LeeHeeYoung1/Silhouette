@@ -1,51 +1,39 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getStoredPosts, saveStoredPosts } from './postData';
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import styles from './post.module.css';
 
 /* =========================================================
    실루엣 게시글 상세 컴포넌트 (PostDetail) - 담당: 권형석
    - 경로: /post/detail/:id
-   - B001 게시글 상세 조회 (조회수 증가, 본문, 첨부파일)
-   - M008 연계 추천 토글 (1인 1회 추천/취소)
-   - 댓글 및 대댓글(답글) 작성 및 삭제
-   - 본인 작성 글 삭제
+   - B001 게시글 상세 조회 (조회수 증가, 본문)
+   - 추천 토글 (1인 1회)
+   - 댓글 / 대댓글 작성
+   - 본인 글 삭제
    ========================================================= */
 
 function PostDetail() {
-    const { id } = useParams();
-    const navigate = useNavigate();
+    const { id } = useParams();   // 주소의 글 번호 (/post/detail/5 → "5")
 
+    // 서버에서 받아올 데이터 (지금은 비어 있음)
     const [post, setPost] = useState(null);
-    const [hasLiked, setHasLiked] = useState(false);
+    const [comments, setComments] = useState([]);
 
-    // 댓글 및 답글 입력 상태
+    // 화면 상태
+    const [hasLiked, setHasLiked] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [replyToId, setReplyToId] = useState(null);
     const [replyText, setReplyText] = useState('');
 
-    // 토스트
-    const [toast, setToast] = useState('');
-    const showToast = (msg) => {
-        setToast(msg);
-        clearTimeout(window.__pdToastTimer);
-        window.__pdToastTimer = setTimeout(() => setToast(''), 2500);
-    };
+    // 본인 글 여부 (로그인 연동 후 계산)
+    const isMine = false;
 
-    useEffect(() => {
-        const posts = getStoredPosts();
-        const targetPost = posts.find((p) => String(p.postSeq) === String(id));
+    // ===== 서버 연동 예정 함수들 =====
+    const handleToggleLike = () => {};
+    const handleAddComment = () => {};
+    const handleAddReply = (parentSeq) => {};
+    const handleDeletePost = () => {};
 
-        if (targetPost) {
-            // 조회수 1 증가 및 저장
-            const updated = posts.map((p) =>
-                String(p.postSeq) === String(id) ? { ...p, viewCount: p.viewCount + 1 } : p
-            );
-            saveStoredPosts(updated);
-            setPost({ ...targetPost, viewCount: targetPost.viewCount + 1 });
-        }
-    }, [id]);
-
+    // 글이 없을 때
     if (!post) {
         return (
             <div className={styles.detailCard}>
@@ -60,118 +48,15 @@ function PostDetail() {
         );
     }
 
-    // 추천 토글 (B001, M008)
-    const handleToggleLike = () => {
-        const posts = getStoredPosts();
-        const nextLike = !hasLiked;
-        setHasLiked(nextLike);
-
-        const newRecommendCount = nextLike ? post.recommendCount + 1 : Math.max(0, post.recommendCount - 1);
-        const updated = posts.map((p) =>
-            String(p.postSeq) === String(id) ? { ...p, recommendCount: newRecommendCount } : p
-        );
-        saveStoredPosts(updated);
-        setPost((prev) => ({ ...prev, recommendCount: newRecommendCount }));
-
-        showToast(nextLike ? '게시글을 추천하였습니다! 👍' : '추천이 취소되었습니다.');
-    };
-
-    // 댓글 등록
-    const handleAddComment = () => {
-        if (!commentText.trim()) {
-            alert('댓글 내용을 입력해 주세요.');
-            return;
-        }
-
-        const now = new Date();
-        const pad = (n) => String(n).padStart(2, '0');
-        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-        const newComment = {
-            id: Date.now(),
-            author: '권형석',
-            createdAt: formattedDate,
-            content: commentText.trim(),
-            replies: []
-        };
-
-        const updatedComments = [...(post.comments || []), newComment];
-        const newCommentCount = (post.commentCount || 0) + 1;
-
-        const posts = getStoredPosts();
-        const updated = posts.map((p) =>
-            String(p.postSeq) === String(id)
-                ? { ...p, comments: updatedComments, commentCount: newCommentCount }
-                : p
-        );
-        saveStoredPosts(updated);
-
-        setPost((prev) => ({ ...prev, comments: updatedComments, commentCount: newCommentCount }));
-        setCommentText('');
-        showToast('댓글이 등록되었습니다.');
-    };
-
-    // 대댓글(답글) 등록
-    const handleAddReply = (commentId) => {
-        if (!replyText.trim()) {
-            alert('답글 내용을 입력해 주세요.');
-            return;
-        }
-
-        const now = new Date();
-        const pad = (n) => String(n).padStart(2, '0');
-        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-        const newReply = {
-            id: Date.now(),
-            author: '권형석',
-            createdAt: formattedDate,
-            content: replyText.trim()
-        };
-
-        const updatedComments = post.comments.map((c) => {
-            if (c.id === commentId) {
-                return { ...c, replies: [...(c.replies || []), newReply] };
-            }
-            return c;
-        });
-        const newCommentCount = (post.commentCount || 0) + 1;
-
-        const posts = getStoredPosts();
-        const updated = posts.map((p) =>
-            String(p.postSeq) === String(id)
-                ? { ...p, comments: updatedComments, commentCount: newCommentCount }
-                : p
-        );
-        saveStoredPosts(updated);
-
-        setPost((prev) => ({ ...prev, comments: updatedComments, commentCount: newCommentCount }));
-        setReplyToId(null);
-        setReplyText('');
-        showToast('답글이 등록되었습니다.');
-    };
-
-    // 게시글 삭제
-    const handleDeletePost = () => {
-        if (!window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
-        const posts = getStoredPosts();
-        const updated = posts.filter((p) => String(p.postSeq) !== String(id));
-        saveStoredPosts(updated);
-        alert('게시글이 삭제되었습니다.');
-        navigate(post.boardType === 'notice' ? '/post/notice' : '/post/free');
-    };
-
-    const backUrl = post.boardType === 'notice' ? '/post/notice' : '/post/free';
-
     return (
         <div className={styles.detailCard}>
-            {/* 게시글 상단 헤더 */}
+            {/* 헤더 */}
             <div className={styles.detailHeader}>
                 <div>
                     <span className={styles.categoryBadge}>{post.category}</span>
                     <h1 className={styles.detailTitle}>{post.title}</h1>
                     <div className={styles.detailMeta}>
-                        <span>작성자: <strong>{post.category === '익명' ? '🎭 익명' : post.author}</strong></span>
+                        <span>작성자: <strong>{post.writerName}</strong></span>
                         <span>·</span>
                         <span>등록일시: <strong>{post.createdAt}</strong></span>
                         <span>·</span>
@@ -181,27 +66,17 @@ function PostDetail() {
                     </div>
                 </div>
 
-                <Link to={backUrl} className={styles.backToListBtn}>
+                <Link to="/post/free" className={styles.backToListBtn}>
                     <i className="fa-solid fa-arrow-left"></i> 목록으로
                 </Link>
             </div>
 
-            {/* 본문 내용 */}
+            {/* 본문 */}
             <div className={styles.detailContent}>
                 {post.content}
             </div>
 
-            {/* 첨부파일 영역 */}
-            {post.files && post.files.length > 0 && (
-                <div className={styles.attachedFileBox}>
-                    <i className="fa-solid fa-file-arrow-down" style={{ fontSize: '1.1rem' }}></i>
-                    <span>
-                        첨부 파일: <strong>{post.files.join(', ')}</strong> (클릭 시 가상 다운로드)
-                    </span>
-                </div>
-            )}
-
-            {/* 추천 버튼 영역 (M008 연계) */}
+            {/* 추천 버튼 */}
             <div className={styles.likeSection}>
                 <button
                     type="button"
@@ -213,13 +88,13 @@ function PostDetail() {
                 </button>
             </div>
 
-            {/* 하단 액션 버튼 (목록 복귀 & 삭제) */}
+            {/* 하단 버튼 */}
             <div className={styles.detailActionButtons}>
-                <Link to={backUrl} className={styles.backToListBtn}>
+                <Link to="/post/free" className={styles.backToListBtn}>
                     <i className="fa-solid fa-list"></i> 목록으로 이동
                 </Link>
 
-                {post.author === '권형석' && (
+                {isMine && (
                     <button
                         type="button"
                         className={styles.searchBtn}
@@ -231,7 +106,7 @@ function PostDetail() {
                 )}
             </div>
 
-            {/* 댓글 및 대댓글 영역 */}
+            {/* 댓글 영역 */}
             <div className={styles.commentSection}>
                 <div className={styles.commentTitle}>
                     <i className="fa-regular fa-comment-dots"></i>
@@ -239,11 +114,11 @@ function PostDetail() {
                 </div>
 
                 <div className={styles.commentList}>
-                    {post.comments && post.comments.length > 0 ? (
-                        post.comments.map((comment) => (
-                            <div key={comment.id} className={styles.commentItem}>
+                    {comments.length > 0 ? (
+                        comments.map((comment) => (
+                            <div key={comment.postCommentSeq} className={styles.commentItem}>
                                 <div className={styles.commentAuthorBar}>
-                                    <span className={styles.commentAuthor}>{comment.author}</span>
+                                    <span className={styles.commentAuthor}>{comment.writerName}</span>
                                     <span className={styles.commentDate}>{comment.createdAt}</span>
                                 </div>
                                 <div className={styles.commentBody}>{comment.content}</div>
@@ -251,7 +126,7 @@ function PostDetail() {
                                     <button
                                         type="button"
                                         className={styles.commentActionLink}
-                                        onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
+                                        onClick={() => setReplyToId(replyToId === comment.postCommentSeq ? null : comment.postCommentSeq)}
                                     >
                                         답글 달기
                                     </button>
@@ -259,9 +134,9 @@ function PostDetail() {
 
                                 {/* 대댓글 목록 */}
                                 {comment.replies && comment.replies.map((reply) => (
-                                    <div key={reply.id} className={`${styles.commentItem} ${styles.replyItem}`}>
+                                    <div key={reply.postCommentSeq} className={`${styles.commentItem} ${styles.replyItem}`}>
                                         <div className={styles.commentAuthorBar}>
-                                            <span className={styles.commentAuthor}>↳ {reply.author}</span>
+                                            <span className={styles.commentAuthor}>↳ {reply.writerName}</span>
                                             <span className={styles.commentDate}>{reply.createdAt}</span>
                                         </div>
                                         <div className={styles.commentBody}>{reply.content}</div>
@@ -269,7 +144,7 @@ function PostDetail() {
                                 ))}
 
                                 {/* 대댓글 입력창 */}
-                                {replyToId === comment.id && (
+                                {replyToId === comment.postCommentSeq && (
                                     <div className={styles.commentForm}>
                                         <input
                                             type="text"
@@ -277,12 +152,12 @@ function PostDetail() {
                                             placeholder="답글을 작성하세요..."
                                             value={replyText}
                                             onChange={(e) => setReplyText(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddReply(comment.id)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddReply(comment.postCommentSeq)}
                                         />
                                         <button
                                             type="button"
                                             className={styles.commentSubmitBtn}
-                                            onClick={() => handleAddReply(comment.id)}
+                                            onClick={() => handleAddReply(comment.postCommentSeq)}
                                         >
                                             답글 등록
                                         </button>
@@ -297,27 +172,21 @@ function PostDetail() {
                     )}
                 </div>
 
-                {/* 신규 댓글 작성 폼 */}
+                {/* 새 댓글 작성 */}
                 <div className={styles.commentForm}>
                     <input
                         type="text"
                         className={styles.commentInput}
-                        placeholder="매너 있고 따뜻한 댓글을 남겨주세요 (비속어 필터 적용)"
+                        placeholder="매너 있고 따뜻한 댓글을 남겨주세요"
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                     />
-                    <button
-                        type="button"
-                        className={styles.commentSubmitBtn}
-                        onClick={handleAddComment}
-                    >
+                    <button type="button" className={styles.commentSubmitBtn} onClick={handleAddComment}>
                         댓글 등록
                     </button>
                 </div>
             </div>
-
-            {toast && <div className={styles.toast}>{toast}</div>}
         </div>
     );
 }
