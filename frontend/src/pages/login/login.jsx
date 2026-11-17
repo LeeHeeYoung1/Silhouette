@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './login.module.css';
+import Client from '../../api/client';
 
 function Login() {
   const navigate = useNavigate();
@@ -12,30 +13,39 @@ function Login() {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setErrorMessage('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setErrorMessage('');
 
-    if (!loginId.trim()) {
-      setErrorMessage('아이디를 입력해 주세요.');
-      return;
-    }
+  if (!loginId.trim()) {
+    setErrorMessage('아이디를 입력해 주세요.');
+    return;
+  }
 
-    if (!password) {
-      setErrorMessage('비밀번호를 입력해 주세요.');
-      return;
-    }
+  if (!password) {
+    setErrorMessage('비밀번호를 입력해 주세요.');
+    return;
+  }
 
-    // 임시 로그인 처리
-    // 실제 로그인 API 연결 후 이 부분 변경
+  try {
+    const resp = await Client.post('/auth/login', {
+      id: loginId,
+      pw: password
+    });
+
     setAuth({
-      token: 'mock_jwt_token',
-      id: loginId
+      token: resp.data.token,
+      id: resp.data.id
     });
 
     navigate('/');
-  };
 
+  } catch (error) {
+    setErrorMessage(
+      error.response?.data || '로그인에 실패했습니다.'
+    );
+  }
+};
   return (
     <div className={styles.card}>
       <div className={styles.header}>
