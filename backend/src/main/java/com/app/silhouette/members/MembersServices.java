@@ -27,4 +27,11 @@ public class MembersServices {
 
         return dao.insert(dto);
     }
+    
+ // 로그인
+    public int login(String id, String password) {
+        return dao.login(id, password);
+    }
+    
+ 
 }
