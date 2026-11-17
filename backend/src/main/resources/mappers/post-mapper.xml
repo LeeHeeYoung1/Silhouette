@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Post">
+
+	<!-- 아이디로 회원 번호 조회 (없으면 null) -->
+	<select id="selectMemberSeqByLoginId" parameterType="string" resultType="long">
+		SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{loginId}
+	</select>
+
+	<!-- 게시글 등록 -->
+	<insert id="insertPost" parameterType="com.app.silhouette.post.PostDTO">
+		<selectKey keyProperty="postSeq" resultType="long" order="BEFORE">
+			SELECT SEQ_POST.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO POST (	
+			POST_SEQ, CATEGORY, MEMBER_SEQ, TITLE, CONTENT,
+			VIEW_COUNT, RECOMMEND_COUNT, COMMENT_COUNT, IS_DELETED,
+			CREATED_AT, UPDATED_AT
+		) VALUES (
+			#{postSeq}, #{category}, #{memberSeq}, #{title}, #{content},
+			0, 0, 0, 'N',
+			SYSTIMESTAMP, SYSTIMESTAMP
+		)
+	</insert>
+
+
+	<insert id="insertPostFile" parameterType="com.app.silhouette.post.PostFileDTO">
+	INSERT INTO POST_FILE (
+		POST_FILE_SEQ, POST_SEQ, ORIGINAL_NAME, STORED_NAME,
+		FILE_PATH, FILE_SIZE, FILE_TYPE, SORT_ORDER, CREATED_AT
+	) VALUES (
+		SEQ_POST_FILE.NEXTVAL, #{postSeq}, #{originalName}, #{storedName},
+		#{filePath}, #{fileSize}, #{fileType}, #{sortOrder}, SYSTIMESTAMP
+	)
+	</insert>
+
+
+</mapper>

@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.livekit.server.AccessToken;
-
 import io.livekit.server.CanPublish;
 import io.livekit.server.CanSubscribe;
 import io.livekit.server.RoomJoin;
