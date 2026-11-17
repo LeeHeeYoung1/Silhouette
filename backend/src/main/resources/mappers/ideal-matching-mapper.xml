@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="IdealMatching">
+
+    <!-- ===================================================== -->
+    <!-- 공통                                                    -->
+    <!-- ===================================================== -->
+
+    <!-- 로그인 아이디 → 회원 번호 (JWT에는 LOGIN_ID만 있어서 변환 필요) -->
+    <select id="selectMemberSeqByLoginId" resultType="int">
+        SELECT MEMBER_SEQ
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+          AND MEMBER_STATUS = 'ACTIVE'
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 4단계: 매칭 요청                                        -->
+    <!-- ===================================================== -->
+
+    <!-- 프로필과 이상형을 모두 입력했는지 (2면 신청 가능) -->
+    <select id="countProfileAndIdeal" resultType="int">
+        SELECT (SELECT COUNT(*) FROM MEMBER_PROFILE WHERE MEMBER_SEQ = #{memberSeq})
+             + (SELECT COUNT(*) FROM MEMBER_IDEAL   WHERE MEMBER_SEQ = #{memberSeq})
+        FROM DUAL
+    </select>
+
+    <!-- 대기열 등록 (이미 있으면 PK 중복 에러) -->
+    <insert id="insertQueue">
+        INSERT INTO MATCH_QUEUE (MEMBER_SEQ, MATCH_TYPE, STATUS)
+        VALUES (#{memberSeq}, 'IDEAL', 'WAITING')
+    </insert>
+
+    <!-- 대기 취소 (이미 매칭됐으면 0건) -->
+    <delete id="deleteWaitingQueue">
+        DELETE FROM MATCH_QUEUE
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND MATCH_TYPE = 'IDEAL'
+          AND STATUS = 'WAITING'
+    </delete>
+
+    <!-- ===================================================== -->
+    <!-- 5~7단계: 후보 조회 → 점수 계산 → 랜덤 1명                -->
+    <!-- ===================================================== -->
+    <select id="selectCandidate" resultType="com.app.silhouette.matching.IdealCandidateDTO">
+    <![CDATA[
+        WITH cfg AS (
+            SELECT
+                NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_MIN_SCORE' THEN TO_NUMBER(CONFIG_VALUE) END), 70) AS MIN_SCORE,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_SMOKING'   THEN TO_NUMBER(CONFIG_VALUE) END), 3) AS W_SMOKING,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_DRINKING'  THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_DRINKING,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_RELIGION'  THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_RELIGION,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_HEIGHT'    THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_HEIGHT,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_MBTI'      THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_MBTI,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_WEIGHT'    THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_WEIGHT,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_FACE_TYPE' THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_FACE,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_SKIN_TYPE' THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_SKIN
+            FROM SYS_MATCHING_CONFIG
+        ),
+        cand AS (
+            SELECT q.MEMBER_SEQ
+            FROM MATCH_QUEUE q
+            JOIN MEMBER m        ON m.MEMBER_SEQ  = q.MEMBER_SEQ
+            JOIN MEMBER_IDEAL i  ON i.MEMBER_SEQ  = q.MEMBER_SEQ
+            JOIN MEMBER_PROFILE p ON p.MEMBER_SEQ = q.MEMBER_SEQ
+            JOIN MEMBER me       ON me.MEMBER_SEQ = #{memberSeq}
+            JOIN MEMBER_IDEAL mi ON mi.MEMBER_SEQ = #{memberSeq}
+            WHERE q.MATCH_TYPE = 'IDEAL'
+              AND q.STATUS     = 'WAITING'
+              AND q.MEMBER_SEQ <> #{memberSeq}
+              AND m.MEMBER_STATUS = 'ACTIVE'
+              AND m.GENDER <> me.GENDER
+              AND TRUNC(MONTHS_BETWEEN(SYSDATE, m.BIRTH_DATE) / 12)  BETWEEN mi.IDEAL_AGE_MIN AND mi.IDEAL_AGE_MAX
+              AND TRUNC(MONTHS_BETWEEN(SYSDATE, me.BIRTH_DATE) / 12) BETWEEN i.IDEAL_AGE_MIN  AND i.IDEAL_AGE_MAX
+              AND NOT EXISTS (
+                  SELECT 1 FROM MEMBER_BLOCK b
+                  WHERE (b.MEMBER_SEQ = #{memberSeq} AND b.BLOCKED_MEMBER_SEQ = q.MEMBER_SEQ)
+                     OR (b.MEMBER_SEQ = q.MEMBER_SEQ AND b.BLOCKED_MEMBER_SEQ = #{memberSeq}))
+              AND NOT EXISTS (
+                  SELECT 1 FROM IDEAL_MATCHING im
+                  WHERE ((im.MEMBER_SEQ_1 = #{memberSeq} AND im.MEMBER_SEQ_2 = q.MEMBER_SEQ)
+                      OR (im.MEMBER_SEQ_1 = q.MEMBER_SEQ AND im.MEMBER_SEQ_2 = #{memberSeq}))
+                    AND im.MATCHED_AT > SYSTIMESTAMP - INTERVAL '7' DAY)
+        ),
+        dir AS (
+            SELECT #{memberSeq} AS FROM_SEQ, MEMBER_SEQ AS TO_SEQ FROM cand
+            UNION ALL
+            SELECT MEMBER_SEQ, #{memberSeq} FROM cand
+        ),
+        item AS (
+            SELECT d.FROM_SEQ, d.TO_SEQ,
+                CASE WHEN fi.IDEAL_SMOKING   <> 'ANY' THEN c.W_SMOKING  ELSE 0 END AS A_SMOKING,
+                CASE WHEN INSTR(',' || fi.IDEAL_SMOKING   || ',', ',' || tp.SMOKING   || ',') > 0 THEN 1 ELSE 0 END AS H_SMOKING,
+                CASE WHEN fi.IDEAL_DRINKING  <> 'ANY' THEN c.W_DRINKING ELSE 0 END AS A_DRINKING,
+                CASE WHEN INSTR(',' || fi.IDEAL_DRINKING  || ',', ',' || tp.DRINKING  || ',') > 0 THEN 1 ELSE 0 END AS H_DRINKING,
+                CASE WHEN fi.IDEAL_RELIGION  <> 'ANY' THEN c.W_RELIGION ELSE 0 END AS A_RELIGION,
+                CASE WHEN INSTR(',' || fi.IDEAL_RELIGION  || ',', ',' || tp.RELIGION  || ',') > 0 THEN 1 ELSE 0 END AS H_RELIGION,
+                CASE WHEN fi.IDEAL_MBTI      <> 'ANY' THEN c.W_MBTI     ELSE 0 END AS A_MBTI,
+                CASE WHEN INSTR(',' || fi.IDEAL_MBTI      || ',', ',' || tp.MBTI      || ',') > 0 THEN 1 ELSE 0 END AS H_MBTI,
+                CASE WHEN fi.IDEAL_FACE_TYPE <> 'ANY' THEN c.W_FACE     ELSE 0 END AS A_FACE,
+                CASE WHEN INSTR(',' || fi.IDEAL_FACE_TYPE || ',', ',' || tp.FACE_TYPE || ',') > 0 THEN 1 ELSE 0 END AS H_FACE,
+                CASE WHEN fi.IDEAL_SKIN_TYPE <> 'ANY' THEN c.W_SKIN     ELSE 0 END AS A_SKIN,
+                CASE WHEN INSTR(',' || fi.IDEAL_SKIN_TYPE || ',', ',' || tp.SKIN_TYPE || ',') > 0 THEN 1 ELSE 0 END AS H_SKIN,
+                CASE WHEN NOT (fi.IDEAL_HEIGHT_MIN = 0 AND fi.IDEAL_HEIGHT_MAX = 300) THEN c.W_HEIGHT ELSE 0 END AS A_HEIGHT,
+                CASE WHEN tp.HEIGHT BETWEEN fi.IDEAL_HEIGHT_MIN AND fi.IDEAL_HEIGHT_MAX THEN 1 ELSE 0 END AS H_HEIGHT,
+                CASE WHEN NOT (fi.IDEAL_WEIGHT_MIN = 0 AND fi.IDEAL_WEIGHT_MAX = 300) THEN c.W_WEIGHT ELSE 0 END AS A_WEIGHT,
+                CASE WHEN tp.WEIGHT BETWEEN fi.IDEAL_WEIGHT_MIN AND fi.IDEAL_WEIGHT_MAX THEN 1 ELSE 0 END AS H_WEIGHT
+            FROM dir d
+            JOIN MEMBER_IDEAL   fi ON fi.MEMBER_SEQ = d.FROM_SEQ
+            JOIN MEMBER_PROFILE tp ON tp.MEMBER_SEQ = d.TO_SEQ
+            CROSS JOIN cfg c
+        ),
+        dir_score AS (
+            SELECT FROM_SEQ, TO_SEQ,
+                NVL( (A_SMOKING*H_SMOKING + A_DRINKING*H_DRINKING + A_RELIGION*H_RELIGION + A_MBTI*H_MBTI
+                    + A_FACE*H_FACE + A_SKIN*H_SKIN + A_HEIGHT*H_HEIGHT + A_WEIGHT*H_WEIGHT)
+                   / NULLIF(A_SMOKING + A_DRINKING + A_RELIGION + A_MBTI
+                          + A_FACE + A_SKIN + A_HEIGHT + A_WEIGHT, 0) * 100
+                   , 100) AS SCORE
+            FROM item
+        )
+        SELECT * FROM (
+            SELECT ab.TO_SEQ                           AS CANDIDATE_SEQ,
+                   ROUND(ab.SCORE, 2)                  AS SCORE_ME_TO_CAND,
+                   ROUND(ba.SCORE, 2)                  AS SCORE_CAND_TO_ME,
+                   ROUND(SQRT(ab.SCORE * ba.SCORE), 2) AS MUTUAL_SCORE
+            FROM dir_score ab
+            JOIN dir_score ba ON ba.FROM_SEQ = ab.TO_SEQ AND ba.TO_SEQ = ab.FROM_SEQ
+            CROSS JOIN cfg c
+            WHERE ab.FROM_SEQ = #{memberSeq}
+              AND SQRT(ab.SCORE * ba.SCORE) >= c.MIN_SCORE
+            ORDER BY DBMS_RANDOM.VALUE
+        )
+        WHERE ROWNUM = 1
+    ]]>
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 8단계: 매칭 확정 + 채팅방 생성                           -->
+    <!-- ===================================================== -->
+
+    <!-- 두 사람 모두 WAITING일 때만 MATCHED로 (결과가 2여야 성공) -->
+    <update id="updateQueueMatched">
+        UPDATE MATCH_QUEUE
+        SET STATUS = 'MATCHED'
+        WHERE MEMBER_SEQ IN (#{memberSeq}, #{targetSeq})
+          AND MATCH_TYPE = 'IDEAL'
+          AND STATUS = 'WAITING'
+    </update>
+
+    <!-- 매칭 이력 저장 (번호는 dto.ideal_Matching_Seq에 채워짐) -->
+    <insert id="insertMatching" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
+        <selectKey keyProperty="ideal_Matching_Seq" resultType="int" order="BEFORE">
+            SELECT IDEAL_MATCHING_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO IDEAL_MATCHING
+            (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS)
+        VALUES
+            (#{ideal_Matching_Seq}, #{member_Seq_1}, #{member_Seq_2}, #{score}, #{score_1_To_2}, #{score_2_To_1}, 'MATCHED')
+    </insert>
+
+    <!-- 채팅방 생성 (번호는 dto.chat_Room_Seq에 채워짐) -->
+    <insert id="insertChatRoom" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
+        <selectKey keyProperty="chat_Room_Seq" resultType="int" order="BEFORE">
+            SELECT CHAT_ROOM_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_ROOM
+            (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT)
+        VALUES
+            (#{chat_Room_Seq}, NULL, 'IDEAL', #{ideal_Matching_Seq}, #{member_Seq_1}, 'OPEN', SYSDATE)
+    </insert>
+
+    <!-- 채팅방 참여자 등록 -->
+    <insert id="insertParticipant">
+        INSERT INTO CHAT_PARTICIPANT
+            (CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ, MEMBER_SEQ, PARTICIPANT_ROLE, PARTICIPANT_STATUS, JOINED_AT)
+        VALUES
+            (CHAT_PARTICIPANT_SEQ.NEXTVAL, #{chatRoomSeq}, #{memberSeq}, #{role}, 'JOINED', SYSDATE)
+    </insert>
+
+    <!-- ===================================================== -->
+    <!-- 대기 중인 사람이 매칭됐는지 확인 (진행 중인 매칭 조회)     -->
+    <!-- ===================================================== -->
+    <select id="selectActiveMatching" resultType="com.app.silhouette.matching.IdealMatchingDTO">
+        SELECT im.IDEAL_MATCHING_SEQ, im.MEMBER_SEQ_1, im.MEMBER_SEQ_2,
+               im.SCORE, im.SCORE_1_TO_2, im.SCORE_2_TO_1,
+               im.STATUS, im.MATCHED_AT, im.ENDED_AT,
+               r.CHAT_ROOM_SEQ
+        FROM IDEAL_MATCHING im
+        JOIN CHAT_ROOM r ON r.MATCHING_SEQ = im.IDEAL_MATCHING_SEQ AND r.ROOM_TYPE = 'IDEAL'
+        WHERE (im.MEMBER_SEQ_1 = #{memberSeq} OR im.MEMBER_SEQ_2 = #{memberSeq})
+          AND im.STATUS = 'MATCHED'
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 9단계: 매칭 종료                                        -->
+    <!-- ===================================================== -->
+
+    <!-- 채팅방 번호로 매칭 정보 조회 -->
+    <select id="selectMatchingByRoom" resultType="com.app.silhouette.matching.IdealMatchingDTO">
+        SELECT im.IDEAL_MATCHING_SEQ, im.MEMBER_SEQ_1, im.MEMBER_SEQ_2,
+               im.SCORE, im.STATUS, r.CHAT_ROOM_SEQ
+        FROM CHAT_ROOM r
+        JOIN IDEAL_MATCHING im ON im.IDEAL_MATCHING_SEQ = r.MATCHING_SEQ
+        WHERE r.CHAT_ROOM_SEQ = #{chatRoomSeq}
+          AND r.ROOM_TYPE = 'IDEAL'
+    </select>
+
+    <update id="updateChatRoomClosed">
+        UPDATE CHAT_ROOM
+        SET ROOM_STATUS = 'CLOSED', CLOSED_AT = SYSDATE
+        WHERE CHAT_ROOM_SEQ = #{chatRoomSeq}
+          AND ROOM_STATUS = 'OPEN'
+    </update>
+
+    <update id="updateParticipantsLeft">
+        UPDATE CHAT_PARTICIPANT
+        SET PARTICIPANT_STATUS = 'LEFT', LEFT_AT = SYSDATE
+        WHERE CHAT_ROOM_SEQ = #{chatRoomSeq}
+          AND PARTICIPANT_STATUS = 'JOINED'
+    </update>
+
+    <update id="updateMatchingEnded">
+        UPDATE IDEAL_MATCHING
+        SET STATUS = 'ENDED', ENDED_AT = SYSTIMESTAMP
+        WHERE IDEAL_MATCHING_SEQ = #{idealMatchingSeq}
+          AND STATUS = 'MATCHED'
+    </update>
+
+    <delete id="deleteMatchedQueue">
+        DELETE FROM MATCH_QUEUE
+        WHERE MEMBER_SEQ IN (#{memberSeq}, #{targetSeq})
+          AND MATCH_TYPE = 'IDEAL'
+          AND STATUS = 'MATCHED'
+    </delete>
+
+</mapper>
