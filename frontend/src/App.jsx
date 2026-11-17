@@ -8,6 +8,7 @@ import Layout from './pages/layout/layout';
 import MyPage from './pages/home/mypage/mypage';
 import Post from './pages/post/post';
 import Live from './pages/live/live';
+import Chatting from './pages/chatting/chatting';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/chatting" element={<Chatting />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
