@@ -26,7 +26,8 @@ function Login() {
       return;
     }
 
-    // 임시 로그인 처리 (추후 STS4 DB 연동 예정)
+    // 임시 로그인 처리
+    // 실제 로그인 API 연결 후 이 부분 변경
     setAuth({
       token: 'mock_jwt_token',
       id: loginId
@@ -38,8 +39,14 @@ function Login() {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <div className={styles.badge}>✨ SILHOUETTE DATING</div>
-        <h1 className={styles.title}>실루엣 (Silhouette)</h1>
+        <div className={styles.badge}>
+          ✨ SILHOUETTE DATING
+        </div>
+
+        <h1 className={styles.title}>
+          실루엣 (Silhouette)
+        </h1>
+
         <p className={styles.subtitle}>
           베일에 싸인 매력적인 인연을 만나는 곳
         </p>
@@ -53,9 +60,13 @@ function Login() {
         )}
 
         <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor="loginId">
-            <span>아이디</span>
+          <label
+            className={styles.formLabel}
+            htmlFor="loginId"
+          >
+            아이디
           </label>
+
           <input
             id="loginId"
             type="text"
@@ -68,9 +79,13 @@ function Login() {
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor="loginPassword">
-            <span>비밀번호</span>
+          <label
+            className={styles.formLabel}
+            htmlFor="loginPassword"
+          >
+            비밀번호
           </label>
+
           <input
             id="loginPassword"
             type="password"
@@ -82,7 +97,10 @@ function Login() {
           />
         </div>
 
-        <button type="submit" className={styles.submitBtn}>
+        <button
+          type="submit"
+          className={styles.submitBtn}
+        >
           로그인하기
         </button>
 
@@ -90,6 +108,7 @@ function Login() {
           <span className={styles.signupPromptText}>
             아직 실루엣 회원이 아니신가요?
           </span>
+
           <button
             type="button"
             className={styles.signupLinkBtn}

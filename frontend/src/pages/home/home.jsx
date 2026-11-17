@@ -33,6 +33,7 @@ function Home() {
         <h2 className={styles.welcomeTitle}>
           {id || '회원'}님
         </h2>
+        
 
         <p className={styles.subtitle}>
           현재 실루엣에 로그인된 상태입니다.
