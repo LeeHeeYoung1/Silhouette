@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
+import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch } from '../../api/matching';
 
 // 주소지 기반 위치 랜덤 리스팅 매칭 풀 데이터
 const INITIAL_LOCATION_PROFILES = [
@@ -144,6 +145,77 @@ function Home() {
     }
   }, [chatMessages, isChatOpen]);
 
+  // 이상형 매칭 성공 처리 (채팅 화면이 생기면 결과 화면으로 바꿀 예정)
+  const handleIdealMatched = useCallback((result) => {
+    setIsIdealMatching(false);
+    alert(`💖 매칭 성공!\n상대 회원: ${result.partner_Seq}번\n상호 점수: ${result.score}점\n채팅방: ${result.chat_Room_Seq}번`);
+  }, []);
+
+  // 이상형 매칭 신청
+  const handleIdealStart = async () => {
+    try {
+      const { data } = await startIdealMatch();
+
+      if (data.status === 'MATCHED') {
+        handleIdealMatched(data);      // 조건 맞는 상대가 이미 기다리고 있었음
+      } else {
+        setIsIdealMatching(true);      // WAITING → 검색 중 화면
+      }
+    } catch (error) {
+      // 서버가 보낸 메시지 (예: "프로필과 이상형을 먼저 입력해주세요.")
+      const message = error.response?.data || '매칭 신청 중 오류가 발생했어요.';
+      alert(message);
+    }
+  };
+
+  // 대기 중일 때 3초마다 매칭 여부 확인
+  useEffect(() => {
+    if (!isIdealMatching) return;
+
+    let stopped = false;   // 화면을 벗어난 뒤 늦게 도착한 응답 무시용
+
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await getIdealMatchStatus();
+        if (!stopped && data.status === 'MATCHED') {
+          stopped = true;
+          clearInterval(timer);
+          handleIdealMatched(data);
+        }
+      } catch {
+        // 일시적인 오류는 무시하고 다음 주기에 다시 확인
+      }
+    }, 3000);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [isIdealMatching, handleIdealMatched]);
+
+  // 이상형 매칭 대기 취소
+  const handleIdealCancel = async () => {
+    try {
+      await cancelIdealMatch();
+      setIsIdealMatching(false);
+    } catch (error) {
+      // 409: 취소를 누르는 순간 이미 매칭됨 → 매칭 결과를 보여줌
+      if (error.response?.status === 409) {
+        try {
+          const { data } = await getIdealMatchStatus();
+          if (data.status === 'MATCHED') {
+            handleIdealMatched(data);
+            return;
+          }
+        } catch {
+          // 아래 공통 처리로 넘어감
+        }
+      }
+      setIsIdealMatching(false);
+      alert(error.response?.data || '취소 중 오류가 발생했어요.');
+    }
+  };
+
   const handleShuffleLocation = () => {
     setLocationProfiles((prev) => [...prev].sort(() => Math.random() - 0.5));
   };
@@ -230,8 +302,8 @@ function Home() {
             waitingLabel="이상형 매칭 풀"
             waitingCount={waitingIdealUsers}
             isMatching={isIdealMatching}
-            onStart={() => setIsIdealMatching(true)}
-            onCancel={() => setIsIdealMatching(false)}
+            onStart={handleIdealStart}
+            onCancel={handleIdealCancel}
             btnSubtitle="IDEAL MATCH"
             guideContent={
               <div className={styles.idealKeywords}>
