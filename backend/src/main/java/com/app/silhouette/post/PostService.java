@@ -4,10 +4,14 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 
@@ -78,5 +82,41 @@ public class PostService {
 	
 	public List<PostDTO> selectAll(String category){
 		return postDAO.selectALl(category);
+	}
+	
+	@Transactional
+	public PostDTO selectPost(Long postSeq) {
+		postDAO.updateViewCount(postSeq);
+		return postDAO.selectPost(postSeq);
+	}
+	public List<PostFileDTO> selectPostFiles(Long postSeq){
+		return postDAO.selectPostFiles(postSeq);
+		
+	}
+	public PostFileDTO selectPostDownload(Long postFileSeq, String loginId) {
+		checkMember(loginId);
+		PostFileDTO file= postDAO.PostDownLoad(postFileSeq);
+		if(file == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
+		}
+		return file;
+	}
+
+	// GCS에서 파일 내용 꺼내기
+	public byte[] downloadFile(PostFileDTO file) {
+	    String objectName =  file.getStoredName();
+	    Blob blob = storage.get(BlobId.of(bucket, objectName));
+	    if (blob == null) {
+	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "저장소에 파일이 없습니다.");
+	    }
+	    return blob.getContent();
+	}
+
+	// 회원 확인 (JWT 완성 전 임시: loginId로 확인)
+	private void checkMember(String loginId) {
+	    if (loginId == null || loginId.isBlank()
+	            || postDAO.selectMemberSeqByLoginId(loginId) == null) {
+	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 다운로드할 수 있습니다.");
+	    }
 	}
 }
