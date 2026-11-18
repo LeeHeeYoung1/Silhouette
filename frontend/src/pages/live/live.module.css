@@ -34,3 +34,55 @@
 .room {
   height: calc(100vh - 120px);
 }
+.lobby {
+  max-width: 480px;
+}
+
+.buttons input {
+  flex: 2;
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info span {
+  font-size: 13px;
+  color: #888;
+}
+
+.mine {
+  font-size: 13px;
+  color: #888;
+}
+
+.empty {
+  color: #888;
+}
