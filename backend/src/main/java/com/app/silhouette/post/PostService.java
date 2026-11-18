@@ -1,6 +1,7 @@
 package com.app.silhouette.post;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -132,5 +133,63 @@ public class PostService {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인 글만 삭제할 수 있습니다.");
 		}
 	}
+	
+	// ===================== 추천 =====================
+
+		// 내가 추천했는지 + 현재 추천수 조회
+		public Map<String, Object> selectRecommend(Long postSeq, String loginId) {
+			// 1) 로그인 회원번호 확인 (없으면 401)
+			Long memberSeq = getLoginMemberSeq(loginId);
+
+			// 2) 글이 있는지 확인 (삭제됐거나 없으면 404)
+			Integer count = postDAO.selectRecommendCount(postSeq);
+			if (count == null) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글이 없습니다.");
+			}
+
+			// 3) 내가 추천했는지 확인
+			boolean liked = postDAO.countRecommend(postSeq, memberSeq) > 0;
+
+			return Map.of("liked", liked, "recommendCount", count);
+		}
+
+		// 추천 토글 (추천 ↔ 취소)
+		@Transactional
+		public Map<String, Object> toggleRecommend(Long postSeq, String loginId) {
+			// 1) 로그인 회원번호 확인 (없으면 401)
+			Long memberSeq = getLoginMemberSeq(loginId);
+
+			// 2) 글이 있는지 확인 (삭제됐거나 없으면 404)
+			if (postDAO.selectRecommendCount(postSeq) == null) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글이 없습니다.");
+			}
+
+			// 3) 이미 추천했으면 취소, 아니면 추천
+			boolean liked;
+			if (postDAO.countRecommend(postSeq, memberSeq) > 0) {
+				postDAO.deleteRecommend(postSeq, memberSeq);   // 기록 삭제
+				postDAO.updateRecommendCount(postSeq, -1);      // 추천수 -1
+				liked = false;
+			} else {
+				postDAO.insertRecommend(postSeq, memberSeq);   // 기록 추가
+				postDAO.updateRecommendCount(postSeq, 1);       // 추천수 +1
+				liked = true;
+			}
+
+			// 4) 바뀐 추천수를 다시 조회해서 돌려줌
+			int newCount = postDAO.selectRecommendCount(postSeq);
+			return Map.of("liked", liked, "recommendCount", newCount);
+		}
+
+		// 로그인 아이디 → 회원번호 (JWT 전 임시 방식, 없으면 401)
+		private Long getLoginMemberSeq(String loginId) {
+			Long memberSeq = (loginId == null || loginId.isBlank())
+					? null
+					: postDAO.selectMemberSeqByLoginId(loginId);
+			if (memberSeq == null) {
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 이용할 수 있습니다.");
+			}
+			return memberSeq;
+		}
 	
 }

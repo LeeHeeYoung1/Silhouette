@@ -94,5 +94,29 @@
 		and member_seq = #{memberSeq}
 		and is_deleted= 'N'
 		</update>
+		
+		<select id="countRecommend" parameterType="map" resultType="int">
+    		select count(*) from post_recommend
+    		 where post_seq = #{postSeq} and member_seq = #{memberSeq}
+		</select>
 
+		<insert id="insertRecommend" parameterType="map">
+    		insert into post_recommend (post_recommend_seq, post_seq, member_seq, created_at)
+   			 values (seq_post_recommend.nextval, #{postSeq}, #{memberSeq}, systimestamp)
+		</insert>
+
+		<delete id="deleteRecommend" parameterType="map">
+   			 delete from post_recommend
+   			  where post_seq = #{postSeq} and member_seq = #{memberSeq}
+		</delete>
+
+		<update id="updateRecommendCount" parameterType="map">
+   			 update post set recommend_count = recommend_count + #{amount}
+   			  where post_seq = #{postSeq}
+		</update>
+
+		<select id="selectRecommendCount" parameterType="long" resultType="int">
+    		select recommend_count from post
+    		 where post_seq = #{postSeq} and is_deleted = 'N'
+		</select>
 </mapper>

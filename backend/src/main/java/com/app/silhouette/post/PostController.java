@@ -2,6 +2,7 @@ package com.app.silhouette.post;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
@@ -83,6 +84,20 @@ public class PostController {
 			@RequestParam(value = "loginId", required = false) String loginId){
 		postService.deletePost(postSeq, loginId);
 		return ResponseEntity.ok().build();
+	}
+	@GetMapping("/{postSeq}/recommend")
+	public Map<String, Object> selectRecommend(
+			@PathVariable("postSeq") Long postSeq,
+			@RequestParam(value = "loginId", required = false) String loginId) {
+		return postService.selectRecommend(postSeq, loginId);
+	}
+
+	// 추천 토글 (추천 ↔ 취소)
+	@PostMapping("/{postSeq}/recommend")
+	public Map<String, Object> toggleRecommend(
+			@PathVariable("postSeq") Long postSeq,
+			@RequestParam(value = "loginId", required = false) String loginId) {
+		return postService.toggleRecommend(postSeq, loginId);
 	}
 			
 }

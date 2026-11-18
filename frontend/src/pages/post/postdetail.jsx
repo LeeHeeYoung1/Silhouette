@@ -76,6 +76,37 @@ function PostDetail() {
     // 서버에서 받아올 데이터 (지금은 비어 있음)
     const [post, setPost] = useState(null);
     const [comments, setComments] = useState([]);
+    const [hasLiked, setHasLiked] = useState(false);
+
+    useEffect(()=>{
+        if(!loginId) return;
+        Client.get(`/api/posts/${id}/recommend`,{
+            params: {loginId},
+
+        })
+        .then((res)=> setHasLiked(res.data.liked))
+        .catch((err)=> console.error(err));
+    }, [id, loginId]);
+
+     const handleToggleLike = async () => {
+        if(!token){
+            alert('로그인한 회원만 추천할 수 있습니다.');
+            navigate('/login');
+            return;
+        }
+        try{
+            const res= await Client.post(`/api/posts/${id}/recommend`, null, {
+                params: {loginId},
+            });
+            setHasLiked(res.data.liked);
+            setPost((prev)=>({
+                ...prev, recommendCount: res.data.recommendCount
+            }));
+        }catch (err){
+            console.error(err);
+            alert('추천 처리에 실패했습니다.');
+        }
+     };
 
     useEffect(()=>{
         Client.get(`/api/posts/${id}/files`)
@@ -94,15 +125,15 @@ function PostDetail() {
     }, [id]);
 
     // 화면 상태
-    const [hasLiked, setHasLiked] = useState(false);
+    
     const [commentText, setCommentText] = useState('');
     const [replyToId, setReplyToId] = useState(null);
     const [replyText, setReplyText] = useState('');
 
    const isMine = !!loginId && post?.loginId === loginId;
-    console.log('로그인 아이디:', loginId, '/ 글쓴이 아이디:', post?.loginId, '/ isMine:', isMine);
+    
     // ===== 서버 연동 예정 함수들 =====
-    const handleToggleLike = () => {};
+  
     const handleAddComment = () => {};
     const handleAddReply = (parentSeq) => {};
    
