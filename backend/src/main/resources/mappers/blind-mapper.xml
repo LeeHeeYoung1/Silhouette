@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Blind">
+	
+	<insert id="insertBlindChatRoom">
+		<selectKey keyProperty="blindChatRoomSeq" resultType="Long" order="BEFORE">
+			select blind_chat_room_seq.nextval from dual
+		</selectKey>
+		
+		insert into blind_chat_room values(#{blindChatRoomSeq}, #{blindMatchingSeq}, #{LinkedChatRoomSeq},
+				#{timeLimitMin}, sysdate, sysdate + (#{timeLimitMin} / 24 / 60), #{status}, sysdate)
+				
+	</insert>
+	
+	
+</mapper>
