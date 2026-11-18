@@ -2,12 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
-<<<<<<< HEAD
 import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch } from '../../api/matching';
-=======
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
->>>>>>> feat/blind_matching
+
 
 // 주소지 기반 위치 랜덤 리스팅 매칭 풀 데이터
 const INITIAL_LOCATION_PROFILES = [
@@ -151,7 +149,7 @@ function Home() {
     }
   }, [chatMessages, isChatOpen]);
 
-<<<<<<< HEAD
+
   // 이상형 매칭 성공 처리 (채팅 화면이 생기면 결과 화면으로 바꿀 예정)
   const handleIdealMatched = useCallback((result) => {
     setIsIdealMatching(false);
@@ -220,11 +218,15 @@ function Home() {
       }
       setIsIdealMatching(false);
       alert(error.response?.data || '취소 중 오류가 발생했어요.');
-=======
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
 
-    const brokerURL = 'ws://10.5.4.14/blind';
+    // 접속 호스트가 있으면 해당 호스트 사용, fallback으로 10.5.4.14 사용
+    const wsHost = window.location.hostname || '10.5.4.14';
+    const brokerURL = `ws://${wsHost}/blind`;
 
     const client = new StompClient({
       brokerURL: brokerURL,
@@ -269,7 +271,7 @@ function Home() {
   }, [token, id, navi]);
 
   // 블라인드 매칭 시스템
-  const handelBlindMatching = () => {
+  const handleBlindMatching = () => {
     // 1. 매칭 중 탐색(레이더 UI) 화면으로 즉시 전환
     setIsBlindMatching(true);
 
@@ -284,7 +286,7 @@ function Home() {
     }
   };
 
-  const handelCancelBlindMatching = () => {
+  const handleCancelBlindMatching = () => {
     setIsBlindMatching(false);
 
     if (stompClient && stompClient.connected) {
@@ -293,7 +295,6 @@ function Home() {
         destination: '/pub/match/cancel',
         body: JSON.stringify({ id: id })
       });
->>>>>>> feat/blind_matching
     }
   };
 
@@ -358,8 +359,8 @@ function Home() {
             waitingLabel="현재 접속자"
             waitingCount={waitingBlindUsers}
             isMatching={isBlindMatching}
-            onStart={handelBlindMatching}
-            onCancel={handelCancelBlindMatching}
+            onStart={handleBlindMatching}
+            onCancel={handleCancelBlindMatching}
             btnSubtitle="BLIND MATCH"
             guideContent={
               <p className={styles.matchGuide}>
@@ -384,8 +385,8 @@ function Home() {
             waitingLabel="이상형 매칭"
             waitingCount={waitingIdealUsers}
             isMatching={isIdealMatching}
-            onStart={handleIdealStart}
-            onCancel={handleIdealCancel}
+            onStart={() => setIsIdealMatching(true)}
+            onCancel={() => setIsIdealMatching(false)}
             btnSubtitle="IDEAL MATCH"
             guideContent={
               <div className={styles.idealKeywords}>
@@ -588,5 +589,6 @@ function Home() {
     </div>
   );
 }
+
 
 export default Home;
