@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
+import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch } from '../../api/matching';
+import Client from '../../api/client';
+import { Client as StompClient } from '@stomp/stompjs';
+
 
 // 주소지 기반 위치 랜덤 리스팅 매칭 풀 데이터
 const INITIAL_LOCATION_PROFILES = [
@@ -100,14 +104,15 @@ function MatchCard({
 }
 
 function Home() {
-  const navigate = useNavigate();
-  const { token } = useAuthStore();
 
+  const { token, id } = useAuthStore();
+  const navi = useNavigate();
+  const [stompClient, setStompClient] = useState(null);
   // 매칭 상태
   const [isBlindMatching, setIsBlindMatching] = useState(false);
-  const [waitingBlindUsers, setWaitingBlindUsers] = useState(1243);
+  const [waitingBlindUsers, setWaitingBlindUsers] = useState(1004);
   const [isIdealMatching, setIsIdealMatching] = useState(false);
-  const [waitingIdealUsers, setWaitingIdealUsers] = useState(856);
+  const [waitingIdealUsers, setWaitingIdealUsers] = useState(556);
 
   // 주소지 기반 추천 목록
   const [locationProfiles, setLocationProfiles] = useState(INITIAL_LOCATION_PROFILES);
@@ -126,8 +131,8 @@ function Home() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!token) navigate('/login');
-  }, [token, navigate]);
+    if (!token) navi('/login');
+  }, [token, navi]);
 
   // 실시간 접속 대기 인원 변동 시뮬레이션
   useEffect(() => {
@@ -143,6 +148,155 @@ function Home() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages, isChatOpen]);
+
+
+  // 이상형 매칭 성공 처리 (채팅 화면이 생기면 결과 화면으로 바꿀 예정)
+  const handleIdealMatched = useCallback((result) => {
+    setIsIdealMatching(false);
+    alert(`💖 매칭 성공!\n상대 회원: ${result.partner_Seq}번\n상호 점수: ${result.score}점\n채팅방: ${result.chat_Room_Seq}번`);
+  }, []);
+
+  // 이상형 매칭 신청
+  const handleIdealStart = async () => {
+    try {
+      const { data } = await startIdealMatch();
+
+      if (data.status === 'MATCHED') {
+        handleIdealMatched(data);      // 조건 맞는 상대가 이미 기다리고 있었음
+      } else {
+        setIsIdealMatching(true);      // WAITING → 검색 중 화면
+      }
+    } catch (error) {
+      // 서버가 보낸 메시지 (예: "프로필과 이상형을 먼저 입력해주세요.")
+      const message = error.response?.data || '매칭 신청 중 오류가 발생했어요.';
+      alert(message);
+    }
+  };
+
+  // 대기 중일 때 3초마다 매칭 여부 확인
+  useEffect(() => {
+    if (!isIdealMatching) return;
+
+    let stopped = false;   // 화면을 벗어난 뒤 늦게 도착한 응답 무시용
+
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await getIdealMatchStatus();
+        if (!stopped && data.status === 'MATCHED') {
+          stopped = true;
+          clearInterval(timer);
+          handleIdealMatched(data);
+        }
+      } catch {
+        // 일시적인 오류는 무시하고 다음 주기에 다시 확인
+      }
+    }, 3000);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [isIdealMatching, handleIdealMatched]);
+
+  // 이상형 매칭 대기 취소
+  const handleIdealCancel = async () => {
+    try {
+      await cancelIdealMatch();
+      setIsIdealMatching(false);
+    } catch (error) {
+      // 409: 취소를 누르는 순간 이미 매칭됨 → 매칭 결과를 보여줌
+      if (error.response?.status === 409) {
+        try {
+          const { data } = await getIdealMatchStatus();
+          if (data.status === 'MATCHED') {
+            handleIdealMatched(data);
+            return;
+          }
+        } catch {
+          // 아래 공통 처리로 넘어감
+        }
+      }
+      setIsIdealMatching(false);
+      alert(error.response?.data || '취소 중 오류가 발생했어요.');
+    }
+  };
+
+  useEffect(() => {
+    if (!token) return;
+
+    // 접속 호스트가 있으면 해당 호스트 사용, fallback으로 10.5.4.14 사용
+    const wsHost = window.location.hostname || '10.5.4.14';
+    const brokerURL = `ws://${wsHost}/blind`;
+
+    const client = new StompClient({
+      brokerURL: brokerURL,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      reconnectDelay: 5000,
+      debug: (str) => {
+        console.log('[STOMP]:', str);
+      },
+      onConnect: () => {
+        console.log('STOMP Connected to', brokerURL);
+        if (id) {
+          client.subscribe(`/sub/user/${id}/match`, (message) => {
+            console.log('매칭 응답 수신:', message.body);
+            try {
+              const response = JSON.parse(message.body);
+              setIsBlindMatching(false);
+              if (response.chatRoomSeq) {
+                navi(`/chat/${response.chatRoomSeq}`);
+              }
+            } catch (err) {
+              console.error('응답 메시지 파싱 에러:', err);
+            }
+          });
+        }
+      },
+      onStompError: (frame) => {
+        console.error('STOMP Broker Error:', frame.headers['message'], frame.body);
+      },
+      onWebSocketError: (error) => {
+        console.error('WebSocket Error:', error);
+      }
+    });
+
+    client.activate();
+    setStompClient(client);
+
+    return () => {
+      client.deactivate();
+    };
+  }, [token, id, navi]);
+
+  // 블라인드 매칭 시스템
+  const handleBlindMatching = () => {
+    // 1. 매칭 중 탐색(레이더 UI) 화면으로 즉시 전환
+    setIsBlindMatching(true);
+
+    if (stompClient && stompClient.connected) {
+      console.log('블라인드 매칭 요청 전송: id =', id);
+      stompClient.publish({
+        destination: '/pub/match/join',
+        body: JSON.stringify({ id: id })
+      });
+    } else {
+      console.warn('STOMP 소켓이 아직 연결되지 않았거나 연결 중입니다. (stompClient.connected = false)');
+    }
+  };
+
+  const handleCancelBlindMatching = () => {
+    setIsBlindMatching(false);
+
+    if (stompClient && stompClient.connected) {
+      console.log('블라인드 매칭 취소 요청 전송: id =', id);
+      stompClient.publish({
+        destination: '/pub/match/cancel',
+        body: JSON.stringify({ id: id })
+      });
+    }
+  };
 
   const handleShuffleLocation = () => {
     setLocationProfiles((prev) => [...prev].sort(() => Math.random() - 0.5));
@@ -174,6 +328,7 @@ function Home() {
     }, 350);
   };
 
+
   return (
     <div className={styles.container}>
       {/* 1. 상단: 실시간 매칭 모드 (좌: 블라인드 / 우: 이상형) */}
@@ -201,11 +356,11 @@ function Home() {
             badgeText="🎭 블라인드 매칭"
             title="블라인드 랜덤 매칭"
             desc="외모와 조건 없이, 오직 목소리와 대화로 통하는 인연"
-            waitingLabel="현재"
+            waitingLabel="현재 접속자"
             waitingCount={waitingBlindUsers}
             isMatching={isBlindMatching}
-            onStart={() => setIsBlindMatching(true)}
-            onCancel={() => setIsBlindMatching(false)}
+            onStart={handleBlindMatching}
+            onCancel={handleCancelBlindMatching}
             btnSubtitle="BLIND MATCH"
             guideContent={
               <p className={styles.matchGuide}>
@@ -227,7 +382,7 @@ function Home() {
             badgeText="💖 이상형 매칭"
             title="이상형 랜덤 매칭"
             desc="나의 가치관과 이상형 설정을 기반으로 최적의 상대 매칭"
-            waitingLabel="이상형 매칭 풀"
+            waitingLabel="이상형 매칭"
             waitingCount={waitingIdealUsers}
             isMatching={isIdealMatching}
             onStart={() => setIsIdealMatching(true)}
@@ -434,5 +589,6 @@ function Home() {
     </div>
   );
 }
+
 
 export default Home;
