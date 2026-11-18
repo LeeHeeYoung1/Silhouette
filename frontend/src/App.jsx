@@ -18,6 +18,7 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
+        <Route path='/event' element={<Event />} />
         
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
