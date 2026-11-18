@@ -35,6 +35,17 @@
 		#{filePath}, #{fileSize}, #{fileType}, #{sortOrder}, SYSTIMESTAMP
 	)
 	</insert>
-
+	
+	<select id="selectPostList" parameterType="map" resultType="com.app.silhouette.post.PostDTO">
+	select p.post_seq, p.category, p.title, p.view_count, p.recommend_count, p.comment_count, p.created_at,
+	       case when p.category = '익명' then '익명' else m.nickname end as writer_name
+	from post p
+	join member m on p.member_seq = m.member_seq
+	where p.is_deleted = 'N'
+	<if test="category != null and category != ''">
+	  and p.category = #{category}
+	</if>
+	order by p.post_seq desc
+	</select>
 
 </mapper>

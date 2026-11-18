@@ -1,5 +1,9 @@
 package com.app.silhouette.post;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -21,5 +25,11 @@ public class PostDAO {
 	}
 	public int insertPostFile(PostFileDTO fileDto) {
 		return mybatis.insert("Post.insertPostFile", fileDto);
+	}
+	public List<PostDTO> selectALl(String category){
+		Map<String, Object> params = new HashMap<>();
+		
+		params.put("category", category);
+		return mybatis.selectList("Post.selectPostList", params);
 	}
 }
