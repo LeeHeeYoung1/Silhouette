@@ -25,7 +25,7 @@ function PostList({ boardType = 'free' }) {
     useEffect(()=>{
         if(boardType !== 'free') return;
 
-        Client.get('api/posts', {
+        Client.get('/api/posts', {
             params: subCategory === '전체' ? {} : {category: subCategory} 
         })
         .then((res)=> setposts(res.data)).catch((err)=> console.error(err));

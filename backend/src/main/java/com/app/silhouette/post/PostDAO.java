@@ -32,4 +32,16 @@ public class PostDAO {
 		params.put("category", category);
 		return mybatis.selectList("Post.selectPostList", params);
 	}
+	public int updateViewCount(Long postSeq) {
+		return mybatis.update("Post.updateViewCount", postSeq);
+	}
+	public PostDTO selectPost(Long postSeq) {
+		return mybatis.selectOne("Post.selectPost", postSeq);
+	}
+	public List<PostFileDTO> selectPostFiles(Long postSeq) {
+		return mybatis.selectList("Post.selectPostFiles", postSeq);
+	}
+	public PostFileDTO PostDownLoad(Long postFileSeq) {
+		return mybatis.selectOne("Post.selectPostDownload", postFileSeq);
+	}
 }
