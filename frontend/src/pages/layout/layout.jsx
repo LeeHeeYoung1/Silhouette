@@ -49,6 +49,15 @@ function Layout() {
               홈
             </NavLink>
 
+             <NavLink
+              to="/chattingRoomList"
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
+            >
+              채팅방 Test
+            </NavLink>
+
             <NavLink
               to="/post"
               className={({ isActive }) =>
