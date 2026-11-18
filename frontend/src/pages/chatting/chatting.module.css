@@ -75,7 +75,13 @@
 .messageWrapper {
   display: flex;
   flex-direction: column;
-  max-width: 75%;
+  max-width: 85%;
+}
+
+.messageLine {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .sender {
@@ -95,9 +101,9 @@
 
 .timestamp {
   font-size: 0.7rem;
-  color: #444;
-  margin-top: 4px;
-  align-self: flex-end;
+  color: #888;
+  white-space: nowrap;
+  padding-bottom: 2px;
 }
 
 /* 상대방 메시지: 어두운 회색 실루엣 */
