@@ -28,7 +28,7 @@ public class PostDAO {
 	}
 	public List<PostDTO> selectALl(String category){
 		Map<String, Object> params = new HashMap<>();
-		
+
 		params.put("category", category);
 		return mybatis.selectList("Post.selectPostList", params);
 	}
@@ -43,5 +43,11 @@ public class PostDAO {
 	}
 	public PostFileDTO PostDownLoad(Long postFileSeq) {
 		return mybatis.selectOne("Post.selectPostDownload", postFileSeq);
+	}
+	public int deletePost(Long postSeq, Long memberSeq) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("postSeq", postSeq);
+		params.put("memberSeq", memberSeq);
+		return mybatis.update("Post.deletePost",params);
 	}
 }

@@ -16,7 +16,30 @@ function PostDetail() {
     const { id } = useParams();   // 주소의 글 번호 (/post/detail/5 → "5")
     const [files, setFiles]= useState([]);
 
+    
+    const handleDeletePost = async()=>{
+        if(!token){
+            alert('로그인한 회원만 삭제가능합니다.');
+            navigate('/login');
+            return;
+        }
+        if(!window.confirm('게시글을 삭제하시겠습니까?')){
+            return; //취소 누르면 변화없음
+        }
+        try{
+            await Client.delete(`/api/posts/${id}`,{
+                params: {loginId},
+            }),
+            alert('게시글이 삭제되었습니다.');
+            navigate('/post/free');
+        }catch(err){
+            console.error(err);
+            alert('게시글을 삭제할 수 없습니다.')
+        }
+    };
+
     const {id: loginId, token} = useAuthStore();
+    
     const navigate= useNavigate();
 
     const handleDownLoad=async (file)=>{
@@ -76,14 +99,18 @@ function PostDetail() {
     const [replyToId, setReplyToId] = useState(null);
     const [replyText, setReplyText] = useState('');
 
-    // 본인 글 여부 (로그인 연동 후 계산)
-    const isMine = false;
+   const isMine = !!loginId && post?.loginId === loginId;
+    console.log('로그인 아이디:', loginId, '/ 글쓴이 아이디:', post?.loginId, '/ isMine:', isMine);
+    // ===== 서버 연동 예정 함수들 =====
+    const handleToggleLike = () => {};
+    const handleAddComment = () => {};
+    const handleAddReply = (parentSeq) => {};
+   
+
+
 
     // ===== 서버 연동 예정 함수들 =====
-    const handleToggleLike = () => { };
-    const handleAddComment = () => { };
-    const handleAddReply = (parentSeq) => { };
-    const handleDeletePost = () => { };
+   
 
     // 글이 없을 때
     if (!post) {

@@ -58,14 +58,23 @@
 
 	<!-- 게시글 상세 -->
 	<select id="selectPost" parameterType="long" resultType="com.app.silhouette.post.PostDTO">
-		select p.post_seq, p.category, p.member_seq, p.title, p.content,
-		       p.view_count, p.recommend_count, p.comment_count, p.created_at, p.updated_at,
-		       case when p.category = '익명' then '익명' else m.nickname end as writer_name
-		from post p
-		join member m on p.member_seq = m.member_seq
-		where p.post_seq = #{postSeq}
-		  and p.is_deleted = 'N'
-	</select>
+    select p.post_seq,
+           p.category,
+           p.member_seq,
+           m.login_id,
+           p.title,
+           p.content,
+           p.view_count,
+           p.recommend_count,
+           p.comment_count,
+           p.created_at,
+           p.updated_at,
+           case when p.category = '익명' then '익명' else m.nickname end as writer_name
+      from post p
+      join member m on p.member_seq = m.member_seq
+     where p.post_seq = #{postSeq}
+       and p.is_deleted = 'N'
+</select>
 	
 	<select id="selectPostFiles" parameterType="long" resultType="com.app.silhouette.post.PostFileDTO">
 		select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at 
@@ -77,5 +86,13 @@
 	select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at
 	from post_file where post_file_seq = #{postFileSeq}
 	</select>
+	
+	<update id="deletePost" parameterType="map">
+	update post set is_deleted= 'Y',
+	deleted_at=systimestamp
+	where post_seq = #{postSeq}
+		and member_seq = #{memberSeq}
+		and is_deleted= 'N'
+		</update>
 
 </mapper>

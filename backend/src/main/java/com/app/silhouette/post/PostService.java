@@ -79,11 +79,11 @@ public class PostService {
 		fileDto.setSortOrder(order);
 		return fileDto;
 	}
-	
+
 	public List<PostDTO> selectAll(String category){
 		return postDAO.selectALl(category);
 	}
-	
+
 	@Transactional
 	public PostDTO selectPost(Long postSeq) {
 		postDAO.updateViewCount(postSeq);
@@ -91,7 +91,7 @@ public class PostService {
 	}
 	public List<PostFileDTO> selectPostFiles(Long postSeq){
 		return postDAO.selectPostFiles(postSeq);
-		
+
 	}
 	public PostFileDTO selectPostDownload(Long postFileSeq, String loginId) {
 		checkMember(loginId);
@@ -104,19 +104,33 @@ public class PostService {
 
 	// GCS에서 파일 내용 꺼내기
 	public byte[] downloadFile(PostFileDTO file) {
-	    String objectName =  file.getStoredName();
-	    Blob blob = storage.get(BlobId.of(bucket, objectName));
-	    if (blob == null) {
-	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "저장소에 파일이 없습니다.");
-	    }
-	    return blob.getContent();
+		String objectName =  file.getStoredName();
+		Blob blob = storage.get(BlobId.of(bucket, objectName));
+		if (blob == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "저장소에 파일이 없습니다.");
+		}
+		return blob.getContent();
 	}
 
 	// 회원 확인 (JWT 완성 전 임시: loginId로 확인)
 	private void checkMember(String loginId) {
-	    if (loginId == null || loginId.isBlank()
-	            || postDAO.selectMemberSeqByLoginId(loginId) == null) {
-	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 다운로드할 수 있습니다.");
-	    }
+		if (loginId == null || loginId.isBlank()
+				|| postDAO.selectMemberSeqByLoginId(loginId) == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 다운로드할 수 있습니다.");
+		}
 	}
+	@Transactional
+	public void deletePost(Long postSeq, String loginId) {
+		Long memberSeq = (loginId == null || loginId.isBlank())?null
+				: postDAO.selectMemberSeqByLoginId(loginId);
+		if(memberSeq == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"로그인한 회원만 삭제할 수 있습니다.");
+			
+		}
+		int result = postDAO.deletePost(postSeq, memberSeq);
+		if( result == 0) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인 글만 삭제할 수 있습니다.");
+		}
+	}
+	
 }
