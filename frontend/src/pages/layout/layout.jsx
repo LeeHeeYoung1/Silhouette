@@ -99,9 +99,9 @@ function Layout() {
             type="button"
             className={styles.themeToggleBtn}
             onClick={toggleTheme}
-            title="화면 모드 전환 (밝은 테마 / 어두운 테마)"
+            title="화면 모드 전환 (풋풋한 라이트 / 설레는 다크)"
           >
-            {theme === 'light' ? '☀️ 라이트 모드' : '🌙 다크 모드'}
+            {theme === 'light' ? '🌸 라이트 모드' : '🌙 다크 모드'}
           </button>
         </div>
       </header>

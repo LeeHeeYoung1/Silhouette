@@ -28,27 +28,40 @@
    1. 상단: 실시간 매칭 섹션 (좌: 블라인드, 우: 이상형)
    ========================================================================== */
 .topSection {
-  background: var(--card-bg);
+  background: 
+    /* 상단 중앙 설레는 로맨틱 캔들/블러셔 조명 */
+    radial-gradient(circle at 50% 28%, rgba(255, 120, 165, 0.3) 0%, rgba(210, 80, 150, 0.16) 38%, transparent 68%),
+    /* 시스루 커튼 세로 패브릭 주름 텍스처 (100% Pure CSS) */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 18px,
+      rgba(0, 0, 0, 0.05) 18px,
+      rgba(0, 0, 0, 0.05) 36px
+    ),
+    /* 로맨틱 미드나잇 플럼 벨벳 베이스 */
+    linear-gradient(135deg, #261329 0%, #1a0c1d 50%, #100612 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-glow), var(--card-shadow);
-  padding: 32px 28px;
+  padding: 34px 28px;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.35s ease;
   overflow: hidden;
 }
 
 .topSection::before {
   content: '';
   position: absolute;
-  top: -100px;
-  right: 10%;
-  width: 450px;
-  height: 300px;
-  background: var(--bg-aurora);
-  filter: blur(60px);
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(255, 120, 160, 0.3) 0%, rgba(195, 95, 225, 0.2) 45%, transparent 70%);
+  filter: blur(70px);
   pointer-events: none;
   z-index: 0;
   transition: background 0.4s ease;
@@ -141,31 +154,33 @@
   position: relative;
   width: 100%;
   border-radius: var(--radius-lg);
-  background: radial-gradient(circle at 50% 25%, #1e1338 0%, #0c0819 100%);
-  border: 1px solid rgba(255, 77, 136, 0.25);
+  background: radial-gradient(circle at 50% 20%, rgba(38, 24, 40, 0.88) 0%, rgba(20, 12, 22, 0.94) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 185, 160, 0.22);
   overflow: hidden;
   padding: 28px 20px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 430px;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.25);
+  min-height: 440px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45), 0 10px 30px rgba(0, 0, 0, 0.3);
   transition: all 0.35s ease;
 }
 
 .matchCardWrapper:hover {
-  border-color: rgba(255, 77, 136, 0.45);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(255, 77, 136, 0.2);
+  border-color: rgba(255, 185, 160, 0.48);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45), 0 14px 35px rgba(244, 91, 127, 0.25);
 }
 
 .idealTheme {
-  background: radial-gradient(circle at 50% 25%, #1b163d 0%, #0a081a 100%);
-  border-color: rgba(139, 61, 255, 0.25);
+  background: radial-gradient(circle at 50% 20%, rgba(35, 20, 44, 0.88) 0%, rgba(18, 10, 26, 0.94) 100%);
+  border-color: rgba(210, 150, 255, 0.22);
 }
 
 .idealTheme:hover {
-  border-color: rgba(139, 61, 255, 0.45);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(139, 61, 255, 0.2);
+  border-color: rgba(210, 150, 255, 0.48);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45), 0 14px 35px rgba(176, 98, 203, 0.25);
 }
 
 /* 카드 헤더 */
@@ -218,12 +233,12 @@
   transition: color 0.3s ease;
 }
 
-/* 몽환적 배경 빛번짐 */
+/* 몽환적 배경 빛번짐 (사진 속 캔들라이트 & 로즈 실루엣) */
 .ambientLight1,
 .ambientLight2 {
   position: absolute;
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   filter: blur(80px);
   mix-blend-mode: screen;
@@ -234,26 +249,27 @@
 .ambientLight1 {
   top: 15%;
   left: 10%;
-  background: #8b3dff;
-  opacity: 0.35;
+  background: #ff9e64;
+  opacity: 0.32;
   animation: ambientFloat1 6s infinite ease-in-out alternate;
 }
 
 .ambientLight2 {
   bottom: 15%;
   right: 10%;
-  background: #ff4d88;
-  opacity: 0.25;
+  background: #f45b7f;
+  opacity: 0.28;
   animation: ambientFloat2 7s infinite ease-in-out alternate;
 }
 
 .idealTheme .ambientLight1 {
-  background: #6366f1;
-  opacity: 0.3;
+  background: #b062cb;
+  opacity: 0.28;
 }
 
 .idealTheme .ambientLight2 {
-  background: #a855f7;
+  background: #ff758f;
+  opacity: 0.25;
 }
 
 .blindMatchContent {
@@ -337,20 +353,20 @@
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  filter: blur(16px);
-  opacity: 0.7;
+  background: linear-gradient(135deg, #ff8c69, #f45b7f);
+  filter: blur(18px);
+  opacity: 0.72;
   animation: heartBeat 2.2s infinite ease-in-out;
   transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
 .idealTheme .startBtnPulse {
-  background: linear-gradient(135deg, #a855f7, #6366f1);
+  background: linear-gradient(135deg, #b062cb, #ff758f);
 }
 
 .startBtnContainer:hover .startBtnPulse {
   opacity: 1;
-  filter: blur(22px);
+  filter: blur(24px);
 }
 
 .startBtn {
@@ -359,9 +375,9 @@
   width: 156px;
   height: 156px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #4f46e5 100%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 10px 30px rgba(147, 51, 234, 0.45), inset 0 2px 8px rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #ff8c69 0%, #f45b7f 50%, #9e53b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 35px rgba(244, 91, 127, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.45);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -371,17 +387,17 @@
 }
 
 .idealTheme .startBtn {
-  background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.45), inset 0 2px 8px rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #b062cb 0%, #e0537c 50%, #ff8c69 100%);
+  box-shadow: 0 12px 35px rgba(176, 98, 203, 0.45), inset 0 2px 10px rgba(255, 255, 255, 0.45);
 }
 
 .startBtnContainer:hover .startBtn {
   transform: scale(1.05);
-  box-shadow: 0 14px 40px rgba(236, 72, 153, 0.6), inset 0 2px 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 16px 45px rgba(244, 91, 127, 0.65), inset 0 2px 12px rgba(255, 255, 255, 0.6);
 }
 
 .idealTheme .startBtnContainer:hover .startBtn {
-  box-shadow: 0 14px 40px rgba(99, 102, 241, 0.6), inset 0 2px 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 16px 45px rgba(176, 98, 203, 0.65), inset 0 2px 12px rgba(255, 255, 255, 0.6);
 }
 
 .startTitle {
@@ -462,24 +478,24 @@
 
 .radarWave1 {
   inset: 0;
-  border-color: #ec4899;
+  border-color: #ff8c69;
 }
 
 .radarWave2 {
   inset: 15px;
-  border-color: #a855f7;
+  border-color: #f45b7f;
   animation-delay: 0.5s;
 }
 
 .radarWave3 {
   inset: 30px;
-  border-color: #818cf8;
+  border-color: #b062cb;
   animation-delay: 1s;
 }
 
-.idealTheme .radarWave1 { border-color: #a855f7; }
-.idealTheme .radarWave2 { border-color: #6366f1; }
-.idealTheme .radarWave3 { border-color: #38bdf8; }
+.idealTheme .radarWave1 { border-color: #b062cb; }
+.idealTheme .radarWave2 { border-color: #f45b7f; }
+.idealTheme .radarWave3 { border-color: #ff8c69; }
 
 .radarCenterCore {
   position: relative;
@@ -487,16 +503,16 @@
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899, #a855f7);
+  background: linear-gradient(135deg, #ff8c69, #f45b7f);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 30px rgba(236, 72, 153, 0.7);
+  box-shadow: 0 0 32px rgba(255, 140, 105, 0.75);
 }
 
 .idealTheme .radarCenterCore {
-  background: linear-gradient(135deg, #a855f7, #6366f1);
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.7);
+  background: linear-gradient(135deg, #b062cb, #f45b7f);
+  box-shadow: 0 0 32px rgba(176, 98, 203, 0.75);
 }
 
 .radarSearchIcon {
@@ -1176,17 +1192,40 @@
 
 /* ==========================================================================
    4. 라이트 모드 테마 대응 (:global(body.theme-light))
+   (봄날 오후 첫 소개팅, 설레는 벚꽃빛 피치 카페 감성)
    ========================================================================== */
+:global(body.theme-light) .topSection {
+  background: 
+    /* 상단 중앙 따사로운 벚꽃빛 피치 햇살 조명 */
+    radial-gradient(circle at 50% 25%, rgba(255, 170, 195, 0.45) 0%, rgba(255, 205, 220, 0.28) 42%, transparent 70%),
+    /* 시스루 커튼 세로 패브릭 주름 텍스처 (100% Pure CSS) */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.6) 0px,
+      rgba(255, 255, 255, 0.6) 20px,
+      rgba(255, 230, 238, 0.4) 20px,
+      rgba(255, 230, 238, 0.4) 40px
+    ),
+    /* 소프트 벚꽃 피치 아이보리 베이스 */
+    linear-gradient(135deg, #fffafb 0%, #fff1f4 50%, #fdebf2 100%);
+  border-color: rgba(255, 185, 205, 0.5);
+  box-shadow: 0 16px 45px rgba(255, 130, 160, 0.14);
+}
+
+:global(body.theme-light) .topSection::before {
+  background: radial-gradient(circle, rgba(255, 148, 172, 0.35) 0%, rgba(255, 190, 160, 0.25) 50%, transparent 75%);
+}
+
 :global(body.theme-light) .matchCardWrapper {
-  background: radial-gradient(circle at 50% 20%, #fff2f7 0%, #f7effd 65%, #f1ebfa 100%);
-  border-color: rgba(255, 77, 136, 0.3);
-  box-shadow: 0 10px 28px rgba(255, 77, 136, 0.1), inset 0 0 35px rgba(255, 255, 255, 0.9);
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 248, 250, 0.92) 65%, rgba(253, 240, 245, 0.9) 100%);
+  border-color: rgba(255, 185, 205, 0.5);
+  box-shadow: 0 12px 32px rgba(255, 140, 170, 0.12), inset 0 0 35px rgba(255, 255, 255, 0.95);
 }
 
 :global(body.theme-light) .idealTheme {
-  background: radial-gradient(circle at 50% 20%, #f6f0ff 0%, #f0e8fc 65%, #eae2fa 100%);
-  border-color: rgba(124, 58, 237, 0.3);
-  box-shadow: 0 10px 28px rgba(124, 58, 237, 0.1), inset 0 0 35px rgba(255, 255, 255, 0.9);
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.96) 0%, rgba(254, 246, 255, 0.92) 65%, rgba(250, 240, 255, 0.9) 100%);
+  border-color: rgba(225, 175, 250, 0.55);
+  box-shadow: 0 12px 32px rgba(180, 110, 200, 0.12), inset 0 0 35px rgba(255, 255, 255, 0.95);
 }
 
 :global(body.theme-light) .cardHeaderTitle {
@@ -1194,28 +1233,36 @@
 }
 
 :global(body.theme-light) .blindBadge {
-  background: rgba(255, 42, 115, 0.1);
-  border-color: rgba(255, 42, 115, 0.35);
+  background: rgba(244, 63, 110, 0.12);
+  border-color: rgba(244, 63, 110, 0.35);
   color: var(--accent-pink);
 }
 
 :global(body.theme-light) .idealBadge {
-  background: rgba(124, 58, 237, 0.1);
-  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(143, 62, 168, 0.1);
+  border-color: rgba(143, 62, 168, 0.35);
   color: var(--accent-purple);
 }
 
 :global(body.theme-light) .ambientLight1,
 :global(body.theme-light) .ambientLight2 {
   mix-blend-mode: multiply;
-  opacity: 0.15;
+  opacity: 0.18;
   filter: blur(70px);
 }
 
+:global(body.theme-light) .ambientLight1 {
+  background: #ffab76;
+}
+
+:global(body.theme-light) .ambientLight2 {
+  background: #f472b6;
+}
+
 :global(body.theme-light) .waitingBadge {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 145, 190, 0.35);
-  box-shadow: 0 4px 16px rgba(150, 110, 200, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(235, 195, 180, 0.45);
+  box-shadow: 0 4px 16px rgba(160, 110, 100, 0.08);
 }
 
 :global(body.theme-light) .waitingText {
@@ -1231,13 +1278,13 @@
 }
 
 :global(body.theme-light) .idealKeywords span {
-  background: rgba(124, 58, 237, 0.08);
-  border-color: rgba(124, 58, 237, 0.25);
+  background: rgba(143, 62, 168, 0.08);
+  border-color: rgba(143, 62, 168, 0.25);
   color: var(--accent-purple);
 }
 
 :global(body.theme-light) .searchingTitle {
-  background: linear-gradient(90deg, #ec4899, #8b5cf6, #ec4899);
+  background: linear-gradient(90deg, #f76854, #e24576, #9145b6);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -1245,7 +1292,7 @@
 }
 
 :global(body.theme-light) .idealTheme .searchingTitle {
-  background: linear-gradient(90deg, #8b5cf6, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, #9145b6, #e24576, #f76854);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -1257,8 +1304,8 @@
 }
 
 :global(body.theme-light) .cancelBtn {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(139, 61, 255, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(235, 195, 180, 0.5);
   color: var(--text-main);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -1270,11 +1317,13 @@
 }
 
 :global(body.theme-light) .startBtn {
-  box-shadow: 0 10px 28px rgba(255, 67, 130, 0.35), inset 0 2px 8px rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #f76854 0%, #e24576 50%, #9145b6 100%);
+  box-shadow: 0 10px 28px rgba(247, 104, 84, 0.35), inset 0 2px 8px rgba(255, 255, 255, 0.5);
 }
 
 :global(body.theme-light) .idealTheme .startBtn {
-  box-shadow: 0 10px 28px rgba(124, 58, 237, 0.35), inset 0 2px 8px rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #8f3ea8 0%, #e24576 50%, #f76854 100%);
+  box-shadow: 0 10px 28px rgba(143, 62, 168, 0.35), inset 0 2px 8px rgba(255, 255, 255, 0.5);
 }
 
 :global(body.theme-light) .chatbotWindow {

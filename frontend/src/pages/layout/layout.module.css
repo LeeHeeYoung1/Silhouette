@@ -33,18 +33,18 @@
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 680px;
+  max-width: 1140px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  padding: 12px 20px;
+  padding: 14px 24px;
   background: var(--header-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
@@ -57,15 +57,23 @@
 }
 
 .brandIcon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--primary-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 16px rgba(255, 77, 136, 0.45);
+  box-shadow: 0 0 18px rgba(255, 107, 139, 0.45);
   font-size: 17px;
+  animation: heartFlutter 3.2s infinite ease-in-out;
+}
+
+@keyframes heartFlutter {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.12); }
+  24% { transform: scale(1); }
+  36% { transform: scale(1.08); }
 }
 
 .brandTitle {
@@ -74,6 +82,7 @@
   letter-spacing: -0.5px;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 

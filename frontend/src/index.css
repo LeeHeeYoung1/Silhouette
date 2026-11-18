@@ -1,62 +1,63 @@
 /* ==========================================================================
    실루엣 (Silhouette) 전역 디자인 시스템 변수 & 리셋
+   (소개팅의 풋풋함, 첫 만남의 설렘과 두근거림을 담은 로맨틱 블러셔 테마)
    ========================================================================== */
 
 :root {
-  /* [기본 다크 테마 변수] */
-  --bg-gradient: radial-gradient(circle at 50% 20%, #201335 0%, #0c0817 100%);
-  --bg-aurora: radial-gradient(circle, rgba(255, 77, 136, 0.18) 0%, rgba(139, 61, 255, 0.12) 50%, transparent 70%);
-  --header-bg: rgba(25, 20, 44, 0.65);
-  --card-bg: rgba(28, 22, 49, 0.78);
-  --card-border: rgba(255, 120, 180, 0.22);
-  --primary-gradient: linear-gradient(135deg, #ff4d88 0%, #8b3dff 100%);
-  --primary-hover: linear-gradient(135deg, #ff6599 0%, #9e59ff 100%);
-  --accent-pink: #ff4d88;
-  --accent-purple: #8b3dff;
-  --text-main: #f8f7ff;
-  --text-sub: #b3a9c9;
-  --text-muted: #7f749a;
-  --input-bg: rgba(16, 12, 30, 0.65);
-  --input-border: rgba(179, 169, 201, 0.25);
-  --input-focus-bg: rgba(25, 20, 44, 0.95);
-  --cell-bg: rgba(16, 12, 30, 0.5);
-  --cell-border: rgba(255, 255, 255, 0.06);
-  --terms-card-bg: rgba(18, 14, 34, 0.75);
-  --terms-box-bg: rgba(9, 7, 18, 0.85);
-  --profile-card-bg: linear-gradient(135deg, rgba(255, 77, 136, 0.12) 0%, rgba(139, 61, 255, 0.15) 100%);
-  --success: #22c55e;
+  /* [기본 다크 테마: 늦은 밤 둘만의 설레는 와인바 & 달빛 산책 감성] */
+  --bg-gradient: radial-gradient(ellipse at 50% 12%, #261329 0%, #180c1b 50%, #0e0510 100%);
+  --bg-aurora: radial-gradient(circle, rgba(255, 110, 160, 0.28) 0%, rgba(200, 95, 230, 0.2) 45%, rgba(140, 70, 190, 0.12) 70%, transparent 80%);
+  --header-bg: rgba(30, 16, 34, 0.78);
+  --card-bg: rgba(32, 17, 36, 0.82);
+  --card-border: rgba(255, 175, 205, 0.22);
+  --primary-gradient: linear-gradient(135deg, #ff6b8b 0%, #f43f6e 50%, #a855f7 100%);
+  --primary-hover: linear-gradient(135deg, #ff829e 0%, #ff527f 50%, #b86bf8 100%);
+  --accent-pink: #ff6584;
+  --accent-purple: #c084fc;
+  --text-main: #fff5f8;
+  --text-sub: #dfc8d4;
+  --text-muted: #a48a97;
+  --input-bg: rgba(22, 11, 25, 0.72);
+  --input-border: rgba(255, 180, 205, 0.22);
+  --input-focus-bg: rgba(34, 18, 38, 0.95);
+  --cell-bg: rgba(25, 13, 28, 0.6);
+  --cell-border: rgba(255, 255, 255, 0.08);
+  --terms-card-bg: rgba(26, 14, 30, 0.82);
+  --terms-box-bg: rgba(15, 8, 18, 0.92);
+  --profile-card-bg: linear-gradient(135deg, rgba(255, 107, 139, 0.18) 0%, rgba(244, 63, 110, 0.14) 50%, rgba(168, 85, 247, 0.16) 100%);
+  --success: #10b981;
   --error: #ff4d6d;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --shadow-glow: 0 10px 30px rgba(139, 61, 255, 0.25);
-  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --shadow-glow: 0 14px 40px rgba(255, 107, 139, 0.25);
+  --card-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
 }
 
-/* [라이트 테마: 소프트 블러쉬 핑크 & 라벤더 펄] */
+/* [라이트 테마: 봄날 오후 첫 소개팅, 설레는 벚꽃빛 피치 카페 감성] */
 body.theme-light {
-  --bg-gradient: radial-gradient(circle at 50% 15%, #fff5f8 0%, #f6effa 50%, #f0ebf8 100%);
-  --bg-aurora: radial-gradient(circle, rgba(255, 120, 180, 0.25) 0%, rgba(180, 140, 255, 0.18) 60%, transparent 75%);
-  --header-bg: rgba(255, 255, 255, 0.82);
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(255, 145, 190, 0.35);
-  --primary-gradient: linear-gradient(135deg, #ff4382 0%, #7c3aed 100%);
-  --primary-hover: linear-gradient(135deg, #ff5c94 0%, #9055ff 100%);
-  --accent-pink: #ff2a73;
-  --accent-purple: #7c3aed;
-  --text-main: #2b1f3d;
-  --text-sub: #63547a;
-  --text-muted: #8e80a5;
+  --bg-gradient: radial-gradient(ellipse at 50% 8%, #fff8f9 0%, #fff1f4 42%, #fdebf2 100%);
+  --bg-aurora: radial-gradient(circle, rgba(255, 148, 172, 0.32) 0%, rgba(255, 190, 160, 0.24) 50%, transparent 75%);
+  --header-bg: rgba(255, 250, 252, 0.9);
+  --card-bg: rgba(255, 252, 253, 0.92);
+  --card-border: rgba(255, 185, 205, 0.45);
+  --primary-gradient: linear-gradient(135deg, #ff7a90 0%, #ff4b72 50%, #b34ed8 100%);
+  --primary-hover: linear-gradient(135deg, #ff8da0 0%, #ff5d82 50%, #c163e5 100%);
+  --accent-pink: #f43f6e;
+  --accent-purple: #9333ea;
+  --text-main: #381c25;
+  --text-sub: #74515e;
+  --text-muted: #a2828f;
   --input-bg: #ffffff;
-  --input-border: #e2d8ec;
+  --input-border: #f3d4dc;
   --input-focus-bg: #ffffff;
-  --cell-bg: #f9f6fc;
-  --cell-border: #ebdff2;
-  --terms-card-bg: #faf7fd;
-  --terms-box-bg: #f3eef9;
-  --profile-card-bg: linear-gradient(135deg, #ffeef4 0%, #f3ebfc 100%);
-  --shadow-glow: 0 12px 35px rgba(255, 105, 180, 0.18);
-  --card-shadow: 0 15px 35px rgba(120, 90, 150, 0.12);
+  --cell-bg: #fffbfd;
+  --cell-border: #f5dde4;
+  --terms-card-bg: #fffbfd;
+  --terms-box-bg: #fdf2f5;
+  --profile-card-bg: linear-gradient(135deg, #fff2f5 0%, #fdebf4 50%, #f7e8fc 100%);
+  --shadow-glow: 0 14px 38px rgba(255, 122, 144, 0.2);
+  --card-shadow: 0 16px 36px rgba(180, 100, 120, 0.1);
 }
 
 * {
