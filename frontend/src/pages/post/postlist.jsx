@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './post.module.css';
-
+import Client from '../../api/client';
 /* =========================================================
    실루엣 게시판 목록 컴포넌트 (PostList) - 담당: 권형석
    - B001 자유게시판 리스트 (/post/free)
@@ -13,8 +13,33 @@ import styles from './post.module.css';
 function PostList({ boardType = 'free' }) {
     const navigate = useNavigate();
 
-    // 자유게시판 카테고리 탭
+   
+  
+    
+    
+    const [posts, setposts]= useState([]);
+ // 자유게시판 카테고리 탭
     const [subCategory, setSubCategory] = useState('전체');
+
+
+    useEffect(()=>{
+        if(boardType !== 'free') return;
+
+        Client.get('api/posts', {
+            params: subCategory === '전체' ? {} : {category: subCategory} 
+        })
+        .then((res)=> setposts(res.data)).catch((err)=> console.error(err));
+    }, [boardType, subCategory]);
+
+     // 페이징
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = 1;
+
+
+    const qnaList = [];
+    const faqList = [];
+
+   
 
     // 검색 입력값
     const [searchType, setSearchType] = useState('title');
@@ -23,14 +48,7 @@ function PostList({ boardType = 'free' }) {
     // FAQ 아코디언 열림 상태
     const [openFaqId, setOpenFaqId] = useState(null);
 
-    // 페이징
-    const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = 1;
-
-    // 서버에서 받아올 데이터 (지금은 빈 배열)
-    const posts = [];
-    const qnaList = [];
-    const faqList = [];
+  
 
     // 새글 작성 이동
     const handleGoWrite = () => {

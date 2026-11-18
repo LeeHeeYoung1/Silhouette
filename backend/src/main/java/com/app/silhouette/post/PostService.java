@@ -75,4 +75,8 @@ public class PostService {
 		fileDto.setSortOrder(order);
 		return fileDto;
 	}
+	
+	public List<PostDTO> selectAll(String category){
+		return postDAO.selectALl(category);
+	}
 }
