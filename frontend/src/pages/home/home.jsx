@@ -450,7 +450,7 @@ function Home() {
                     <button
                       type="button"
                       className={styles.locBtn}
-                      onClick={()=>{navigate("/chatting")}}
+                      onClick={()=>{navi("/chattingRoomList")}}
                     >
                       대화 신청
                     </button>
