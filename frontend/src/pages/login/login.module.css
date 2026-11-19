@@ -1,59 +1,134 @@
-/* login.module.css */
+/* login.module.css - Header Width Matched (1140px), Extracted Silhouettes (80% Scale, No Image Background) */
 
-.card {
+.stage {
   position: relative;
-  z-index: 10;
   width: 100%;
-  max-width: 500px;
+  max-width: 1140px;
+  min-height: 580px;
+  margin: 10px auto 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 10px;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* ==========================================================================
+   3단 레이아웃 콘텐츠 (좌: 남성 실루엣 | 중앙: 로그인 카드 | 우: 여성 실루엣)
+   ========================================================================== */
+.stageContent {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 36px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   1. 좌/우 원본 추출 실루엣 컬럼 (80% 비율, 배경 없는 순수 피규어)
+   ========================================================================== */
+.silhouetteColLeft,
+.silhouetteColRight {
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  user-select: none;
+  transition: transform 0.3s ease;
+}
+
+.silhouetteImage {
+  width: 135px;
+  height: auto;
+  max-height: 410px;
+  object-fit: contain;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s ease, opacity 0.3s ease;
+
+  /* 다크 모드: 늦은 밤 둘만의 설레는 로맨틱 캔들/달빛 핑크 역광 */
+  filter: invert(0.88) brightness(1.05) contrast(1.08) drop-shadow(0 12px 30px rgba(255, 150, 185, 0.32));
+  opacity: 0.92;
+}
+
+/* 라이트 모드: 화사한 봄날의 벚꽃빛 섀도우와 함께 선명한 실루엣 */
+:global(body.theme-light) .silhouetteImage {
+  filter: drop-shadow(0 12px 28px rgba(130, 60, 80, 0.16));
+  opacity: 0.94;
+}
+
+.silhouetteColLeft:hover .silhouetteImage,
+.silhouetteColRight:hover .silhouetteImage {
+  transform: translateY(-6px) scale(1.03);
+}
+
+/* ==========================================================================
+   2. 중앙: 실루엣 브랜드 테마 로그인 카드 (남녀 실루엣 사이에 안착)
+   ========================================================================== */
+.loginCard {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 28px;
+  padding: 42px 38px;
   background: var(--card-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  padding: 40px 36px;
   box-shadow: var(--shadow-glow), var(--card-shadow);
   transition: all 0.35s ease;
-  animation: fadeIn 0.3s ease forwards;
 }
 
-@media (max-width: 640px) {
-  .card {
-    padding: 28px 20px;
-  }
+:global(body.theme-light) .loginCard {
+  background: rgba(255, 252, 253, 0.94);
+  border: 1.5px solid rgba(255, 185, 205, 0.5);
+  box-shadow: 0 18px 45px rgba(255, 122, 144, 0.16), 0 4px 16px rgba(180, 100, 120, 0.06);
 }
 
-.header {
+.cardHeader {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
 }
 
-.badge {
+.brandBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  background: rgba(255, 77, 136, 0.12);
-  border: 1px solid rgba(255, 77, 136, 0.35);
-  color: var(--accent-pink);
+  padding: 5px 14px;
+  background: rgba(255, 107, 139, 0.16);
+  border: 1px solid rgba(255, 107, 139, 0.35);
+  color: #ff8ca3;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   margin-bottom: 12px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+:global(body.theme-light) .brandBadge {
+  background: #fff0f4;
+  border: 1px solid #ffd2de;
+  color: #f43f6e;
 }
 
 .title {
-  font-size: 26px;
-  font-weight: 800;
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Pretendard', serif;
+  font-size: 30px;
+  font-weight: 700;
   color: var(--text-main);
   margin-bottom: 8px;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
 }
 
 .subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-sub);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .form {
@@ -62,19 +137,17 @@
 }
 
 .formGroup {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   display: flex;
   flex-direction: column;
 }
 
 .formLabel {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-main);
   margin-bottom: 8px;
+  letter-spacing: -0.2px;
 }
 
 .input {
@@ -82,16 +155,22 @@
   padding: 13px 16px;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   color: var(--text-main);
   font-size: 14px;
   transition: all 0.25s ease;
   outline: none;
 }
 
+:global(body.theme-light) .input {
+  background: #ffffff;
+  border: 1.5px solid #f3d4dc;
+  color: #381c25;
+}
+
 .input:focus {
   border-color: var(--accent-pink);
-  box-shadow: 0 0 12px rgba(255, 77, 136, 0.25);
+  box-shadow: 0 0 16px rgba(255, 107, 139, 0.28);
   background: var(--input-focus-bg);
 }
 
@@ -100,10 +179,10 @@
 }
 
 .errorBanner {
-  margin-bottom: 16px;
-  padding: 10px 14px;
+  margin-bottom: 18px;
+  padding: 11px 14px;
   background: rgba(255, 77, 109, 0.12);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 77, 109, 0.3);
   color: var(--error);
   font-size: 13px;
@@ -120,22 +199,33 @@
   margin-top: 10px;
   background: var(--primary-gradient);
   border: none;
-  border-radius: var(--radius-md);
-  color: #fff;
+  border-radius: 26px;
+  color: #ffffff;
   font-size: 15px;
   font-weight: 700;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(255, 77, 136, 0.35);
+  box-shadow: var(--shadow-glow);
   transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.submitBtn:hover {
+:global(body.theme-light) .submitBtn {
+  background: var(--primary-gradient);
+  box-shadow: 0 10px 28px rgba(255, 122, 144, 0.32);
+}
+
+.submitBtn:hover:not(:disabled) {
   background: var(--primary-hover);
-  box-shadow: 0 8px 24px rgba(255, 77, 136, 0.5);
-  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(255, 107, 139, 0.45);
+  transform: translateY(-2px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .signupPrompt {
@@ -143,9 +233,13 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:global(body.theme-light) .signupPrompt {
+  border-top-color: rgba(255, 200, 215, 0.6);
 }
 
 .signupPromptText {
@@ -162,18 +256,45 @@
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
+  transition: opacity 0.2s ease;
 }
 
 .signupLinkBtn:hover {
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
-.testAccountInfo {
-  margin-top: 16px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
+/* ==========================================================================
+   반응형 (태블릿 & 모바일 브라우저)
+   ========================================================================== */
+@media (max-width: 940px) {
+  .stageContent {
+    gap: 16px;
+  }
+
+  .silhouetteColLeft,
+  .silhouetteColRight {
+    width: 140px;
+  }
+
+  .silhouetteImage {
+    width: 115px;
+    max-height: 340px;
+  }
+}
+
+@media (max-width: 740px) {
+  .silhouetteColLeft,
+  .silhouetteColRight {
+    display: none;
+  }
+
+  .loginCard {
+    max-width: 480px;
+    padding: 32px 22px;
+  }
+
+  .stage {
+    min-height: auto;
+    padding: 24px 14px;
+  }
 }
