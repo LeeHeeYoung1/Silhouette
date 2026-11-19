@@ -16,7 +16,67 @@ function PostDetail() {
     const { id } = useParams();   // 주소의 글 번호 (/post/detail/5 → "5")
     const [files, setFiles]= useState([]);
 
+    const loadComments = ()=>{
+        Client.get(`/api/posts/${id}comments`).then((res)=> setComments(res.data)).catch((err)=> console.error(err));
+        //loadComments 함수	처음 들어올 때와 댓글 등록 후 두 번 써요. 그래서 함수로 따로 만들어요
+        //setComments(res.data)	받은 목록을 comments 상자에 넣으면 아래 화면이 자동으로 다시 그려져요
+    };
+    useEffect(()=>{
+        loadComments();
+
+    }, [id]);
+
+    const handleAddComment= async ()=>{
+        if(!token){
+            alert('로그인한 회원만 댓글을 작성할 수 있습니다.');
+            navigate('/login');
+            return;
+        }
+        const content = commentText.trim();
+        if(!content){
+            alert('댓글 내용을 입력해 주세요.');
+            return;
+        }
+        try{
+            await Client.post(`/api/posts/${id}/comments`,{
+                loginId,
+                content,
+
+            });
+            setCommentText(''); //입력값 비우가
+            loadComments(); //목록 다시 불러오기
+            setPost((prev)=>({
+                ...prev, commentCount:(prev.commentCount || 0) +1}))
+            }catch(err){
+                console.error(err);
+                alert('댓글 등록에 실패했습니다.');
+        
+        }
+    }
+    
+    const handleDeletePost = async()=>{
+        if(!token){
+            alert('로그인한 회원만 삭제가능합니다.');
+            navigate('/login');
+            return;
+        }
+        if(!window.confirm('게시글을 삭제하시겠습니까?')){
+            return; //취소 누르면 변화없음
+        }
+        try{
+            await Client.delete(`/api/posts/${id}`,{
+                params: {loginId},
+            }),
+            alert('게시글이 삭제되었습니다.');
+            navigate('/post/free');
+        }catch(err){
+            console.error(err);
+            alert('게시글을 삭제할 수 없습니다.')
+        }
+    };
+
     const {id: loginId, token} = useAuthStore();
+    
     const navigate= useNavigate();
 
     const handleDownLoad=async (file)=>{
@@ -53,6 +113,37 @@ function PostDetail() {
     // 서버에서 받아올 데이터 (지금은 비어 있음)
     const [post, setPost] = useState(null);
     const [comments, setComments] = useState([]);
+    const [hasLiked, setHasLiked] = useState(false);
+
+    useEffect(()=>{
+        if(!loginId) return;
+        Client.get(`/api/posts/${id}/recommend`,{
+            params: {loginId},
+
+        })
+        .then((res)=> setHasLiked(res.data.liked))
+        .catch((err)=> console.error(err));
+    }, [id, loginId]);
+
+     const handleToggleLike = async () => {
+        if(!token){
+            alert('로그인한 회원만 추천할 수 있습니다.');
+            navigate('/login');
+            return;
+        }
+        try{
+            const res= await Client.post(`/api/posts/${id}/recommend`, null, {
+                params: {loginId},
+            });
+            setHasLiked(res.data.liked);
+            setPost((prev)=>({
+                ...prev, recommendCount: res.data.recommendCount
+            }));
+        }catch (err){
+            console.error(err);
+            alert('추천 처리에 실패했습니다.');
+        }
+     };
 
     useEffect(()=>{
         Client.get(`/api/posts/${id}/files`)
@@ -71,19 +162,23 @@ function PostDetail() {
     }, [id]);
 
     // 화면 상태
-    const [hasLiked, setHasLiked] = useState(false);
+    
     const [commentText, setCommentText] = useState('');
     const [replyToId, setReplyToId] = useState(null);
     const [replyText, setReplyText] = useState('');
 
-    // 본인 글 여부 (로그인 연동 후 계산)
-    const isMine = false;
+   const isMine = !!loginId && post?.loginId === loginId;
+    
+    // ===== 서버 연동 예정 함수들 =====
+  
+    
+    const handleAddReply = (parentSeq) => {};
+   
+
+
 
     // ===== 서버 연동 예정 함수들 =====
-    const handleToggleLike = () => { };
-    const handleAddComment = () => { };
-    const handleAddReply = (parentSeq) => { };
-    const handleDeletePost = () => { };
+   
 
     // 글이 없을 때
     if (!post) {
