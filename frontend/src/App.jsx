@@ -10,6 +10,7 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import Event from './pages/event/event';
 
 function App() {
   return (

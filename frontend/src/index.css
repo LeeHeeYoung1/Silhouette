@@ -1,62 +1,69 @@
 /* ==========================================================================
-   실루엣 (Silhouette) 전역 디자인 시스템 변수 & 리셋
+   실루엣 (Silhouette) 디자인 시스템
+   컨셉: 새벽(Dawn)과 해질녘(Twilight)의 풋풋한 설렘과 신비로운 글래스모피즘
    ========================================================================== */
 
 :root {
-  /* [기본 다크 테마 변수] */
-  --bg-gradient: radial-gradient(circle at 50% 20%, #201335 0%, #0c0817 100%);
-  --bg-aurora: radial-gradient(circle, rgba(255, 77, 136, 0.18) 0%, rgba(139, 61, 255, 0.12) 50%, transparent 70%);
-  --header-bg: rgba(25, 20, 44, 0.65);
-  --card-bg: rgba(28, 22, 49, 0.78);
-  --card-border: rgba(255, 120, 180, 0.22);
-  --primary-gradient: linear-gradient(135deg, #ff4d88 0%, #8b3dff 100%);
-  --primary-hover: linear-gradient(135deg, #ff6599 0%, #9e59ff 100%);
-  --accent-pink: #ff4d88;
-  --accent-purple: #8b3dff;
-  --text-main: #f8f7ff;
-  --text-sub: #b3a9c9;
-  --text-muted: #7f749a;
-  --input-bg: rgba(16, 12, 30, 0.65);
-  --input-border: rgba(179, 169, 201, 0.25);
-  --input-focus-bg: rgba(25, 20, 44, 0.95);
-  --cell-bg: rgba(16, 12, 30, 0.5);
-  --cell-border: rgba(255, 255, 255, 0.06);
-  --terms-card-bg: rgba(18, 14, 34, 0.75);
-  --terms-box-bg: rgba(9, 7, 18, 0.85);
-  --profile-card-bg: linear-gradient(135deg, rgba(255, 77, 136, 0.12) 0%, rgba(139, 61, 255, 0.15) 100%);
-  --success: #22c55e;
-  --error: #ff4d6d;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --shadow-glow: 0 10px 30px rgba(139, 61, 255, 0.25);
-  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  /* [해질녘(Twilight) 모드: 몽환적인 코발트 더스크 & 소프트 라벤더 노을빛] */
+  --bg-gradient: radial-gradient(ellipse at 50% 0%, #222544 0%, #181a30 50%, #101222 100%);
+  --bg-aurora: radial-gradient(circle at 50% 25%, rgba(255, 175, 160, 0.24) 0%, rgba(185, 155, 245, 0.26) 45%, rgba(120, 145, 240, 0.18) 70%, transparent 85%);
+  --header-bg: rgba(30, 35, 62, 0.55);
+  --card-bg: rgba(32, 38, 68, 0.48);
+  --card-border: rgba(255, 255, 255, 0.18);
+  --primary-gradient: linear-gradient(135deg, #ffa28e 0%, #f47b9d 45%, #9b87f5 100%);
+  --primary-hover: linear-gradient(135deg, #ffb5a3 0%, #ff8eb0 45%, #ad9bf8 100%);
+  --accent-pink: #f47b9d;
+  --accent-purple: #9b87f5;
+  --accent-blue: #7bb5f4;
+  --text-main: #f8faff;
+  --text-sub: #c8d0e7;
+  --text-muted: #8b95b8;
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --input-focus-bg: rgba(255, 255, 255, 0.14);
+  --cell-bg: rgba(30, 35, 64, 0.42);
+  --cell-border: rgba(255, 255, 255, 0.12);
+  --terms-card-bg: rgba(26, 30, 56, 0.55);
+  --terms-box-bg: rgba(18, 20, 38, 0.65);
+  --profile-card-bg: linear-gradient(135deg, rgba(255, 162, 142, 0.15) 0%, rgba(244, 123, 157, 0.15) 50%, rgba(155, 135, 245, 0.18) 100%);
+  --success: #34d399;
+  --error: #fb7185;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --glass-reflect: inset 0 1px 1px rgba(255, 255, 255, 0.28);
+  --glass-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 14px 38px rgba(244, 123, 157, 0.26);
+  --card-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
 }
 
-/* [라이트 테마: 소프트 블러쉬 핑크 & 라벤더 펄] */
+/* [새벽(Dawn) 모드: 맑은 아침 이슬 던 블루 & 수줍게 물드는 피치 코랄 라벤더] */
 body.theme-light {
-  --bg-gradient: radial-gradient(circle at 50% 15%, #fff5f8 0%, #f6effa 50%, #f0ebf8 100%);
-  --bg-aurora: radial-gradient(circle, rgba(255, 120, 180, 0.25) 0%, rgba(180, 140, 255, 0.18) 60%, transparent 75%);
-  --header-bg: rgba(255, 255, 255, 0.82);
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(255, 145, 190, 0.35);
-  --primary-gradient: linear-gradient(135deg, #ff4382 0%, #7c3aed 100%);
-  --primary-hover: linear-gradient(135deg, #ff5c94 0%, #9055ff 100%);
-  --accent-pink: #ff2a73;
-  --accent-purple: #7c3aed;
-  --text-main: #2b1f3d;
-  --text-sub: #63547a;
-  --text-muted: #8e80a5;
-  --input-bg: #ffffff;
-  --input-border: #e2d8ec;
+  --bg-gradient: radial-gradient(ellipse at 50% 0%, #f4f8fe 0%, #ecf2fc 45%, #fceef3 100%);
+  --bg-aurora: radial-gradient(circle at 50% 25%, rgba(165, 205, 255, 0.42) 0%, rgba(215, 195, 255, 0.32) 45%, rgba(255, 195, 205, 0.38) 75%, transparent 85%);
+  --header-bg: rgba(255, 255, 255, 0.68);
+  --card-bg: rgba(255, 255, 255, 0.62);
+  --card-border: rgba(255, 255, 255, 0.8);
+  --primary-gradient: linear-gradient(135deg, #ff9580 0%, #f26d91 48%, #8e7bf3 100%);
+  --primary-hover: linear-gradient(135deg, #ffa694 0%, #ff7ea1 48%, #9f8df5 100%);
+  --accent-pink: #f26d91;
+  --accent-purple: #8e7bf3;
+  --accent-blue: #5b9ff2;
+  --text-main: #232840;
+  --text-sub: #5a6484;
+  --text-muted: #8e9bb8;
+  --input-bg: rgba(255, 255, 255, 0.75);
+  --input-border: rgba(210, 222, 245, 0.65);
   --input-focus-bg: #ffffff;
-  --cell-bg: #f9f6fc;
-  --cell-border: #ebdff2;
-  --terms-card-bg: #faf7fd;
-  --terms-box-bg: #f3eef9;
-  --profile-card-bg: linear-gradient(135deg, #ffeef4 0%, #f3ebfc 100%);
-  --shadow-glow: 0 12px 35px rgba(255, 105, 180, 0.18);
-  --card-shadow: 0 15px 35px rgba(120, 90, 150, 0.12);
+  --cell-bg: rgba(255, 255, 255, 0.6);
+  --cell-border: rgba(225, 235, 250, 0.7);
+  --terms-card-bg: rgba(255, 255, 255, 0.7);
+  --terms-box-bg: rgba(245, 248, 255, 0.8);
+  --profile-card-bg: linear-gradient(135deg, rgba(255, 240, 245, 0.75) 0%, rgba(245, 240, 255, 0.75) 50%, rgba(235, 245, 255, 0.8) 100%);
+  --glass-reflect: inset 0 1px 2px rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 16px 40px rgba(110, 130, 180, 0.12);
+  --shadow-glow: 0 14px 38px rgba(242, 109, 145, 0.22);
+  --card-shadow: 0 16px 36px rgba(120, 140, 180, 0.1);
 }
 
 * {
@@ -66,7 +73,7 @@ body.theme-light {
 }
 
 body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--text-main);
