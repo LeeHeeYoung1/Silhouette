@@ -1,5 +1,7 @@
 package com.app.silhouette.post;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,4 +60,12 @@ public class PostCommentService {
 		}
 		return memberSeq;
 	}
+	public List<PostCommentDTO> selectComments(Long postSeq){
+		if (postCommentDAO.countActivePost(postSeq) == 0) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글이 없습니다.");
+			
+		}
+		return postCommentDAO.selectComment(postSeq);
+	}
+	
 }
