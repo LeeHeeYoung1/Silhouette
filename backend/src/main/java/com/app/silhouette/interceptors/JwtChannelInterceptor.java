@@ -1,6 +1,8 @@
+
 package com.app.silhouette.interceptors;
 
-import org.jspecify.annotations.Nullable;
+import java.util.Map;
+
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -9,42 +11,100 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
+import com.app.silhouette.chatting.ChattingDAO;
 import com.app.silhouette.commons.JwtUtil;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 
 @Component
 public class JwtChannelInterceptor implements ChannelInterceptor {
-   
-   private JwtUtil jwt;
-   
-   public JwtChannelInterceptor(JwtUtil jwt) {
-      this.jwt = jwt;
-   }
-   
-   @Override
-   public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
-      
-      StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-      
-      if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-         String authHeader = accessor.getFirstNativeHeader("Authorization");
-         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            try {
-               String token = authHeader.substring(7);
-               DecodedJWT dToken = jwt.verifyToken(token);
-               String userId = dToken.getSubject();
-               
-               System.out.println("WebSocket 인증 성공 - 사용자: " + userId);
-               if (accessor.getSessionAttributes() != null) {
-                  accessor.getSessionAttributes().put("userId", userId);
-               }
-            } catch (Exception e) {
-               System.err.println("WebSocket JWT 검증 실패: " + e.getMessage());
+
+    private final JwtUtil jwt;
+    private final ChattingDAO chattingDAO;
+
+    public JwtChannelInterceptor(JwtUtil jwt, ChattingDAO chattingDAO) {
+        this.jwt = jwt;
+        this.chattingDAO = chattingDAO;
+    }
+
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        if (accessor == null || accessor.getCommand() == null) {
+            return message;
+        }
+
+        // 웹소켓 연결 시 JWT 검증
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+
+            String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return null;
             }
-         }
-      }
-      
-      return message;
-   }
-   
+
+            try {
+                String token = authHeader.substring(7);
+                DecodedJWT decoded = jwt.verifyToken(token);
+                String userId = decoded.getSubject();
+
+                if (userId == null || userId.isEmpty()) {
+                    return null;
+                }
+
+                Map<String, Object> attributes = accessor.getSessionAttributes();
+
+                if (attributes == null) {
+                    return null;
+                }
+
+                attributes.put("userId", userId);
+
+            } catch (JWTVerificationException e) {
+                return null;
+            }
+        }
+
+        // 채팅방 구독 시 참여 회원인지 확인
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+
+            String destination = accessor.getDestination();
+
+            // 채팅방 구독이 아닌 경우 기존 기능 유지
+            if (destination == null || !destination.startsWith("/sub/chat/")) {
+                return message;
+            }
+
+            Map<String, Object> attributes = accessor.getSessionAttributes();
+
+            String userId = attributes == null
+                    ? null
+                    : (String) attributes.get("userId");
+
+            if (userId == null) {
+                return null;
+            }
+
+            try {
+                Long roomSeq = Long.valueOf(
+                        destination.substring("/sub/chat/".length())
+                );
+
+                Integer memberSeq = chattingDAO.getMemberSeq(userId);
+
+                if (memberSeq == null
+                        || chattingDAO.isRoomMember(roomSeq, memberSeq.longValue()) == 0) {
+                    return null;
+                }
+
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        return message;
+    }
 }

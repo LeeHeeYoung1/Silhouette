@@ -1,0 +1,103 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color, #333);
+}
+
+.header p {
+  color: var(--sub-text-color, #666);
+  font-size: 0.9rem;
+}
+
+.roomListWrapper {
+  background-color: var(--card-bg, #fff);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.roomList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.roomItem {
+  display: flex;
+  align-items: center;
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid var(--border-color, #eee);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.roomItem:last-child {
+  border-bottom: none;
+}
+
+.roomItem:hover {
+  background-color: var(--hover-bg, #f9f9f9);
+}
+
+.roomAvatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.roomInfo {
+  flex: 1;
+}
+
+.roomTop {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.roomName {
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.roomDate {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.roomBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.roomPreview {
+  font-size: 0.9rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.emptyMessage {
+  padding: 3rem;
+  text-align: center;
+  color: #888;
+}

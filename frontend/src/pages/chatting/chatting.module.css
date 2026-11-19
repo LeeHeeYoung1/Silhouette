@@ -1,0 +1,180 @@
+/* 전체 배경: 깊은 어둠 */
+.silhouetteContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #050505;
+  font-family: 'Helvetica Neue', sans-serif;
+}
+
+/* 채팅창 본체: 미세한 윤곽선과 그림자 */
+.chatWrapper {
+  width: 100%;
+  max-width: 450px;
+  height: 80vh;
+  background-color: #121212;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.03), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  border: 1px solid #222;
+  overflow: hidden;
+}
+
+/* 헤더 */
+.chatHeader {
+  padding: 20px;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, #181818 0%, #121212 100%);
+}
+
+.title {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.statusOnline {
+  color: #4caf50;
+  font-size: 0.8rem;
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.statusOffline {
+  color: #f44336;
+  font-size: 0.8rem;
+}
+
+/* 메시지 표시 영역 */
+.messageDisplay {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 스크롤바 숨기기 (세련된 룩을 위해) */
+.messageDisplay::-webkit-scrollbar {
+  width: 4px;
+}
+.messageDisplay::-webkit-scrollbar-thumb {
+  background-color: #333;
+  border-radius: 4px;
+}
+
+/* 메시지 공통 */
+.messageWrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.messageLine {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sender {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 4px;
+  margin-left: 4px;
+}
+
+.messageBubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.timestamp {
+  font-size: 0.7rem;
+  color: #888;
+  white-space: nowrap;
+  padding-bottom: 2px;
+}
+
+/* 상대방 메시지: 어두운 회색 실루엣 */
+.otherMessage {
+  align-self: flex-start;
+}
+.otherMessage .messageBubble {
+  background-color: #1e1e1e;
+  color: #ccc;
+  border-top-left-radius: 2px;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 내 메시지: 미세하게 빛나는 효과 */
+.myMessage {
+  align-self: flex-end;
+}
+.myMessage .messageBubble {
+  background-color: #2a2a2a;
+  color: #fff;
+  border-top-right-radius: 2px;
+  box-shadow: -2px 2px 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 255, 255, 0.05);
+}
+
+/* 입력창 영역 */
+.inputArea {
+  display: flex;
+  padding: 16px;
+  background-color: #151515;
+  border-top: 1px solid #1a1a1a;
+  gap: 12px;
+}
+
+.textInput {
+  flex: 1;
+  background-color: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #ddd;
+  padding: 12px 16px;
+  border-radius: 24px;
+  outline: none;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.textInput:focus {
+  border-color: #444;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.textInput::placeholder {
+  color: #555;
+}
+
+.sendButton {
+  background-color: transparent;
+  color: #888;
+  border: 1px solid #333;
+  border-radius: 24px;
+  padding: 0 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  background-color: #222;
+  color: #fff;
+  border-color: #555;
+}
+
+.sendButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

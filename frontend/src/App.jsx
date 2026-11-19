@@ -10,6 +10,8 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import Chatting from './pages/chatting/chatting';
+import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
 
 function App() {
@@ -19,8 +21,8 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
-        <Route path='/event' element={<Event />} />
-        
+        <Route path="/event" element={<Event />} />
+
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
           <Route index element={<Navigate to="free" replace />} />
@@ -28,12 +30,10 @@ function App() {
           <Route path="notice" element={<PostList boardType="notice" />} />
           <Route path="faq" element={<PostList boardType="faq" />} />
           <Route path="qna" element={<PostList boardType="qna" />} />
-          {/* 새글 작성하기 */}
           <Route path="free/write" element={<PostWrite writeType="free" />} />
           <Route path="notice/write" element={<PostWrite writeType="notice" />} />
           <Route path="qna/write" element={<PostWrite writeType="qna" />} />
           <Route path="write/:type" element={<PostWrite />} />
-          {/* 게시글 상세 보기 */}
           <Route path="detail/:id" element={<PostDetail />} />
         </Route>
 
@@ -42,6 +42,8 @@ function App() {
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/chatting/:roomId" element={<Chatting />} />
+        <Route path="/chattingRoomList" element={<ChatRoomList />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
