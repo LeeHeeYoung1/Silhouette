@@ -38,7 +38,6 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-<<<<<<< HEAD
   padding: 14px 26px;
   background: var(--header-bg);
   backdrop-filter: blur(28px);
@@ -47,16 +46,6 @@
   border-radius: var(--radius-md);
   box-shadow: var(--glass-reflect), var(--glass-shadow);
   transition: all 0.35s ease;
-=======
-  padding: 14px 24px;
-  background: var(--header-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
->>>>>>> style/home
 }
 
 .brandLogo {
@@ -75,11 +64,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-<<<<<<< HEAD
   box-shadow: 0 0 20px rgba(244, 123, 157, 0.45);
-=======
-  box-shadow: 0 0 18px rgba(255, 107, 139, 0.45);
->>>>>>> style/home
   font-size: 17px;
   animation: heartFlutter 3.2s infinite ease-in-out;
 }
