@@ -10,6 +10,7 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import Event from './pages/event/event';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
+        <Route path='/event' element={<Event />} />
         
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
