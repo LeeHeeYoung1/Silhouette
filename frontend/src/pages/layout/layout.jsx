@@ -59,6 +59,16 @@ function Layout() {
             </NavLink>
 
             <NavLink
+              to="/event"
+              end
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
+            >
+              이벤트
+            </NavLink>
+
+            <NavLink
               to="/post"
               className={({ isActive }) =>
                 `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`

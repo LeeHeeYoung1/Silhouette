@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PostComment">
+
+	<!-- 댓글 등록 (대댓글이면 parentPostCommentSeq에 부모 번호) -->
+	<insert id="insertComment" parameterType="com.app.silhouette.post.PostCommentDTO">
+		<selectKey keyProperty="postCommentSeq" resultType="long" order="BEFORE">
+			select seq_post_comment.nextval from dual
+		</selectKey>
+		insert into post_comment (
+			post_comment_seq, post_seq, member_seq, parent_post_comment_seq,
+			content, is_deleted, created_at, updated_at
+		) values (
+			#{postCommentSeq}, #{postSeq}, #{memberSeq}, #{parentPostCommentSeq},
+			#{content}, 'N', systimestamp, systimestamp
+		)
+	</insert>
+
+	<!-- 글의 댓글 수 +1 -->
+	<update id="increaseCommentCount" parameterType="long">
+		update post
+		   set comment_count = comment_count + 1
+		 where post_seq = #{postSeq}
+	</update>
+
+	<!-- 댓글을 달 수 있는 글인지 (삭제 안 된 글이면 1) -->
+	<select id="countActivePost" parameterType="long" resultType="int">
+		select count(*) from post
+		 where post_seq = #{postSeq}
+		   and is_deleted = 'N'
+	</select>
+
+</mapper>

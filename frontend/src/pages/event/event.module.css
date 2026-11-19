@@ -1,0 +1,592 @@
+/* ==========================================================================
+   실루엣 이벤트 허브 (Event Hub) 스타일 모듈
+   컨셉: 새벽(Dawn) & 해질녘(Twilight)의 신비로운 풋풋함과 Frosted Glassmorphism
+   ========================================================================== */
+
+.container {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 10px 0 60px;
+  animation: fadeIn 0.35s ease forwards;
+}
+
+/* ==========================================================================
+   1. 상단 히어로 배너 (Frosted Glass Hero)
+   ========================================================================== */
+.heroBanner {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--glass-reflect), var(--glass-shadow);
+  padding: 38px 36px;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.heroBanner::before {
+  content: '';
+  position: absolute;
+  top: -90px;
+  right: -40px;
+  width: 480px;
+  height: 320px;
+  background: var(--bg-aurora);
+  filter: blur(65px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--card-border);
+  color: var(--accent-pink);
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--glass-reflect);
+  width: fit-content;
+}
+
+.heroTitle {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.6px;
+  margin: 4px 0 2px;
+  line-height: 1.25;
+}
+
+.titleHighlight {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroDesc {
+  font-size: 14.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+
+.heroStats {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.statBox {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 120px;
+  box-shadow: var(--glass-reflect);
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.statPink {
+  color: var(--accent-pink);
+}
+
+/* ==========================================================================
+   2. 이벤트 카테고리 필터 탭 바
+   ========================================================================== */
+.tabBar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tabBtn {
+  background: var(--card-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--glass-reflect);
+  color: var(--text-sub);
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--accent-pink);
+  transform: translateY(-1px);
+}
+
+.tabBtnActive {
+  background: var(--primary-gradient);
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 18px rgba(244, 123, 157, 0.35);
+}
+
+/* ==========================================================================
+   3. 섹션 레이아웃 (출석체크, AI 테스트, 성향 테스트, 스페셜 이벤트)
+   ========================================================================== */
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 12px;
+}
+
+.sectionTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionTitle {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.4px;
+}
+
+.sectionSubtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   4. 출석체크 특별 카드 (Attendance Special Card)
+   ========================================================================== */
+.attendCard {
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--glass-reflect), var(--glass-shadow);
+  padding: 30px 28px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.attendLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.attendTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.attendCalendarTag {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-pink);
+  background: rgba(244, 123, 157, 0.12);
+  border: 1px solid rgba(244, 123, 157, 0.3);
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+
+/* 주간 스탬프 7일 칩 */
+.weekStampRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.weekStampItem {
+  background: var(--cell-bg);
+  border: 1px solid var(--cell-border);
+  border-radius: 14px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+}
+
+.weekDayText {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stampIcon {
+  font-size: 18px;
+}
+
+.stampDone {
+  background: rgba(244, 123, 157, 0.16);
+  border-color: rgba(244, 123, 157, 0.45);
+  box-shadow: 0 0 12px rgba(244, 123, 157, 0.22);
+}
+
+.stampDone .weekDayText {
+  color: var(--accent-pink);
+  font-weight: 700;
+}
+
+.stampTodayActive {
+  border: 2px solid var(--accent-purple);
+  box-shadow: 0 0 14px rgba(155, 135, 245, 0.35);
+  transform: scale(1.05);
+}
+
+.attendRight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+}
+
+.attendRewardInfo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.attendRewardSub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.checkInBtn {
+  width: 100%;
+  padding: 15px;
+  background: var(--primary-gradient);
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 24px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(244, 123, 157, 0.35), inset 0 2px 6px rgba(255, 255, 255, 0.6);
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.checkInBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 14px 34px rgba(244, 123, 157, 0.5), inset 0 2px 8px rgba(255, 255, 255, 0.85);
+  transform: translateY(-2px);
+}
+
+.checkInBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
+   5. 이벤트 카드 그리드 (AI 테스트 & 성향 테스트 & 스페셜)
+   ========================================================================== */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.eventCard {
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--glass-reflect), var(--glass-shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.32s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.eventCard:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow: var(--glass-reflect), 0 22px 48px rgba(244, 123, 157, 0.22);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: var(--glass-reflect);
+}
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 14px;
+  letter-spacing: 0.3px;
+}
+
+.statusActive {
+  background: rgba(52, 211, 153, 0.16);
+  color: var(--success);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.statusHot {
+  background: rgba(244, 123, 157, 0.18);
+  color: var(--accent-pink);
+  border: 1px solid rgba(244, 123, 157, 0.4);
+}
+
+.statusNew {
+  background: rgba(155, 135, 245, 0.18);
+  color: var(--accent-purple);
+  border: 1px solid rgba(155, 135, 245, 0.4);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-size: 17.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+  line-height: 1.35;
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.55;
+}
+
+.rewardTagGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.rewardTag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  background: rgba(155, 135, 245, 0.1);
+  border: 1px solid rgba(155, 135, 245, 0.25);
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.cardActionBtn {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  color: var(--text-main);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cardActionBtn:hover {
+  background: var(--primary-gradient);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(244, 123, 157, 0.35);
+}
+
+/* ==========================================================================
+   6. 라이트 모드 (새벽 · Dawn) 테마 대응
+   ========================================================================== */
+:global(body.theme-light) .heroBanner,
+:global(body.theme-light) .attendCard,
+:global(body.theme-light) .eventCard {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow: var(--glass-reflect), 0 16px 42px rgba(110, 130, 180, 0.12);
+}
+
+:global(body.theme-light) .badge,
+:global(body.theme-light) .tabBtn {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(110, 130, 180, 0.08);
+}
+
+:global(body.theme-light) .tabBtnActive {
+  background: var(--primary-gradient);
+  color: #ffffff !important;
+}
+
+:global(body.theme-light) .statBox,
+:global(body.theme-light) .attendRight {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(215, 228, 250, 0.8);
+}
+
+:global(body.theme-light) .weekStampItem,
+:global(body.theme-light) .cardIcon {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(215, 228, 250, 0.75);
+}
+
+:global(body.theme-light) .stampDone {
+  background: rgba(242, 109, 145, 0.12);
+  border-color: rgba(242, 109, 145, 0.45);
+}
+
+:global(body.theme-light) .cardActionBtn {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(215, 228, 250, 0.8);
+  color: var(--text-main);
+}
+
+:global(body.theme-light) .cardActionBtn:hover {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* ==========================================================================
+   반응형 (태블릿 & 모바일 브라우저)
+   ========================================================================== */
+@media (max-width: 980px) {
+  .heroBanner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heroStats {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .attendCard {
+    grid-template-columns: 1fr;
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .heroBanner,
+  .attendCard,
+  .eventCard {
+    padding: 24px 20px;
+  }
+
+  .heroTitle {
+    font-size: 24px;
+  }
+
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabBar {
+    gap: 8px;
+  }
+
+  .tabBtn {
+    padding: 8px 14px;
+    font-size: 12.5px;
+  }
+}
