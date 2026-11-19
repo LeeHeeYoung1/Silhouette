@@ -364,7 +364,7 @@ function Home() {
             btnSubtitle="BLIND MATCH"
             guideContent={
               <p className={styles.matchGuide}>
-                선입견 없는 진솔한 대화를<br />지금 바로 시작해보세요.
+                커튼 너머의 실루엣처럼,<br />얼굴 없는 진실된 대화를 시작해보세요.
               </p>
             }
             searchingTitle="블라인드 상대를 찾는 중..."
