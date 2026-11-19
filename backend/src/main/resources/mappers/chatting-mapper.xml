@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Chatting">
+
+    <select id="getMemberSeq" resultType="int">
+        SELECT MEMBER_SEQ
+        FROM MEMBER
+        WHERE LOGIN_ID = #{value}
+    </select>
+
+    <insert id="createChatRoom" parameterType="com.app.silhouette.chatting.ChattingRoomDTO">
+        <selectKey keyProperty="chat_room_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_ROOM_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_ROOM (
+            CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ,
+            CREATED_BY, ROOM_STATUS, CREATED_AT
+        ) VALUES (
+            #{chat_room_seq}, #{room_name}, #{room_type},
+            #{matching_seq, jdbcType=NUMERIC}, #{created_by}, #{room_status}, SYSDATE
+        )
+    </insert>
+
+    <insert id="createParticipant" parameterType="com.app.silhouette.chatting.ChattingParticipantDTO">
+        <selectKey keyProperty="chat_participant_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_PARTICIPANT_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_PARTICIPANT (
+            CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ, MEMBER_SEQ,
+            PARTICIPANT_ROLE, PARTICIPANT_STATUS, JOINED_AT
+        ) VALUES (
+            #{chat_participant_seq}, #{chat_room_seq}, #{member_seq},
+            #{participant_role}, #{participant_status}, SYSDATE
+        )
+    </insert>
+
+    <insert id="createChatRoomList" parameterType="com.app.silhouette.chatting.ChattingRoomListDTO">
+        <selectKey keyProperty="chat_room_list_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_ROOM_LIST_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_ROOM_LIST (
+            CHAT_ROOM_LIST_SEQ, MEMBER_SEQ, CHAT_ROOM_SEQ, STATUS,
+            LAST_READ_MESSAGE_SEQ, DELETED_MESSAGE_SEQ, LEFT_AT, DELETED_AT, CREATED_AT
+        ) VALUES (
+            #{chat_room_list_seq}, #{member_seq}, #{chat_room_seq}, #{status},
+            #{last_read_message_seq}, #{deleted_message_seq, jdbcType=NUMERIC},
+            NULL, NULL, SYSDATE
+        )
+    </insert>
+
+    <select id="selectRoomList" parameterType="long"
+            resultType="com.app.silhouette.chatting.ChattingRoomListDTO">
+        SELECT
+            CRL.CHAT_ROOM_LIST_SEQ,
+            CRL.MEMBER_SEQ,
+            CRL.CHAT_ROOM_SEQ,
+            CRL.STATUS,
+            CRL.LAST_READ_MESSAGE_SEQ,
+            CRL.DELETED_MESSAGE_SEQ,
+            CRL.LEFT_AT,
+            CRL.DELETED_AT,
+            CRL.CREATED_AT,
+            CR.ROOM_NAME,
+            CR.ROOM_TYPE,
+            (SELECT MAX(CP2.MEMBER_SEQ)
+               FROM CHAT_PARTICIPANT CP2
+              WHERE CP2.CHAT_ROOM_SEQ = CR.CHAT_ROOM_SEQ
+                AND CP2.MEMBER_SEQ &lt;&gt; CRL.MEMBER_SEQ
+                AND CP2.PARTICIPANT_STATUS = 'JOINED') AS PARTNER_SEQ,
+            (SELECT MAX(M.NICKNAME)
+               FROM CHAT_PARTICIPANT CP2
+               JOIN MEMBER M ON M.MEMBER_SEQ = CP2.MEMBER_SEQ
+              WHERE CP2.CHAT_ROOM_SEQ = CR.CHAT_ROOM_SEQ
+                AND CP2.MEMBER_SEQ &lt;&gt; CRL.MEMBER_SEQ
+                AND CP2.PARTICIPANT_STATUS = 'JOINED') AS PARTNER_NICK,
+            (SELECT CM.MESSAGE_CONTENT
+               FROM CHAT_MESSAGE CM
+              WHERE CM.CHAT_MESSAGE_SEQ = (
+                    SELECT MAX(CM2.CHAT_MESSAGE_SEQ)
+                      FROM CHAT_MESSAGE CM2
+                     WHERE CM2.CHAT_ROOM_SEQ = CR.CHAT_ROOM_SEQ
+                       AND CM2.DELETED_YN = 'N'
+              )) AS LAST_MESSAGE,
+            (SELECT MAX(CM3.CREATED_AT)
+               FROM CHAT_MESSAGE CM3
+              WHERE CM3.CHAT_ROOM_SEQ = CR.CHAT_ROOM_SEQ
+                AND CM3.DELETED_YN = 'N') AS LAST_SEND_TIME,
+            0 AS UNREAD_COUNT
+        FROM CHAT_ROOM_LIST CRL
+        JOIN CHAT_ROOM CR ON CR.CHAT_ROOM_SEQ = CRL.CHAT_ROOM_SEQ
+        WHERE CRL.MEMBER_SEQ = #{value}
+          AND CRL.STATUS = 'ACTIVE'
+          AND CRL.LEFT_AT IS NULL
+          AND CRL.DELETED_AT IS NULL
+          AND CR.ROOM_STATUS = 'Y'
+        ORDER BY NVL(
+            (SELECT MAX(CM4.CREATED_AT) FROM CHAT_MESSAGE CM4
+              WHERE CM4.CHAT_ROOM_SEQ = CR.CHAT_ROOM_SEQ),
+            CR.CREATED_AT
+        ) DESC
+    </select>
+
+    <select id="selectRoomBySeq" parameterType="long"
+            resultType="com.app.silhouette.chatting.ChattingRoomDTO">
+        SELECT CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ,
+               CREATED_BY, ROOM_STATUS, CREATED_AT, CLOSED_AT
+        FROM CHAT_ROOM
+        WHERE CHAT_ROOM_SEQ = #{value}
+    </select>
+
+    <insert id="insertMessage" parameterType="com.app.silhouette.chatting.ChattingMessageDTO">
+        <selectKey keyProperty="chat_message_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_MESSAGE_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_MESSAGE (
+            CHAT_MESSAGE_SEQ, CHAT_ROOM_SEQ, SENDER_SEQ, MESSAGE_TYPE,
+            SYSTEM_EVENT_TYPE, MESSAGE_CONTENT, CREATED_AT, DELETED_YN
+        ) VALUES (
+            #{chat_message_seq}, #{chat_room_seq}, #{sender_seq}, #{message_type},
+            #{system_event_type, jdbcType=VARCHAR}, #{message_content}, SYSDATE, 'N'
+        )
+    </insert>
+
+    <insert id="insertMessageRead" parameterType="com.app.silhouette.chatting.ChattingMessageReadDTO">
+        <selectKey keyProperty="chat_message_read_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_MESSAGE_READ_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_MESSAGE_READ (
+            CHAT_MESSAGE_READ_SEQ, CHAT_MESSAGE_SEQ, MEMBER_SEQ
+        ) VALUES (
+            #{chat_message_read_seq}, #{chat_message_seq}, #{member_seq}
+        )
+    </insert>
+
+    <select id="selectMessageList" parameterType="long"
+            resultType="com.app.silhouette.chatting.ChattingMessageDTO">
+        SELECT CHAT_MESSAGE_SEQ, CHAT_ROOM_SEQ, SENDER_SEQ, MESSAGE_TYPE,
+               SYSTEM_EVENT_TYPE, MESSAGE_CONTENT, CREATED_AT, DELETED_YN
+        FROM CHAT_MESSAGE
+        WHERE CHAT_ROOM_SEQ = #{value}
+          AND DELETED_YN = 'N'
+        ORDER BY CHAT_MESSAGE_SEQ ASC
+    </select>
+
+    <select id="selectMessageListForMember" resultType="com.app.silhouette.chatting.ChattingMessageDTO">
+        SELECT CM.CHAT_MESSAGE_SEQ, CM.CHAT_ROOM_SEQ, CM.SENDER_SEQ,
+               CM.MESSAGE_TYPE, CM.SYSTEM_EVENT_TYPE, CM.MESSAGE_CONTENT,
+               CM.CREATED_AT, CM.DELETED_YN
+        FROM CHAT_MESSAGE CM
+        WHERE CM.CHAT_ROOM_SEQ = #{roomSeq}
+          AND CM.DELETED_YN = 'N'
+          AND EXISTS (
+              SELECT 1
+              FROM CHAT_PARTICIPANT CP
+              JOIN CHAT_ROOM_LIST CRL
+                ON CRL.CHAT_ROOM_SEQ = CP.CHAT_ROOM_SEQ
+               AND CRL.MEMBER_SEQ = CP.MEMBER_SEQ
+              WHERE CP.CHAT_ROOM_SEQ = CM.CHAT_ROOM_SEQ
+                AND CP.MEMBER_SEQ = #{memberSeq}
+                AND CP.PARTICIPANT_STATUS = 'JOINED'
+                AND CRL.STATUS = 'ACTIVE'
+                AND CRL.LEFT_AT IS NULL
+                AND CRL.DELETED_AT IS NULL
+          )
+        ORDER BY CM.CHAT_MESSAGE_SEQ ASC
+    </select>
+
+    <select id="isRoomMember" resultType="int">
+        SELECT COUNT(*)
+        FROM CHAT_PARTICIPANT CP
+        JOIN CHAT_ROOM_LIST CRL
+          ON CRL.CHAT_ROOM_SEQ = CP.CHAT_ROOM_SEQ
+         AND CRL.MEMBER_SEQ = CP.MEMBER_SEQ
+        WHERE CP.CHAT_ROOM_SEQ = #{roomSeq}
+          AND CP.MEMBER_SEQ = #{memberSeq}
+          AND CP.PARTICIPANT_STATUS = 'JOINED'
+          AND CRL.STATUS = 'ACTIVE'
+          AND CRL.LEFT_AT IS NULL
+          AND CRL.DELETED_AT IS NULL
+    </select>
+
+    <select id="searchMembers" resultType="com.app.silhouette.chatting.ChattingMemberDTO">
+        SELECT MEMBER_SEQ, LOGIN_ID, NICKNAME
+        FROM MEMBER
+        WHERE MEMBER_SEQ &lt;&gt; #{mySeq}
+          AND MEMBER_STATUS = 'ACTIVE'
+          AND (LOWER(NICKNAME) LIKE '%' || LOWER(#{keyword}) || '%'
+               OR LOWER(LOGIN_ID) LIKE '%' || LOWER(#{keyword}) || '%')
+        ORDER BY NICKNAME
+    </select>
+
+    <insert id="createInvitation" parameterType="com.app.silhouette.chatting.ChattingInvitationDTO">
+        <selectKey keyProperty="chat_invitation_seq" resultType="long" order="BEFORE">
+            SELECT CHAT_INVITATION_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_INVITATION (
+            CHAT_INVITATION_SEQ, CHAT_ROOM_SEQ, INVITER_SEQ, INVITEE_SEQ,
+            INVITATION_STATUS, INVITED_AT, RESPONDED_AT
+        ) VALUES (
+            #{chat_invitation_seq}, #{chat_room_seq}, #{inviter_seq}, #{invitee_seq},
+            #{invitation_status}, SYSDATE, NULL
+        )
+    </insert>
+
+    <select id="countPendingInvitation" resultType="int">
+        SELECT COUNT(*)
+        FROM CHAT_INVITATION
+        WHERE CHAT_ROOM_SEQ = #{roomSeq}
+          AND INVITEE_SEQ = #{inviteeSeq}
+          AND INVITATION_STATUS = 'PENDING'
+    </select>
+
+    <select id="selectInvitations" parameterType="long"
+            resultType="com.app.silhouette.chatting.ChattingInvitationDTO">
+        SELECT CI.CHAT_INVITATION_SEQ, CI.CHAT_ROOM_SEQ, CI.INVITER_SEQ,
+               CI.INVITEE_SEQ, CI.INVITATION_STATUS, CI.INVITED_AT,
+               CI.RESPONDED_AT, CR.ROOM_NAME, M.NICKNAME AS INVITER_NICK
+        FROM CHAT_INVITATION CI
+        JOIN CHAT_ROOM CR ON CR.CHAT_ROOM_SEQ = CI.CHAT_ROOM_SEQ
+        JOIN MEMBER M ON M.MEMBER_SEQ = CI.INVITER_SEQ
+        WHERE CI.INVITEE_SEQ = #{value}
+          AND CI.INVITATION_STATUS = 'PENDING'
+        ORDER BY CI.INVITED_AT DESC
+    </select>
+
+    <select id="selectInvitation" parameterType="long"
+            resultType="com.app.silhouette.chatting.ChattingInvitationDTO">
+        SELECT CHAT_INVITATION_SEQ, CHAT_ROOM_SEQ, INVITER_SEQ, INVITEE_SEQ,
+               INVITATION_STATUS, INVITED_AT, RESPONDED_AT
+        FROM CHAT_INVITATION
+        WHERE CHAT_INVITATION_SEQ = #{value}
+    </select>
+
+    <update id="updateInvitationStatus">
+        UPDATE CHAT_INVITATION
+        SET INVITATION_STATUS = #{status}, RESPONDED_AT = SYSDATE
+        WHERE CHAT_INVITATION_SEQ = #{invitationSeq}
+          AND INVITATION_STATUS = 'PENDING'
+    </update>
+
+    <select id="countParticipant" resultType="int">
+        SELECT COUNT(*) FROM CHAT_PARTICIPANT
+        WHERE CHAT_ROOM_SEQ = #{roomSeq} AND MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <update id="reactivateParticipant">
+        UPDATE CHAT_PARTICIPANT
+        SET PARTICIPANT_STATUS = 'JOINED', LEFT_AT = NULL, JOINED_AT = SYSDATE
+        WHERE CHAT_ROOM_SEQ = #{roomSeq} AND MEMBER_SEQ = #{memberSeq}
+    </update>
+
+    <select id="countRoomList" resultType="int">
+        SELECT COUNT(*) FROM CHAT_ROOM_LIST
+        WHERE CHAT_ROOM_SEQ = #{roomSeq} AND MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <update id="reactivateRoomList">
+        UPDATE CHAT_ROOM_LIST
+        SET STATUS = 'ACTIVE', LEFT_AT = NULL, DELETED_AT = NULL
+        WHERE CHAT_ROOM_SEQ = #{roomSeq} AND MEMBER_SEQ = #{memberSeq}
+    </update>
+
+    <update id="leaveParticipant">
+        UPDATE CHAT_PARTICIPANT
+        SET PARTICIPANT_STATUS = 'LEFT', LEFT_AT = SYSDATE
+        WHERE CHAT_ROOM_SEQ = #{roomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND PARTICIPANT_STATUS = 'JOINED'
+    </update>
+
+    <update id="leaveRoomList">
+        UPDATE CHAT_ROOM_LIST
+        SET STATUS = 'LEFT', LEFT_AT = SYSDATE
+        WHERE CHAT_ROOM_SEQ = #{roomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND STATUS = 'ACTIVE'
+    </update>
+    
+    <!-- 채팅방 방장 확인 -->
+<select id="isRoomOwner" resultType="int">
+    SELECT COUNT(*)
+    FROM CHAT_ROOM
+    WHERE CHAT_ROOM_SEQ = #{roomSeq}
+      AND CREATED_BY = #{memberSeq}
+      AND ROOM_STATUS = 'Y'
+</select>
+
+<!-- 대기 중인 초대 취소 -->
+<update id="cancelRoomInvitations">
+    UPDATE CHAT_INVITATION
+    SET INVITATION_STATUS = 'REJECTED',
+        RESPONDED_AT = SYSDATE
+    WHERE CHAT_ROOM_SEQ = #{value}
+      AND INVITATION_STATUS = 'PENDING'
+</update>
+
+<!-- 채팅방 참여자 종료 -->
+<update id="closeRoomParticipants">
+    UPDATE CHAT_PARTICIPANT
+    SET PARTICIPANT_STATUS = 'LEFT',
+        LEFT_AT = SYSDATE
+    WHERE CHAT_ROOM_SEQ = #{value}
+      AND PARTICIPANT_STATUS = 'JOINED'
+</update>
+
+<!-- 모든 회원의 채팅방 목록에서 제거 -->
+<update id="closeRoomLists">
+    UPDATE CHAT_ROOM_LIST
+    SET STATUS = 'LEFT',
+        LEFT_AT = SYSDATE,
+        DELETED_AT = SYSDATE
+    WHERE CHAT_ROOM_SEQ = #{value}
+      AND STATUS = 'ACTIVE'
+</update>
+
+<!-- 채팅방 비활성화 -->
+<update id="deleteChatRoom">
+    UPDATE CHAT_ROOM
+    SET ROOM_STATUS = 'N',
+        CLOSED_AT = SYSDATE
+    WHERE CHAT_ROOM_SEQ = #{value}
+      AND ROOM_STATUS = 'Y'
+</update>
+
+</mapper>

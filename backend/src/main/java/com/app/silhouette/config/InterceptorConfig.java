@@ -20,7 +20,9 @@ public class InterceptorConfig implements WebMvcConfigurer{
 		.addPathPatterns("/**")
 		.excludePathPatterns("/members/signup",
                 "/auth/login",
-                "/members/idCheck");
+                "/members/idCheck",
+                "/chat",
+                "/chat/**");
 	}
 
 }

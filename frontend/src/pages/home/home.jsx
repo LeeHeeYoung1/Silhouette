@@ -450,7 +450,7 @@ function Home() {
                     <button
                       type="button"
                       className={styles.locBtn}
-                      onClick={() => alert(`${item.name}님에게 대화 신청을 보냈습니다 💌`)}
+                      onClick={()=>{navigate("/chatting")}}
                     >
                       대화 신청
                     </button>

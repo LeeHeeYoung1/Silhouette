@@ -10,6 +10,8 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import Chatting from './pages/chatting/chatting';
+import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 
 function App() {
   return (
@@ -40,6 +42,8 @@ function App() {
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/chatting/:roomId" element={<Chatting />} />
+        <Route path="/chattingRoomList" element={<ChatRoomList />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
