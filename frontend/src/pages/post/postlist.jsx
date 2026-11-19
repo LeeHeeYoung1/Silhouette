@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './post.module.css';
+import styles from './postlist.module.css';
 import Client from '../../api/client';
 /* =========================================================
    실루엣 게시판 목록 컴포넌트 (PostList) - 담당: 권형석
