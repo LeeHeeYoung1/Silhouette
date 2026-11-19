@@ -32,4 +32,13 @@
 		   and is_deleted = 'N'
 	</select>
 
+	<select id="selectComments" parameterType="long" resultType="com.app.silhouette.post.PostCommentDTO">
+		select c.post_comment_seq, c.post_seq, c.member_seq, c.parent_post_comment_seq, c.content, c.created_at, c.updated_at, m.login_id, m.nickname as writer_name 
+		from post_comment c
+		join member m on c.member_seq = m.member_seq 
+		 where c.post_seq = #{postSeq}
+		 and c.is_deleted = 'N'
+		 order by c.post_comment_seq asc
+	</select>
+	
 </mapper>

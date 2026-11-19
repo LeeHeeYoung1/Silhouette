@@ -17,7 +17,7 @@ function PostDetail() {
     const [files, setFiles]= useState([]);
 
     const loadComments = ()=>{
-        Client.get(`/api/posts/${id}comments`).then((res)=> setComments(res.data)).catch((err)=> console.error(err));
+        Client.get(`/api/posts/${id}/comments`).then((res)=> setComments(res.data)).catch((err)=> console.error(err));
         //loadComments 함수	처음 들어올 때와 댓글 등록 후 두 번 써요. 그래서 함수로 따로 만들어요
         //setComments(res.data)	받은 목록을 comments 상자에 넣으면 아래 화면이 자동으로 다시 그려져요
     };

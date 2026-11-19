@@ -1,5 +1,7 @@
 package com.app.silhouette.post;
 
+import java.util.List;
+
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -26,4 +28,8 @@ public class PostCommentDAO {
 	public int countActivePost(Long postSeq) {
 		return mybatis.selectOne("PostComment.countActivePost", postSeq);
 	}
+	public List<PostCommentDTO> selectComment(Long postSeq) {
+		return mybatis.selectList("PostComment.selectComments", postSeq);
+	}
+	
 }
