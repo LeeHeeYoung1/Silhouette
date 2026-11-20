@@ -15,6 +15,15 @@
           AND MEMBER_STATUS = 'ACTIVE'
     </select>
 
+    <!-- 관리자인지 (MEMBER.ROLE 기준) -->
+    <select id="countAdmin" resultType="int">
+        SELECT COUNT(*)
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+          AND MEMBER_STATUS = 'ACTIVE'
+          AND ROLE = 'ROLE_ADMIN'
+    </select>
+
     <!-- 회원 번호 → 닉네임 (LiveKit 표시 이름용) -->
     <select id="selectNickname" resultType="string">
         SELECT NICKNAME
@@ -288,5 +297,83 @@
               WHERE rp.LIVE_CHAT_SEQ = c.LIVE_CHAT_SEQ
           )
     </delete>
+
+    <!-- ===================== 신고 ===================== -->
+
+    <!-- 채팅 1개 (신고 대상 확인용) -->
+    <select id="selectChat" resultType="com.app.silhouette.live.LiveMessageDTO">
+        SELECT LIVE_CHAT_SEQ, LIVE_ROOM_SEQ, MEMBER_SEQ, CONTENT, CREATED_AT
+        FROM LIVE_CHAT
+        WHERE LIVE_CHAT_SEQ = #{liveChatSeq}
+    </select>
+
+    <!-- 같은 대상에 대해 처리 대기 중인 내 신고가 있는지 -->
+    <select id="countPendingReport" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM LIVE_REPORT
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND REPORTER_SEQ = #{reporterSeq}
+          AND STATUS = 'WAIT'
+        <choose>
+          <when test="liveChatSeq != null">AND LIVE_CHAT_SEQ = #{liveChatSeq}</when>
+          <otherwise>AND LIVE_CHAT_SEQ IS NULL</otherwise>
+        </choose>
+    </select>
+
+    <insert id="insertReport" parameterType="com.app.silhouette.live.LiveReportDTO">
+        INSERT INTO LIVE_REPORT (
+            LIVE_REPORT_SEQ, LIVE_ROOM_SEQ, LIVE_CHAT_SEQ, REPORTER_SEQ,
+            REASON, DETAIL, STATUS, CREATED_AT
+        ) VALUES (
+            LIVE_REPORT_SEQ.NEXTVAL, #{live_room_seq}, #{live_chat_seq, jdbcType=NUMERIC}, #{reporter_seq},
+            #{reason}, #{detail, jdbcType=VARCHAR}, 'WAIT', SYSTIMESTAMP
+        )
+    </insert>
+
+    <!-- 관리자 신고 목록 (최신순, 상태 필터, 페이지) -->
+    <select id="selectReports" parameterType="map" resultType="com.app.silhouette.live.LiveReportDTO">
+        SELECT *
+        FROM (
+            SELECT a.*, ROWNUM AS RN
+            FROM (
+                SELECT rp.LIVE_REPORT_SEQ, rp.LIVE_ROOM_SEQ, rp.LIVE_CHAT_SEQ, rp.REPORTER_SEQ,
+                       rp.REASON, rp.DETAIL, rp.STATUS, rp.CREATED_AT,
+                       r.TITLE AS ROOM_TITLE, r.STATUS AS ROOM_STATUS, r.HOST_SEQ,
+                       hm.NICKNAME AS HOST_NICKNAME,
+                       rm.NICKNAME AS REPORTER_NICKNAME,
+                       c.CONTENT AS CHAT_CONTENT,
+                       c.MEMBER_SEQ AS CHAT_MEMBER_SEQ,
+                       cm.NICKNAME AS CHAT_MEMBER_NICKNAME
+                FROM LIVE_REPORT rp
+                JOIN LIVE_ROOM r ON r.LIVE_ROOM_SEQ = rp.LIVE_ROOM_SEQ
+                JOIN MEMBER hm ON hm.MEMBER_SEQ = r.HOST_SEQ
+                JOIN MEMBER rm ON rm.MEMBER_SEQ = rp.REPORTER_SEQ
+                LEFT JOIN LIVE_CHAT c ON c.LIVE_CHAT_SEQ = rp.LIVE_CHAT_SEQ
+                LEFT JOIN MEMBER cm ON cm.MEMBER_SEQ = c.MEMBER_SEQ
+                <if test="status != null">
+                WHERE rp.STATUS = #{status}
+                </if>
+                ORDER BY rp.CREATED_AT DESC, rp.LIVE_REPORT_SEQ DESC
+            ) a
+            WHERE ROWNUM &lt;= #{endRow}
+        )
+        WHERE RN &gt; #{startRow}
+    </select>
+
+    <!-- 신고 1건 처리 완료 -->
+    <update id="updateReportDone">
+        UPDATE LIVE_REPORT
+        SET STATUS = 'DONE'
+        WHERE LIVE_REPORT_SEQ = #{liveReportSeq}
+          AND STATUS = 'WAIT'
+    </update>
+
+    <!-- 강제 종료한 방송의 대기 중 신고 전부 처리 완료 -->
+    <update id="updateReportsDoneByRoom">
+        UPDATE LIVE_REPORT
+        SET STATUS = 'DONE'
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND STATUS = 'WAIT'
+    </update>
 
 </mapper>

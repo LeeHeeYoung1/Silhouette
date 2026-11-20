@@ -22,9 +22,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class LiveController {
 
     private final LiveService service;
+    private final LiveReportService reportService;
 
-    public LiveController(LiveService service) {
+    public LiveController(LiveService service, LiveReportService reportService) {
         this.service = service;
+        this.reportService = reportService;
     }
 
     // 방송 시작 → { live_room_seq, token, url }
@@ -108,6 +110,14 @@ public class LiveController {
             @PathVariable long memberSeq) {
         service.unban(loginId, memberSeq);
         return ResponseEntity.ok("차단을 해제했어요.");
+    }
+
+    // 신고  body: { live_chat_seq(채팅 신고일 때만), reason, detail }
+    @PostMapping("/{liveRoomSeq}/report")
+    public ResponseEntity<String> report(@RequestAttribute("id") String loginId,
+            @PathVariable long liveRoomSeq, @RequestBody LiveReportDTO body) {
+        reportService.report(loginId, liveRoomSeq, body);
+        return ResponseEntity.ok("신고가 접수됐어요.");
     }
 
     // Service에서 던진 에러를 "상태 코드 + 메시지"로 응답

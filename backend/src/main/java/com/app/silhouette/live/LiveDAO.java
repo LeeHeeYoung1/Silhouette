@@ -25,6 +25,11 @@ public class LiveDAO {
         return mybatis.selectOne(NS + "selectMemberSeqByLoginId", loginId);
     }
 
+    public boolean isAdmin(String loginId) {
+        int cnt = mybatis.selectOne(NS + "countAdmin", loginId);
+        return cnt > 0;
+    }
+
     public String selectNickname(long memberSeq) {
         return mybatis.selectOne(NS + "selectNickname", memberSeq);
     }
@@ -173,5 +178,37 @@ public class LiveDAO {
 
     public int deleteChatsExceptReported(long liveRoomSeq) {
         return mybatis.delete(NS + "deleteChatsExceptReported", liveRoomSeq);
+    }
+
+    // ===== 신고 =====
+
+    public LiveMessageDTO selectChat(long liveChatSeq) {
+        return mybatis.selectOne(NS + "selectChat", liveChatSeq);
+    }
+
+    public boolean hasPendingReport(long liveRoomSeq, Long liveChatSeq, long reporterSeq) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("liveRoomSeq", liveRoomSeq);
+        params.put("liveChatSeq", liveChatSeq);
+        params.put("reporterSeq", reporterSeq);
+        int cnt = mybatis.selectOne(NS + "countPendingReport", params);
+        return cnt > 0;
+    }
+
+    public int insertReport(LiveReportDTO dto) {
+        return mybatis.insert(NS + "insertReport", dto);
+    }
+
+    // params: status(null이면 전체), startRow, endRow
+    public List<LiveReportDTO> selectReports(Map<String, Object> params) {
+        return mybatis.selectList(NS + "selectReports", params);
+    }
+
+    public int updateReportDone(long liveReportSeq) {
+        return mybatis.update(NS + "updateReportDone", liveReportSeq);
+    }
+
+    public int updateReportsDoneByRoom(long liveRoomSeq) {
+        return mybatis.update(NS + "updateReportsDoneByRoom", liveRoomSeq);
     }
 }
