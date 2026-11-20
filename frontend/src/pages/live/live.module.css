@@ -86,3 +86,65 @@
 .empty {
   color: #888;
 }
+/* ----- 방송 화면 + 채팅 ----- */
+.roomLayout {
+  display: flex;
+  height: 100%;
+  gap: 8px;
+}
+
+.video {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chatList {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  word-break: break-all;
+}
+
+.chatSystem {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.hostBadge {
+  background: #e5484d;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-right: 4px;
+  font-size: 0.8em;
+}
+
+.chatInput {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid #ddd;
+}
+
+.chatInput input {
+  flex: 1;
+  padding: 6px;
+}
+
+.notice {
+  color: #555;
+}

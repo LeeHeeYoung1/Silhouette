@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
+import { DisconnectReason } from 'livekit-client';
 import '@livekit/components-styles';
 import useAuthStore from '../../stores/useAuthStore';
 import { getLiveList, startLive, joinLive, endLive } from '../../api/live';
+import LiveChat from './liveChat';
 import styles from './live.module.css';
 
 // 서버 에러 → 화면에 보여줄 메시지
@@ -20,6 +22,7 @@ function Live() {
   const [title, setTitle] = useState('');
   const [lives, setLives] = useState([]);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const loadList = useCallback(async () => {
     try {
@@ -49,6 +52,7 @@ function Live() {
     try {
       const { data } = await startLive({ title: title.trim() });
       setIsHost(true);
+      setNotice('');
       setConn(data);
     } catch (e) {
       setError(errorMessage(e, '방송을 시작하지 못했어요.'));
@@ -60,7 +64,8 @@ function Live() {
     try {
       const { data } = await joinLive(liveSeq);
       setIsHost(false);
-      setConn(data);
+      setNotice('');
+      setConn({ ...data, live_room_seq: data.room.live_room_seq });
     } catch (e) {
       setError(errorMessage(e, '방송에 입장하지 못했어요.'));
       loadList(); // 이미 끝난 방송일 수 있으니 목록 새로고침
@@ -68,13 +73,28 @@ function Live() {
   };
 
   // 방송 화면에서 나갔을 때 (방송자면 종료 기록)
-  const handleDisconnected = async () => {
+  const handleDisconnected = async (reason) => {
+    // END 메시지보다 LiveKit 연결 해제가 먼저 올 수 있어서 사유로도 안내
+    if (!isHost && reason === DisconnectReason.ROOM_DELETED) {
+      setNotice((prev) => prev || '방송이 종료되었어요.');
+    } else if (!isHost && reason === DisconnectReason.PARTICIPANT_REMOVED) {
+      setNotice('방송자에 의해 퇴장되었어요.');
+    }
     if (isHost) {
       try {
         await endLive(conn.live_room_seq);
       } catch {
         // 실패해도 다음 방송 시작 때 정리됨
       }
+    }
+    setConn(null);
+    setIsHost(false);
+  };
+
+  // 채팅으로 END 수신 (방송자 종료 / 연결 끊김 / 관리자 종료)
+  const handleEnd = (endedBy) => {
+    if (!isHost) {
+      setNotice(endedBy === 'ADMIN' ? '운영 정책에 따라 방송이 종료되었어요.' : '방송이 종료되었어요.');
     }
     setConn(null);
     setIsHost(false);
@@ -96,6 +116,7 @@ function Live() {
           <button onClick={handleStart}>📡 방송하기</button>
         </div>
 
+        {notice && <p className={styles.notice}>{notice}</p>}
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.listHeader}>
@@ -135,18 +156,23 @@ function Live() {
 
   return (
     <div className={styles.room}>
-      <LiveKitRoom
-        serverUrl={conn.url}
-        token={conn.token}
-        connect={true}
-        video={isHost}
-        audio={isHost}
-        onDisconnected={handleDisconnected}
-        data-lk-theme="default"
-        style={{ height: '100%' }}
-      >
-        <VideoConference />
-      </LiveKitRoom>
+      <div className={styles.roomLayout}>
+        <div className={styles.video}>
+          <LiveKitRoom
+            serverUrl={conn.url}
+            token={conn.token}
+            connect={true}
+            video={isHost}
+            audio={isHost}
+            onDisconnected={handleDisconnected}
+            data-lk-theme="default"
+            style={{ height: '100%' }}
+          >
+            <VideoConference />
+          </LiveKitRoom>
+        </div>
+        <LiveChat liveRoomSeq={conn.live_room_seq} onEnd={handleEnd} />
+      </div>
     </div>
   );
 }
