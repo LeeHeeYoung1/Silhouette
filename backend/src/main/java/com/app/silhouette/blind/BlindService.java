@@ -61,6 +61,9 @@ public class BlindService {
 				resultFor2.put("chatRoomSeq", chatRoomSeq);
 				resultFor2.put("partnerId", user1);
 				messagingTemplate.convertAndSend("/sub/user/" + user2 + "/match", (Object) resultFor2);
+				
+				sessionUserMap.values().remove(user1);
+				sessionUserMap.values().remove(user2);
 			}
 		}
 	}
@@ -87,4 +90,21 @@ public class BlindService {
 			cancelQueue(id, sessionId);
 		}
 	}
+	
+	public void sendChatMessage(Long roomSeq, BlindChatMessageDTO blindChatMessageDto) {
+		
+		
+		if (blindChatMessageDto.getMsgType() == null || blindChatMessageDto.getMsgType().isEmpty()) {
+			blindChatMessageDto.setMsgType("TEXT");
+	    }
+	    if (blindChatMessageDto.getFilteredYn() == null || blindChatMessageDto.getFilteredYn().isEmpty()) {
+	    	blindChatMessageDto.setFilteredYn("N");
+	    }
+		
+		blindDao.insertMessage(blindChatMessageDto);
+		messagingTemplate.convertAndSend("/sub/blind/chat/" + roomSeq, blindChatMessageDto);
+	}
+	
+	
+	
 }

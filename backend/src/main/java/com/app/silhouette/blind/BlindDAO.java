@@ -19,8 +19,16 @@ public class BlindDAO {
     	blindChatRoomDto.setTimeLimitMin(10L); // 시간제한10분
     	blindChatRoomDto.setStatus("ON AIR");
     	
-    	mybatis.insert("insertBlindChatRoom" ,blindChatRoomDto);
+    	mybatis.insert("Blind.insertBlindChatRoom", blindChatRoomDto);
     	
     	return blindChatRoomDto.getBlindChatRoomSeq();
     }
+    
+    public int insertMessage(BlindChatMessageDTO blindChatMessageDto) {
+    	return mybatis.insert("Blind.insertBlindMessage", blindChatMessageDto);
+    }
+    
+    
+    
+    
 }

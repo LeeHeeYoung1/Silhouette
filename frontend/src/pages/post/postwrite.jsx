@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import styles from './post.module.css';
+import styles from './postwrite.module.css';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 
