@@ -52,3 +52,6 @@ export const getLiveReports = (params) => Client.get('/api/admin/live/report', {
 // 신고 처리 완료
 export const doneLiveReport = (liveReportSeq) =>
   Client.post(`/api/admin/live/report/${liveReportSeq}/done`);
+
+// 프로필 모달용
+export const getProfile = (memberSeq) => Client.get(`/api/live/member/${memberSeq}`);
