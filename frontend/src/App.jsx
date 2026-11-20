@@ -14,6 +14,7 @@ import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
+import FoodTest from './pages/event/foodTest';
 // import Profile from './pages/profile/profile';
 import Onboarding from './pages/onboarding/onboarding';
 
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/event" element={<Event />} />
+        <Route path="/event/food-test" element={<FoodTest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}
         
         {/* 게시판 (Post) 라우트 */}
