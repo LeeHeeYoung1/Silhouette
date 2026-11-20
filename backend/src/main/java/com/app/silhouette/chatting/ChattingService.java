@@ -1,6 +1,19 @@
 package com.app.silhouette.chatting;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,9 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChattingService {
 
     private final ChattingDAO chattingDAO;
+    private final Storage storage;
 
-    public ChattingService(ChattingDAO chattingDAO) {
+    @Value("${gcp.bucket}")
+    private String bucketName;
+
+    public ChattingService(ChattingDAO chattingDAO, Storage storage) {
         this.chattingDAO = chattingDAO;
+        this.storage = storage;
     }
 
     // 채팅방 생성: 생성자 참여 후 선택한 회원들에게 초대 발송
@@ -54,6 +72,105 @@ public class ChattingService {
             throw new IllegalArgumentException("이 채팅방에 참여하고 있지 않습니다.");
         }
         return chattingDAO.selectMessageListForMember(roomSeq, memberSeq);
+    }
+
+    public List<ChatAttachmentDTO> getAttachmentList(Long roomSeq, Long memberSeq) {
+        if (chattingDAO.isRoomMember(roomSeq, memberSeq) == 0) {
+            throw new IllegalArgumentException("이 채팅방에 참여하고 있지 않습니다.");
+        }
+
+        List<ChatAttachmentDTO> attachments = chattingDAO.selectAttachmentList(roomSeq);
+        for (ChatAttachmentDTO attachment : attachments) {
+            if ("AUDIO".equals(attachment.getFile_type()) && attachment.getStored_name() != null) {
+                attachment.setFile_url(createSignedUrl(attachment.getStored_name()));
+            }
+        }
+        return attachments;
+    }
+
+    // 음성 메시지 파일을 GCS에 저장하고 메시지 및 첨부파일 정보를 DB에 저장
+    public Map<String, Object> uploadVoiceMessage(Long roomSeq, Long memberSeq,
+            MultipartFile file, Long duration) throws IOException {
+
+        if (!isRoomMember(roomSeq, memberSeq)) {
+            throw new IllegalArgumentException("이 채팅방에 참여하고 있지 않습니다.");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("음성 파일이 없습니다.");
+        }
+
+        if (file.getSize() > 20 * 1024 * 1024) {
+            throw new IllegalArgumentException("음성 파일은 20MB 이하만 업로드할 수 있습니다.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("audio/")) {
+            throw new IllegalArgumentException("음성 파일만 업로드할 수 있습니다.");
+        }
+
+        String originalName = file.getOriginalFilename();
+        String extension = ".webm";
+        if (originalName != null && originalName.lastIndexOf('.') >= 0) {
+            String fileExtension = originalName.substring(originalName.lastIndexOf('.'));
+            if (fileExtension.matches("\\.[a-zA-Z0-9]{1,10}")) {
+                extension = fileExtension;
+            }
+        }
+
+        String storedName = UUID.randomUUID().toString() + extension;
+        BlobId blobId = BlobId.of(bucketName, storedName);
+
+        try {
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(contentType)
+                    .build();
+            storage.create(blobInfo, file.getBytes());
+
+            ChattingMessageDTO message = new ChattingMessageDTO();
+            message.setChat_room_seq(roomSeq);
+            message.setSender_seq(memberSeq);
+            message.setMessage_type("AUDIO");
+            message.setSystem_event_type(null);
+            message.setMessage_content("음성 메시지");
+            message.setCreated_at(new java.util.Date());
+            message.setDeleted_yn("N");
+            chattingDAO.insertMessage(message);
+
+            ChatAttachmentDTO attachment = new ChatAttachmentDTO();
+            attachment.setChat_message_seq(message.getChat_message_seq());
+            attachment.setOriginal_name(originalName == null ? "voice-message.webm" : originalName);
+            attachment.setStored_name(storedName);
+            // DB에는 GCS 객체 위치를 저장하고, 응답 시점에 만료 시간이 있는 서명 URL을 발급
+            attachment.setFile_url("gs://" + bucketName + "/" + storedName);
+            attachment.setFile_type("AUDIO");
+            attachment.setFile_size(file.getSize());
+            attachment.setDuration(duration == null ? 0L : duration);
+            chattingDAO.insertAttachment(attachment);
+
+            attachment.setFile_url(createSignedUrl(storedName));
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", message);
+            result.put("attachment", attachment);
+            return result;
+        } catch (Exception e) {
+            storage.delete(blobId);
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            }
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new IllegalStateException("음성 메시지 저장 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private String createSignedUrl(String storedName) {
+        Blob blob = storage.get(BlobId.of(bucketName, storedName));
+        if (blob == null) {
+            throw new IllegalStateException("GCS에서 음성 파일을 찾을 수 없습니다.");
+        }
+        return blob.signUrl(15, TimeUnit.MINUTES).toString();
     }
 
     public List<ChattingMemberDTO> searchMembers(String keyword, Long mySeq) {

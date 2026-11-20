@@ -9,7 +9,7 @@
     <insert id="insert">
 
         <selectKey keyProperty="member_Seq" resultType="int" order="BEFORE">
-            SELECT MEMBER_SEQ.NEXTVAL FROM DUAL
+            SELECT SEQ_MEMBER.NEXTVAL FROM DUAL
         </selectKey>
 
         INSERT INTO MEMBER (
