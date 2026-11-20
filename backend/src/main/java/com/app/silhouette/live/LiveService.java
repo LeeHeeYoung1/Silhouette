@@ -156,6 +156,7 @@ public class LiveService {
 		result.put("token", token);
 		result.put("url", livekitUrl);
 		result.put("room", room);
+		result.put("my_member_seq", me);   // KICKED 메시지가 나인지 확인용
 		return result;
 	}
 
@@ -185,6 +186,119 @@ public class LiveService {
 		}
 		room.setHashtags(dao.selectHashtags(liveRoomSeq));
 		return room;
+	}
+
+	// ========================= 방송 정보 수정 =========================
+
+	// 제목·설명·카테고리·해시태그·썸네일 수정 → 시청자에게 ROOM_UPDATE
+	public LiveRoomDTO update(String loginId, long liveRoomSeq, LiveRoomDTO req) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO before = getOnAirRoom(liveRoomSeq);
+		checkHost(before, me);
+
+		LiveRoomDTO room = new LiveRoomDTO();
+		room.setLive_room_seq(liveRoomSeq);
+		room.setTitle(validateTitle(req.getTitle()));
+		room.setDescription(validateDescription(req.getDescription()));
+		room.setCategory(validateCategory(req.getCategory()));
+		room.setThumbnail_url(validateThumbnail(req.getThumbnail_url()));
+		List<String> tags = normalizeHashtags(req.getHashtags());
+
+		tx.executeWithoutResult(status -> {
+			if (dao.updateLiveRoom(room) == 0) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "종료되었거나 없는 방송이에요.");
+			}
+			dao.deleteHashtags(liveRoomSeq);
+			for (String tag : tags) {
+				dao.insertHashtag(liveRoomSeq, tag);
+			}
+		});
+
+		// 썸네일이 바뀌었으면 이전 파일 삭제
+		String oldThumb = before.getThumbnail_url();
+		if (oldThumb != null && !oldThumb.equals(room.getThumbnail_url())) {
+			deleteThumbnail(oldThumb);
+		}
+
+		LiveRoomDTO updated = detail(liveRoomSeq);
+		LiveMessageDTO msg = LiveMessageDTO.of("ROOM_UPDATE", liveRoomSeq, null);
+		msg.setRoom(updated);
+		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq, msg);
+		return updated;
+	}
+
+	// ========================= 시청자 / 강퇴 / 차단 =========================
+
+	// 현재 시청자 목록 (방송자만)
+	public List<LiveViewerDTO> viewers(String loginId, long liveRoomSeq) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+		checkHost(room, me);
+		return dao.selectViewers(liveRoomSeq);
+	}
+
+	// 강퇴: 이번 방송에만 재입장 불가
+	public void kick(String loginId, long liveRoomSeq, long target) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+		checkHost(room, me);
+		if (target == me) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "본인은 강퇴할 수 없어요.");
+		}
+		if (kickInternal(liveRoomSeq, target) == 0) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "이 방송을 시청한 회원이 아니에요.");
+		}
+	}
+
+	// 차단: 이 방송자의 모든 방송에 영구 입장 불가 (+ 지금 방송 중이면 강퇴)
+	public void ban(String loginId, long target) {
+		long me = getMemberSeq(loginId);
+		if (target == me) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "본인은 차단할 수 없어요.");
+		}
+		if (!dao.existsMember(target)) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "없는 회원이에요.");
+		}
+		try {
+			dao.insertBan(me, target);
+		} catch (DuplicateKeyException e) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 차단한 회원이에요.");
+		}
+
+		LiveRoomDTO onAir = dao.selectMyOnAir(me);
+		if (onAir != null) {
+			long seq = onAir.getLive_room_seq();
+			if (kickInternal(seq, target) == 0) {
+				// 시청 기록이 아직 없어도(webhook 지연) 접속돼 있으면 내보냄
+				roomService.removeParticipant(LiveKitRoomService.roomName(seq), String.valueOf(target));
+			}
+		}
+	}
+
+	public void unban(String loginId, long target) {
+		long me = getMemberSeq(loginId);
+		if (dao.deleteBan(me, target) == 0) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "차단 목록에 없는 회원이에요.");
+		}
+	}
+
+	public List<LiveViewerDTO> bans(String loginId) {
+		return dao.selectBans(getMemberSeq(loginId));
+	}
+
+	// KICKED_YN='Y' + LiveKit 강제 퇴장 + KICKED·SYSTEM 메시지 (시청 기록 없으면 0)
+	private int kickInternal(long liveRoomSeq, long target) {
+		int rows = dao.kickViewer(liveRoomSeq, target);
+		if (rows == 0) {
+			return 0;
+		}
+		roomService.removeParticipant(LiveKitRoomService.roomName(liveRoomSeq), String.valueOf(target));
+
+		LiveMessageDTO kicked = LiveMessageDTO.of("KICKED", liveRoomSeq, null);
+		kicked.setMember_seq(target);
+		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq, kicked);
+		sendSystem(liveRoomSeq, nickname(target) + "님이 강퇴되었어요.");
+		return rows;
 	}
 
 	// ========================= 종료 =========================

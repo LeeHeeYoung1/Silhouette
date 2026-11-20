@@ -14,6 +14,7 @@ public class LiveMessageDTO {
     private String content;
     private String host_yn;          // 방송자 채팅 뱃지 표시용
     private Date created_at;
+    private LiveRoomDTO room;        // ROOM_UPDATE 시 바뀐 방송 정보
 
     public LiveMessageDTO() {}
 
@@ -49,4 +50,7 @@ public class LiveMessageDTO {
 
     public Date getCreated_at() { return created_at; }
     public void setCreated_at(Date created_at) { this.created_at = created_at; }
+
+    public LiveRoomDTO getRoom() { return room; }
+    public void setRoom(LiveRoomDTO room) { this.room = room; }
 }

@@ -56,6 +56,11 @@ public class LiveDAO {
                        "endReason", endReason == null ? "" : endReason));
     }
 
+    // 방송 중이 아니면 0
+    public int updateLiveRoom(LiveRoomDTO dto) {
+        return mybatis.update(NS + "updateLiveRoom", dto);
+    }
+
     public int markHostDisconnected(long liveRoomSeq) {
         return mybatis.update(NS + "markHostDisconnected", liveRoomSeq);
     }
@@ -72,6 +77,10 @@ public class LiveDAO {
 
     public int insertHashtag(long liveRoomSeq, String tag) {
         return mybatis.insert(NS + "insertHashtag", Map.of("liveRoomSeq", liveRoomSeq, "tag", tag));
+    }
+
+    public int deleteHashtags(long liveRoomSeq) {
+        return mybatis.delete(NS + "deleteHashtags", liveRoomSeq);
     }
 
     public List<String> selectHashtags(long liveRoomSeq) {
@@ -108,6 +117,36 @@ public class LiveDAO {
 
     public int closeAllViewers(long liveRoomSeq) {
         return mybatis.update(NS + "closeAllViewers", liveRoomSeq);
+    }
+
+    public List<LiveViewerDTO> selectViewers(long liveRoomSeq) {
+        return mybatis.selectList(NS + "selectViewers", liveRoomSeq);
+    }
+
+    // 이 방송에 시청 기록이 없으면 0
+    public int kickViewer(long liveRoomSeq, long memberSeq) {
+        return mybatis.update(NS + "kickViewer",
+                Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
+    }
+
+    // ===== 차단 =====
+
+    public boolean existsMember(long memberSeq) {
+        int cnt = mybatis.selectOne(NS + "countMember", memberSeq);
+        return cnt > 0;
+    }
+
+    // 이미 차단돼 있으면 DuplicateKeyException (UQ_LIVE_BAN)
+    public int insertBan(long hostSeq, long memberSeq) {
+        return mybatis.insert(NS + "insertBan", Map.of("hostSeq", hostSeq, "memberSeq", memberSeq));
+    }
+
+    public int deleteBan(long hostSeq, long memberSeq) {
+        return mybatis.delete(NS + "deleteBan", Map.of("hostSeq", hostSeq, "memberSeq", memberSeq));
+    }
+
+    public List<LiveViewerDTO> selectBans(long hostSeq) {
+        return mybatis.selectList(NS + "selectBans", hostSeq);
     }
 
     // ===== 채팅 =====
