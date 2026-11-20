@@ -22,9 +22,25 @@ const Chatting = () => {
   const [roomName, setRoomName] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingStartRef = useRef(null);
+
+  // 음성 메시지 재생 시간 표시
+  const formatDuration = (value) => {
+    const totalSeconds = Number(value || 0);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
 
   // 시간 표시
   const formatTime = (value) => {
@@ -123,10 +139,19 @@ const Chatting = () => {
 
           if (!isActive) return;
 
-          const newMessage = JSON.parse(frame.body);
+          const receivedData = JSON.parse(frame.body);
+          let newMessage = receivedData;
+          let newAttachment = null;
+
+          // 음성 메시지는 백엔드에서 message와 attachment를 묶어서 전송
+          if (receivedData.message && receivedData.attachment) {
+            newMessage = receivedData.message;
+            newAttachment = receivedData.attachment;
+          }
 
           const formattedMessage = {
             ...newMessage,
+            attachment: newAttachment,
             isMine: Number(newMessage.sender_seq) === Number(memberSeq),
             content: newMessage.message_content,
             timestamp: formatTime(newMessage.created_at)
@@ -153,12 +178,23 @@ const Chatting = () => {
         });
 
         // 구독한 다음 이전 메시지 가져오기
-        Client.get(`/api/chat/messages/${roomId}`)
-          .then((response) => {
+        Promise.all([
+          Client.get(`/api/chat/messages/${roomId}`),
+          Client.get(`/api/chat/messages/${roomId}/attachments`)
+        ])
+          .then(([messageResponse, attachmentResponse]) => {
             if (!isActive) return;
 
-            const loadedMessages = response.data.map((msg) => ({
+            const attachmentMap = new Map(
+              attachmentResponse.data.map((attachment) => [
+                Number(attachment.chat_message_seq),
+                attachment
+              ])
+            );
+
+            const loadedMessages = messageResponse.data.map((msg) => ({
               ...msg,
+              attachment: attachmentMap.get(Number(msg.chat_message_seq)) || null,
               isMine: Number(msg.sender_seq) === Number(memberSeq),
               content: msg.message_content,
               timestamp: formatTime(msg.created_at)
@@ -188,7 +224,7 @@ const Chatting = () => {
           })
           .catch((error) => {
             console.error(
-              '이전 대화 내용을 불러오지 못했습니다.',
+              '이전 대화 또는 첨부파일을 불러오지 못했습니다.',
               error
             );
           });
@@ -251,6 +287,195 @@ const Chatting = () => {
     });
 
     setInputMessage('');
+  };
+
+  // 녹음 중인 시간 표시
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const timer = setInterval(() => {
+      if (recordingStartRef.current) {
+        setRecordingSeconds(
+          Math.floor((Date.now() - recordingStartRef.current) / 1000)
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isRecording]);
+
+  // 녹음 중 컴포넌트가 종료되면 마이크 정리
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current &&
+          mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // 녹음한 음성 파일을 백엔드로 업로드
+  const uploadVoiceMessage = async (audioBlob, duration) => {
+    if (!audioBlob || audioBlob.size === 0) {
+      alert('녹음된 음성이 없습니다.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'voice-message.webm');
+    formData.append('duration', duration);
+
+    setIsUploadingVoice(true);
+
+    try {
+      const response = await Client.post(
+        `/api/chat/room/${roomId}/voice`,
+        formData
+      );
+
+      const newMessage = response.data.message;
+      const newAttachment = response.data.attachment;
+
+      const formattedMessage = {
+        ...newMessage,
+        attachment: newAttachment,
+        isMine: true,
+        content: newMessage.message_content,
+        timestamp: formatTime(newMessage.created_at)
+      };
+
+      // STOMP 수신과 업로드 응답이 중복으로 들어오는 경우 한 번만 표시
+      setMessages((prev) => {
+        const exists = prev.some(
+          (item) =>
+            Number(item.chat_message_seq) ===
+            Number(newMessage.chat_message_seq)
+        );
+
+        if (exists) {
+          return prev;
+        }
+
+        return [...prev, formattedMessage].sort(
+          (a, b) =>
+            Number(a.chat_message_seq) -
+            Number(b.chat_message_seq)
+        );
+      });
+    } catch (error) {
+      console.error('음성 메시지 업로드 실패:', error);
+      alert(error.response?.data || '음성 메시지 업로드에 실패했습니다.');
+    } finally {
+      setIsUploadingVoice(false);
+    }
+  };
+
+  // 음성 녹음 시작
+  const startRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('현재 브라우저에서는 마이크를 사용할 수 없습니다.');
+      return;
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      alert('현재 브라우저에서는 음성 녹음을 지원하지 않습니다.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      let recorderOptions = {};
+
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        recorderOptions.mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        recorderOptions.mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        recorderOptions.mimeType = 'audio/ogg;codecs=opus';
+      }
+
+      const recorder = new MediaRecorder(stream, recorderOptions);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = (event) => {
+        console.error('음성 녹음 오류:', event);
+        alert('음성 녹음 중 오류가 발생했습니다.');
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+        recordingStartRef.current = null;
+        setIsRecording(false);
+        setShowUploadMenu(false);
+      };
+
+      recordingStartRef.current = Date.now();
+      setRecordingSeconds(0);
+      setIsRecording(true);
+      setShowUploadMenu(true);
+      recorder.start();
+    } catch (error) {
+      console.error('마이크 접근 실패:', error);
+
+      if (error.name === 'NotAllowedError') {
+        alert('브라우저에서 마이크 사용을 허용해주세요.');
+      } else {
+        alert('마이크를 사용할 수 없습니다.');
+      }
+    }
+  };
+
+  // 음성 녹음 종료
+  const stopRecording = () => {
+    if (!mediaRecorderRef.current ||
+        mediaRecorderRef.current.state === 'inactive') {
+      return;
+    }
+
+    const duration = Math.max(
+      1,
+      Math.floor((Date.now() - recordingStartRef.current) / 1000)
+    );
+
+    const recorder = mediaRecorderRef.current;
+    const stream = mediaStreamRef.current;
+
+    recorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunksRef.current, {
+        type: recorder.mimeType || 'audio/webm'
+      });
+
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
+      mediaStreamRef.current = null;
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+      recordingStartRef.current = null;
+
+      await uploadVoiceMessage(audioBlob, duration);
+    };
+
+    recorder.stop();
+    setIsRecording(false);
+    setShowUploadMenu(false);
   };
 
   // 회원 검색
@@ -542,7 +767,20 @@ const Chatting = () => {
                   )}
 
                   <div className={styles.messageBubble}>
-                    {msg.content}
+                    {msg.message_type === 'AUDIO' && msg.attachment?.file_url ? (
+                      <div className={styles.audioMessage}>
+                        <audio
+                          controls
+                          preload="none"
+                          src={msg.attachment.file_url}
+                        />
+                        <span>
+                          {formatDuration(msg.attachment.duration)}
+                        </span>
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
                   </div>
 
                   {!msg.isMine && showTime && (
@@ -567,7 +805,11 @@ const Chatting = () => {
             <button
               type="button"
               className={styles.addButton}
-              onClick={() => setShowUploadMenu((prev) => !prev)}
+              onClick={() => {
+                if (!isRecording) {
+                  setShowUploadMenu((prev) => !prev);
+                }
+              }}
             >
               {showUploadMenu ? '×' : '+'}
             </button>
@@ -599,9 +841,20 @@ const Chatting = () => {
                 <span>파일</span>
               </button>
 
-              <button type="button" className={styles.uploadButton}>
-                <span>🎙️</span>
-                <span>음성 녹음</span>
+              <button
+                type="button"
+                className={`${styles.uploadButton} ${isRecording ? styles.recordingButton : ''}`}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isUploadingVoice}
+              >
+                <span>{isRecording ? '⏹️' : '🎙️'}</span>
+                <span>
+                  {isUploadingVoice
+                    ? '업로드 중...'
+                    : isRecording
+                      ? `녹음 종료 ${formatDuration(recordingSeconds)}`
+                      : '음성 녹음'}
+                </span>
               </button>
 
               <button type="button" className={styles.uploadButton}>
