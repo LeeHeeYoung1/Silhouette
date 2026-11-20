@@ -10,11 +10,15 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
 // import Profile from './pages/profile/profile';
 import Onboarding from './pages/onboarding/onboarding';
+
+import BlindChatting from './pages/blindChatting/blindChatting';
+
 
 function App() {
   return (
@@ -42,11 +46,15 @@ function App() {
 
         <Route path="/board/*" element={<Navigate to="/post/free" replace />} />
         <Route path="/live" element={<Live />} />
+        <Route path="/admin/live" element={<LiveAdmin />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/chatting/:roomId" element={<Chatting />} />
         <Route path="/chattingRoomList" element={<ChatRoomList />} />
+
+        {/* 블라인드 (blind) 라우트 */}
+        <Route path='/chat/:roomSeq' element={<BlindChatting />} />
       </Route>
 
         <Route path="/onboarding" element={<Onboarding />} />   {/* ← 여기 추가 */}

@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -41,4 +42,16 @@ public class BlindController {
 			blindService.cancelQueueBySession(sessionId);
 		}
 	}
+	
+	@MessageMapping("/blind/chat/{roomSeq}")
+	public void sendBlindMessage (@DestinationVariable("roomSeq") Long roomSeq,
+									@Payload BlindChatMessageDTO messageDto) {
+		messageDto.setBlindChatRoomSeq(roomSeq);
+		blindService.sendChatMessage(roomSeq, messageDto);
+		
+	}
+	
+	
+	
+	
 }

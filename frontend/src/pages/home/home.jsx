@@ -224,9 +224,10 @@ function Home() {
   useEffect(() => {
     if (!token) return;
 
-    // 접속 호스트가 있으면 해당 호스트 사용, fallback으로 10.5.4.14 사용
-    const wsHost = window.location.hostname || '10.5.4.14';
-    const brokerURL = `ws://${wsHost}/blind`;
+    // 접속 호스트 및 포트 자동 감지
+    const wsHost = window.location.hostname || 'localhost';
+    const wsPort = window.location.port === '5173' ? ':80' : (window.location.port ? `:${window.location.port}` : '');
+    const brokerURL = `ws://${wsHost}${wsPort}/blind`;
 
     const client = new StompClient({
       brokerURL: brokerURL,

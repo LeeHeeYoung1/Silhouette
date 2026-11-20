@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
@@ -16,11 +15,13 @@ const Chatting = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [members, setMembers] = useState([]);
   const [inviteMessage, setInviteMessage] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isOwner, setIsOwner] = useState(false);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
 
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
@@ -116,8 +117,10 @@ const Chatting = () => {
 
         setIsConnected(true);
 
-        // 1. 먼저 현재 채팅방 구독
+        // 현재 채팅방 구독
         client.subscribe(`/sub/chat/${roomId}`, (frame) => {
+          console.log('실시간 메시지 수신:', frame.body);
+
           if (!isActive) return;
 
           const newMessage = JSON.parse(frame.body);
@@ -129,7 +132,7 @@ const Chatting = () => {
             timestamp: formatTime(newMessage.created_at)
           };
 
-          // 2. 실시간으로 받은 메시지 화면에 추가
+          // 실시간으로 받은 메시지 화면에 추가
           setMessages((prev) => {
             const exists = prev.some(
               (item) =>
@@ -149,7 +152,7 @@ const Chatting = () => {
           });
         });
 
-        // 3. 구독한 다음 이전 메시지 가져오기
+        // 구독한 다음 이전 메시지 가져오기
         Client.get(`/api/chat/messages/${roomId}`)
           .then((response) => {
             if (!isActive) return;
@@ -161,7 +164,7 @@ const Chatting = () => {
               timestamp: formatTime(msg.created_at)
             }));
 
-            // 4. 이전 메시지와 실시간 메시지 합치기
+            // 이전 대화와 실시간 메시지 합치기
             setMessages((prev) => {
               const combined = [...loadedMessages, ...prev];
 
@@ -222,7 +225,6 @@ const Chatting = () => {
       client.deactivate();
       stompClient.current = null;
     };
-
   }, [roomId, token, memberSeq]);
 
   // 새 메시지가 오면 자동 스크롤
@@ -252,9 +254,11 @@ const Chatting = () => {
   };
 
   // 회원 검색
+  // 닉네임으로 회원 검색
   const searchMembers = async () => {
     if (!keyword.trim()) {
       setMembers([]);
+      setInviteMessage('');
       return;
     }
 
@@ -266,6 +270,7 @@ const Chatting = () => {
       });
 
       setMembers(response.data);
+      setInviteMessage('');
     } catch (error) {
       console.error('회원 검색 실패:', error);
       setInviteMessage('회원 검색에 실패했습니다.');
@@ -296,9 +301,25 @@ const Chatting = () => {
     }
   };
 
-  // 채팅방 나가기: 실제 나가기가 아닌 목록으로 돌아가기
-  const leaveRoom = () => {
-    navigate('/chattingRoomList');
+  // 채팅방 나가기
+  const leaveRoom = async () => {
+    const confirmed = window.confirm(
+      '채팅방에서 나가시겠습니까?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await Client.post(`/api/chat/room/${roomId}/leave`);
+
+      alert('채팅방에서 나왔습니다.');
+
+      navigate('/chattingRoomList');
+    } catch (error) {
+      alert(
+        error.response?.data || '채팅방 나가기에 실패했습니다.'
+      );
+    }
   };
 
   // 방장 여부 확인
@@ -349,125 +370,142 @@ const Chatting = () => {
         {/* 채팅방 헤더 */}
         <header className={styles.chatHeader}>
           <button
-            onClick={leaveRoom}
+            type="button"
+            onClick={() => navigate('/chattingRoomList')}
             className={styles.backButton}
           >
-            ← 목록
+            ←
           </button>
 
           <h1 className={styles.title}>
             {roomName || '채팅방'}
           </h1>
 
-          <span
-            className={
-              isConnected
-                ? styles.statusOnline
-                : styles.statusOffline
-            }
-          >
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </header>
+          <div className={styles.headerRight}>
+            <span
+              className={
+                isConnected
+                  ? styles.statusOnline
+                  : styles.statusOffline
+              }
+            >
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
 
-        {/* 채팅방 기능 버튼 */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            padding: '10px 16px',
-            borderBottom: '1px solid #222'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setShowInvite((prev) => !prev)}
-          >
-            {showInvite ? '초대 닫기' : '+ 사람 초대'}
-          </button>
-
-          <button
-            type="button"
-            onClick={leaveRoom}
-          >
-            채팅방 나가기
-          </button>
-
-          {isOwner && (
             <button
               type="button"
-              onClick={deleteRoom}
-            >
-              채팅방 삭제
-            </button>
-          )}
-        </div>
-
-        {/* 회원 초대 */}
-        {showInvite && (
-          <div
-            style={{
-              padding: '12px 16px',
-              background: '#181818',
-              color: '#ddd'
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px'
+              className={styles.menuButton}
+              onClick={() => {
+                setShowMenu((prev) => !prev);
+                setShowInvite(false);
               }}
             >
-              <input
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    searchMembers();
-                  }
-                }}
-                placeholder="닉네임 또는 아이디 검색"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: '8px'
-                }}
-              />
+              ☰
+            </button>
+          </div>
+        </header>
+
+        {/* 오른쪽 사이드 메뉴 */}
+        {showMenu && (
+          <div className={styles.menuPanel}>
+
+            <div className={styles.menuActions}>
+              <button
+                type="button"
+                className={styles.menuActionButton}
+                onClick={() => setShowInvite((prev) => !prev)}
+              >
+                <span>＋</span>
+                {showInvite ? '초대 닫기' : '사람 초대'}
+              </button>
 
               <button
                 type="button"
-                onClick={searchMembers}
+                className={styles.menuActionButton}
+                onClick={leaveRoom}
               >
-                검색
+                <span>↪</span>
+                채팅방 나가기
               </button>
-            </div>
 
-            {inviteMessage && (
-              <p>{inviteMessage}</p>
-            )}
-
-            {members.map((member) => (
-              <div
-                key={member.member_seq}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 0'
-                }}
-              >
-                <span>
-                  {member.nickname || member.login_id}
-                  ({member.login_id})
-                </span>
-
+              {isOwner && (
                 <button
                   type="button"
-                  onClick={() => inviteMember(member)}
+                  className={`${styles.menuActionButton} ${styles.deleteButton}`}
+                  onClick={deleteRoom}
                 >
-                  초대
+                  <span>⌫</span>
+                  채팅방 삭제
                 </button>
+              )}
+            </div>
+
+            {/* 회원 초대 */}
+            {showInvite && (
+              <div className={styles.invitePanel}>
+                <div className={styles.inviteSearch}>
+                  <input
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        searchMembers();
+                      }
+                    }}
+                    placeholder="닉네임 검색"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={searchMembers}
+                  >
+                    검색
+                  </button>
+                </div>
+
+                {inviteMessage && (
+                  <p className={styles.inviteMessage}>
+                    {inviteMessage}
+                  </p>
+                )}
+
+                {members.map((member) => (
+                  <div
+                    key={member.member_seq}
+                    className={styles.searchMember}
+                  >
+                    <span>
+                      {member.nickname || member.login_id}
+                      ({member.login_id})
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => inviteMember(member)}
+                    >
+                      초대
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+
+            {/* 참여 회원 프로필 영역 */}
+            <div className={styles.roomMembers}>
+              <h3>참여 중인 회원</h3>
+
+              <div className={styles.memberProfilePlaceholder}>
+                <div className={styles.profileAvatarPlaceholder}>
+                  <span>👤</span>
+                </div>
+
+                <div className={styles.profileInfoPlaceholder}>
+                  <strong>회원 프로필 영역</strong>
+                  <span>프로필 정보가 여기에 표시됩니다.</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -479,17 +517,16 @@ const Chatting = () => {
             const showTime =
               !nextMessage ||
               Number(msg.sender_seq) !==
-                Number(nextMessage.sender_seq) ||
+              Number(nextMessage.sender_seq) ||
               !isSameMinute(msg, nextMessage);
 
             return (
               <div
                 key={msg.chat_message_seq || index}
-                className={`${styles.messageWrapper} ${
-                  msg.isMine
-                    ? styles.myMessage
-                    : styles.otherMessage
-                }`}
+                className={`${styles.messageWrapper} ${msg.isMine
+                  ? styles.myMessage
+                  : styles.otherMessage
+                  }`}
               >
                 {!msg.isMine && (
                   <span className={styles.sender}>
@@ -526,24 +563,53 @@ const Chatting = () => {
           onSubmit={sendMessage}
           className={styles.inputArea}
         >
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) =>
-              setInputMessage(e.target.value)
-            }
-            placeholder="어둠 속에 메시지를 남기세요..."
-            className={styles.textInput}
-            disabled={!isConnected}
-          />
+          <div className={styles.inputRow}>
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={() => setShowUploadMenu((prev) => !prev)}
+            >
+              {showUploadMenu ? '×' : '+'}
+            </button>
 
-          <button
-            type="submit"
-            className={styles.sendButton}
-            disabled={!isConnected}
-          >
-            전송
-          </button>
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) =>
+                setInputMessage(e.target.value)
+              }
+              placeholder="어둠 속에 메시지를 남기세요..."
+              className={styles.textInput}
+              disabled={!isConnected}
+            />
+
+            <button
+              type="submit"
+              className={styles.sendButton}
+              disabled={!isConnected}
+            >
+              전송
+            </button>
+          </div>
+
+          {showUploadMenu && (
+            <div className={styles.uploadMenu}>
+              <button type="button" className={styles.uploadButton}>
+                <span>📁</span>
+                <span>파일</span>
+              </button>
+
+              <button type="button" className={styles.uploadButton}>
+                <span>🎙️</span>
+                <span>음성 녹음</span>
+              </button>
+
+              <button type="button" className={styles.uploadButton}>
+                <span>🎬</span>
+                <span>동영상</span>
+              </button>
+            </div>
+          )}
         </form>
 
       </div>

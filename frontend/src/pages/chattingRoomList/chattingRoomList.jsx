@@ -139,7 +139,7 @@ function ChatRoomList() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') searchMembers(); }}
-                placeholder="초대할 회원 닉네임 또는 아이디 검색"
+                placeholder="초대할 회원 닉네임 검색"
                 style={{ flex: 1, minWidth: 0, padding: '10px' }}
               />
               <button type="button" onClick={searchMembers}>검색</button>

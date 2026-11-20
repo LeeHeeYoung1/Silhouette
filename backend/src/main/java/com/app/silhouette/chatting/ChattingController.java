@@ -215,6 +215,11 @@ public class ChattingController {
         message.setCreated_at(new Date());
         message.setDeleted_yn("N");
         chattingDAO.insertMessage(message);
+        
+        System.out.println("메시지 DB 저장 완료");
+        System.out.println("메시지 브로드캐스트 주소: /sub/chat/" + message.getChat_room_seq());
+
+        
         messagingTemplate.convertAndSend(
                 "/sub/chat/" + message.getChat_room_seq(), message);
     }

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import com.app.silhouette.chatting.ChattingDAO;
 import com.app.silhouette.commons.JwtUtil;
+import com.app.silhouette.live.LiveDAO;
+import com.app.silhouette.live.LiveRoomDTO;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
@@ -21,10 +23,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final JwtUtil jwt;
     private final ChattingDAO chattingDAO;
+    private final LiveDAO liveDAO;
 
-    public JwtChannelInterceptor(JwtUtil jwt, ChattingDAO chattingDAO) {
+    public JwtChannelInterceptor(JwtUtil jwt, ChattingDAO chattingDAO, LiveDAO liveDAO) {
         this.jwt = jwt;
         this.chattingDAO = chattingDAO;
+        this.liveDAO = liveDAO;
     }
 
     @Override
@@ -73,6 +77,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             String destination = accessor.getDestination();
 
+            // 라이브 채팅 구독: 방송 중 + (방송자 또는 강퇴·차단 안 된 회원)
+            if (destination != null && destination.startsWith("/sub/live/")) {
+                return canSubscribeLive(accessor, destination) ? message : null;
+            }
+
             // 채팅방 구독이 아닌 경우 기존 기능 유지
             if (destination == null || !destination.startsWith("/sub/chat/")) {
                 return message;
@@ -106,5 +115,28 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         return message;
+    }
+
+    private boolean canSubscribeLive(StompHeaderAccessor accessor, String destination) {
+        Map<String, Object> attributes = accessor.getSessionAttributes();
+        String userId = attributes == null ? null : (String) attributes.get("userId");
+        if (userId == null) {
+            return false;
+        }
+        try {
+            long liveRoomSeq = Long.parseLong(destination.substring("/sub/live/".length()));
+            Long memberSeq = liveDAO.selectMemberSeqByLoginId(userId);
+            LiveRoomDTO room = liveDAO.selectLiveRoom(liveRoomSeq);
+            if (memberSeq == null || room == null || !"LIVE".equals(room.getStatus())) {
+                return false;
+            }
+            if (room.getHost_seq().longValue() == memberSeq) {
+                return true;
+            }
+            return !liveDAO.isKicked(liveRoomSeq, memberSeq)
+                    && !liveDAO.isBanned(room.getHost_seq(), memberSeq);
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
