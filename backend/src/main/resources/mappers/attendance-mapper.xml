@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AttendanceMapper">
+
+    <select id="selectWeeklyAttendance" parameterType="map" resultType="com.app.silhouette.attendance.AttendanceDTO">
+        SELECT
+            ATTENDANCE_SEQ  AS attendanceSeq,
+            MEMBER_SEQ      AS memberSeq,
+            ATTEND_DATE     AS attendDate,
+            CONTINUOUS_DAYS AS continuousDays,
+            REWARD_YN       AS rewardYn,
+            REWARD_MILEAGE  AS rewardMileage,
+            REWARD_TICKET   AS rewardTicket
+        FROM ATTENDANCE
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND TRUNC(ATTEND_DATE) BETWEEN #{startDate} AND #{endDate}
+        ORDER BY ATTEND_DATE ASC
+    </select>
+
+    <select id="selectAttendanceByDate" parameterType="map" resultType="com.app.silhouette.attendance.AttendanceDTO">
+        SELECT
+            ATTENDANCE_SEQ  AS attendanceSeq,
+            MEMBER_SEQ      AS memberSeq,
+            ATTEND_DATE     AS attendDate,
+            CONTINUOUS_DAYS AS continuousDays,
+            REWARD_YN       AS rewardYn,
+            REWARD_MILEAGE  AS rewardMileage,
+            REWARD_TICKET   AS rewardTicket
+        FROM ATTENDANCE
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND TRUNC(ATTEND_DATE) = #{targetDate}
+    </select>
+
+    <insert id="insertAttendance" parameterType="com.app.silhouette.attendance.AttendanceDTO">
+        INSERT INTO ATTENDANCE (
+            ATTENDANCE_SEQ,
+            MEMBER_SEQ,
+            ATTEND_DATE,
+            CONTINUOUS_DAYS,
+            REWARD_YN,
+            REWARD_MILEAGE,
+            REWARD_TICKET
+        ) VALUES (
+            SEQ_ATTENDANCE.NEXTVAL,
+            #{memberSeq},
+            #{attendDate},
+            #{continuousDays},
+            #{rewardYn},
+            #{rewardMileage},
+            #{rewardTicket}
+        )
+    </insert>
+
+    <select id="selectLatestMileageBalance" parameterType="long" resultType="java.lang.Integer">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+            FROM (
+                SELECT BALANCE_AFTER
+                FROM MILEAGE_LEDGER
+                WHERE MEMBER_SEQ = #{memberSeq}
+                ORDER BY MILEAGE_LEDGER_SEQ DESC
+            )
+            WHERE ROWNUM = 1
+        ), 0)
+        FROM DUAL
+    </select>
+
+    <insert id="insertMileageLedger" parameterType="map">
+        INSERT INTO MILEAGE_LEDGER (
+            MILEAGE_LEDGER_SEQ,
+            MEMBER_SEQ,
+            PAYMENT_SEQ,
+            SOURCE_TYPE,
+            CHANGE_AMOUNT,
+            BALANCE_AFTER,
+            DESCRIPTION,
+            CREATED_AT
+        ) VALUES (
+            SEQ_MILEAGE_LEDGER.NEXTVAL,
+            #{memberSeq},
+            NULL,
+            #{sourceType},
+            #{changeAmount},
+            #{balanceAfter},
+            #{description},
+            SYSDATE
+        )
+    </insert>
+
+    <select id="selectLatestTicketBalance" parameterType="long" resultType="java.lang.Integer">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+            FROM (
+                SELECT BALANCE_AFTER
+                FROM TICKET_LEDGER
+                WHERE MEMBER_SEQ = #{memberSeq}
+                ORDER BY TICKET_LEDGER_SEQ DESC
+            )
+            WHERE ROWNUM = 1
+        ), 0)
+        FROM DUAL
+    </select>
+
+    <insert id="insertTicketLedger" parameterType="map">
+        INSERT INTO TICKET_LEDGER (
+            TICKET_LEDGER_SEQ,
+            MEMBER_SEQ,
+            PAYMENT_SEQ,
+            SOURCE_TYPE,
+            CHANGE_AMOUNT,
+            BALANCE_AFTER,
+            DESCRIPTION,
+            CREATED_AT
+        ) VALUES (
+            SEQ_TICKET_LEDGER.NEXTVAL,
+            #{memberSeq},
+            NULL,
+            #{sourceType},
+            #{changeAmount},
+            #{balanceAfter},
+            #{description},
+            SYSDATE
+        )
+    </insert>
+
+</mapper>
