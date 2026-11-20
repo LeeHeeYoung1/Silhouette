@@ -643,3 +643,111 @@
   background: #482323;
   border-color: #d06a6a;
 }
+
+
+/* 일반 파일 메시지 */
+.fileMessage {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.fileMessage a {
+  color: #9fc8ff;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.fileMessage a:hover {
+  color: #ffffff;
+}
+
+/* 사진은 URL 대신 채팅 말풍선 안에 이미지 자체로 표시 */
+.imageMessage {
+  max-width: 280px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.imageMessage img {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+/* 파일 및 사진 전송 대기 영역 */
+.pendingFiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+/* 개별 대기 항목 */
+.pendingItem {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+/* 사진 미리보기 */
+.pendingImage {
+  display: block;
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* 파일 미리보기 */
+.pendingFile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #292929;
+  border-radius: 8px;
+  color: #eee;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* 오른쪽 위 삭제 버튼 */
+.pendingRemove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #333;
+  color: white;
+  font-size: 17px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.pendingRemove:hover {
+  background: #d44;
+}
+
+.pendingRemove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
