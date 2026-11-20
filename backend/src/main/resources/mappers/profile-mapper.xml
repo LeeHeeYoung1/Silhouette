@@ -31,7 +31,7 @@
 			introduction, love_type, hobby, favorite, dislike, drinking, smoking,
 			religion, food_preference, face_type, skin_type, created_at
 		) values (
-			member_profile_seq.nextval, #{memberSeq}, #{nickname}, #{mbti}, #{job}, #{height}, #{weight},
+			seq_member_profile.nextval, #{memberSeq}, #{nickname}, #{mbti}, #{job}, #{height}, #{weight},
 			#{introduction}, #{loveType}, #{hobby}, #{favorite}, #{dislike}, #{drinking}, #{smoking},
 			#{religion}, #{foodPreference}, #{faceType}, #{skinType}, sysdate
 		)
