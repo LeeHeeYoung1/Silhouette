@@ -5,47 +5,201 @@
 
 <mapper namespace="Live">
 
+    <!-- ===================== 회원 ===================== -->
+
     <!-- 로그인 아이디 → 회원 번호 -->
-    <select id="selectMemberSeqByLoginId" resultType="int">
+    <select id="selectMemberSeqByLoginId" resultType="long">
         SELECT MEMBER_SEQ
         FROM MEMBER
         WHERE LOGIN_ID = #{loginId}
           AND MEMBER_STATUS = 'ACTIVE'
     </select>
 
-    <!-- 내 방송 중인 방송 종료 -->
-    <update id="endMyLive">
-        UPDATE LIVE
-        SET ENDED_AT = SYSDATE
+    <!-- 회원 번호 → 닉네임 (LiveKit 표시 이름용) -->
+    <select id="selectNickname" resultType="string">
+        SELECT NICKNAME
+        FROM MEMBER
         WHERE MEMBER_SEQ = #{memberSeq}
-          AND ENDED_AT IS NULL
-    </update>
+    </select>
+
+    <!-- ===================== 방송 ===================== -->
+
+    <!-- 공통 조회 컬럼: 방송 + 방송자 + 현재 시청자 수 -->
+    <sql id="roomColumns">
+        r.LIVE_ROOM_SEQ, r.HOST_SEQ, r.TITLE, r.DESCRIPTION, r.THUMBNAIL_URL,
+        r.STATUS, r.CATEGORY, r.STARTED_AT, r.ENDED_AT, r.CREATED_AT,
+        r.DISCONNECTED_AT, r.ENDED_BY, r.END_REASON,
+        m.LOGIN_ID AS HOST_LOGIN_ID,
+        m.NICKNAME AS HOST_NICKNAME,
+        (SELECT COUNT(*)
+           FROM LIVE_VIEWER v
+          WHERE v.LIVE_ROOM_SEQ = r.LIVE_ROOM_SEQ
+            AND v.LEFT_AT IS NULL) AS VIEWER_COUNT
+    </sql>
+
+    <!-- 방송 1개 (상태 무관) -->
+    <select id="selectLiveRoom" resultType="com.app.silhouette.live.LiveRoomDTO">
+        SELECT <include refid="roomColumns"/>
+        FROM LIVE_ROOM r
+        JOIN MEMBER m ON m.MEMBER_SEQ = r.HOST_SEQ
+        WHERE r.LIVE_ROOM_SEQ = #{liveRoomSeq}
+    </select>
+
+    <!-- 내가 방송 중인 방 (없으면 null, UX_LIVE_ROOM_ONAIR로 최대 1개) -->
+    <select id="selectMyOnAir" resultType="com.app.silhouette.live.LiveRoomDTO">
+        SELECT r.LIVE_ROOM_SEQ, r.HOST_SEQ, r.STATUS, r.STARTED_AT, r.THUMBNAIL_URL
+        FROM LIVE_ROOM r
+        WHERE r.HOST_SEQ = #{hostSeq}
+          AND r.STATUS = 'LIVE'
+    </select>
+
+    <!-- 방송 중 목록: 시청자 수 내림차순 + 검색(제목/닉네임) + 카테고리 + 페이지 -->
+    <select id="selectLiveList" parameterType="map" resultType="com.app.silhouette.live.LiveRoomDTO">
+        SELECT *
+        FROM (
+            SELECT a.*, ROWNUM AS RN
+            FROM (
+                SELECT <include refid="roomColumns"/>,
+                       (SELECT LISTAGG(h.TAG, ',') WITHIN GROUP (ORDER BY h.LIVE_HASHTAG_SEQ)
+                          FROM LIVE_HASHTAG h
+                         WHERE h.LIVE_ROOM_SEQ = r.LIVE_ROOM_SEQ) AS HASHTAG_TEXT
+                FROM LIVE_ROOM r
+                JOIN MEMBER m ON m.MEMBER_SEQ = r.HOST_SEQ
+                WHERE r.STATUS = 'LIVE'
+                <if test="category != null">
+                  AND r.CATEGORY = #{category}
+                </if>
+                <if test="keyword != null">
+                  AND (INSTR(r.TITLE, #{keyword}) > 0 OR INSTR(m.NICKNAME, #{keyword}) > 0)
+                </if>
+                ORDER BY VIEWER_COUNT DESC, r.STARTED_AT DESC, r.LIVE_ROOM_SEQ DESC
+            ) a
+            WHERE ROWNUM &lt;= #{endRow}
+        )
+        WHERE RN &gt; #{startRow}
+    </select>
 
     <!-- 방송 시작 -->
-    <insert id="insertLive" parameterType="com.app.silhouette.live.LiveDTO">
-        <selectKey keyProperty="live_Seq" resultType="int" order="BEFORE">
-            SELECT LIVE_SEQ.NEXTVAL FROM DUAL
+    <insert id="insertLiveRoom" parameterType="com.app.silhouette.live.LiveRoomDTO">
+        <selectKey keyProperty="live_room_seq" resultType="long" order="BEFORE">
+            SELECT SEQ_LIVE_ROOM.NEXTVAL FROM DUAL
         </selectKey>
-        INSERT INTO LIVE (LIVE_SEQ, MEMBER_SEQ, TITLE, ROOM_NAME)
-        VALUES (#{live_Seq}, #{member_Seq}, #{title}, #{room_Name})
+        INSERT INTO LIVE_ROOM (
+            LIVE_ROOM_SEQ, HOST_SEQ, TITLE, DESCRIPTION, THUMBNAIL_URL,
+            STATUS, CATEGORY, STARTED_AT, CREATED_AT
+        ) VALUES (
+            #{live_room_seq}, #{host_seq}, #{title}, #{description, jdbcType=VARCHAR},
+            #{thumbnail_url, jdbcType=VARCHAR},
+            'LIVE', #{category}, SYSTIMESTAMP, SYSTIMESTAMP
+        )
     </insert>
 
-    <!-- 방송 중인 목록 (최신순) -->
-    <select id="selectOnAirList" resultType="com.app.silhouette.live.LiveDTO">
-        SELECT l.LIVE_SEQ, l.MEMBER_SEQ, l.TITLE, l.ROOM_NAME, l.STARTED_AT,
-               m.LOGIN_ID, m.NICKNAME
-        FROM LIVE l
-        JOIN MEMBER m ON m.MEMBER_SEQ = l.MEMBER_SEQ
-        WHERE l.ENDED_AT IS NULL
-        ORDER BY l.STARTED_AT DESC
+    <!-- 방송 종료 (이미 종료면 0건 → 중복 종료 방지) -->
+    <update id="endLiveRoom" parameterType="map">
+        UPDATE LIVE_ROOM
+        SET STATUS = 'ENDED',
+            ENDED_AT = SYSTIMESTAMP,
+            ENDED_BY = #{endedBy},
+            END_REASON = #{endReason, jdbcType=VARCHAR}
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND STATUS = 'LIVE'
+    </update>
+
+    <!-- 방송자 연결 끊김 / 재접속 -->
+    <update id="markHostDisconnected">
+        UPDATE LIVE_ROOM
+        SET DISCONNECTED_AT = SYSTIMESTAMP
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND STATUS = 'LIVE'
+    </update>
+
+    <update id="clearHostDisconnected">
+        UPDATE LIVE_ROOM
+        SET DISCONNECTED_AT = NULL
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND STATUS = 'LIVE'
+    </update>
+
+    <!-- 방송자가 끊긴 지 #{seconds}초 넘은 방송 -->
+    <select id="selectTimedOutRooms" resultType="long">
+        SELECT LIVE_ROOM_SEQ
+        FROM LIVE_ROOM
+        WHERE STATUS = 'LIVE'
+          AND DISCONNECTED_AT &lt; SYSTIMESTAMP - NUMTODSINTERVAL(#{seconds}, 'SECOND')
     </select>
 
-    <!-- 방송 중인 방송 1개 -->
-    <select id="selectOnAir" resultType="com.app.silhouette.live.LiveDTO">
-        SELECT LIVE_SEQ, MEMBER_SEQ, TITLE, ROOM_NAME, STARTED_AT
-        FROM LIVE
-        WHERE LIVE_SEQ = #{liveSeq}
-          AND ENDED_AT IS NULL
+    <!-- ===================== 해시태그 ===================== -->
+
+    <insert id="insertHashtag" parameterType="map">
+        INSERT INTO LIVE_HASHTAG (LIVE_HASHTAG_SEQ, LIVE_ROOM_SEQ, TAG)
+        VALUES (LIVE_HASHTAG_SEQ.NEXTVAL, #{liveRoomSeq}, #{tag})
+    </insert>
+
+    <select id="selectHashtags" resultType="string">
+        SELECT TAG
+        FROM LIVE_HASHTAG
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+        ORDER BY LIVE_HASHTAG_SEQ
     </select>
+
+    <!-- ===================== 시청자 ===================== -->
+
+    <select id="countActiveViewers" resultType="int">
+        SELECT COUNT(*)
+        FROM LIVE_VIEWER
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND LEFT_AT IS NULL
+    </select>
+
+    <!-- 이번 방송에서 강퇴당했는지 -->
+    <select id="countKicked" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM LIVE_VIEWER
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND KICKED_YN = 'Y'
+    </select>
+
+    <!-- 방송자에게 차단당했는지 -->
+    <select id="countBanned" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM LIVE_BAN
+        WHERE HOST_SEQ = #{hostSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <insert id="insertViewer" parameterType="map">
+        INSERT INTO LIVE_VIEWER (LIVE_VIEWER_SEQ, LIVE_ROOM_SEQ, MEMBER_SEQ, JOINED_AT, KICKED_YN)
+        VALUES (SEQ_LIVE_VIEWER.NEXTVAL, #{liveRoomSeq}, #{memberSeq}, SYSTIMESTAMP, 'N')
+    </insert>
+
+    <!-- 해당 회원의 열린 시청 기록 닫기 (퇴장, 재접속 전 정리) -->
+    <update id="closeViewer" parameterType="map">
+        UPDATE LIVE_VIEWER
+        SET LEFT_AT = SYSTIMESTAMP
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND LEFT_AT IS NULL
+    </update>
+
+    <!-- 방송 종료 시 남은 시청자 전부 퇴장 처리 -->
+    <update id="closeAllViewers">
+        UPDATE LIVE_VIEWER
+        SET LEFT_AT = SYSTIMESTAMP
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND LEFT_AT IS NULL
+    </update>
+
+    <!-- ===================== 채팅 ===================== -->
+
+    <!-- 방송 종료 시 채팅 삭제 (신고된 채팅은 보존) -->
+    <delete id="deleteChatsExceptReported">
+        DELETE FROM LIVE_CHAT c
+        WHERE c.LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND NOT EXISTS (
+              SELECT 1 FROM LIVE_REPORT rp
+              WHERE rp.LIVE_CHAT_SEQ = c.LIVE_CHAT_SEQ
+          )
+    </delete>
 
 </mapper>

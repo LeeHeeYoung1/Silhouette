@@ -22,7 +22,8 @@ public class InterceptorConfig implements WebMvcConfigurer{
                 "/auth/login",
                 "/members/idCheck",
                 "/chat",
-                "/chat/**");
+                "/chat/**",
+                "/api/livekit/webhook");   // LiveKit 서명으로 따로 검증
 	}
 
 }
