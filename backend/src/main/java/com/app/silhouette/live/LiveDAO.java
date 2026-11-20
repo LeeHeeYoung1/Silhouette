@@ -137,6 +137,12 @@ public class LiveDAO {
         return mybatis.update(NS + "kickViewer",
                 Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
     }
+    
+
+    public int unkickViewer(long liveRoomSeq, long memberSeq) {
+        return mybatis.update(NS + "unkickViewer",
+                Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
+    }
 
     // ===== 차단 =====
 

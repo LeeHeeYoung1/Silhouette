@@ -16,14 +16,17 @@ public class LiveChatService {
     private final LiveDAO dao;
     private final LiveChatFilter filter;
     private final SimpMessagingTemplate messagingTemplate;
+    private final LiveKitRoomService roomService;
 
     // 회원 번호 → 마지막 전송 시각 (1초에 1개 제한)
     private final Map<Long, Long> lastSent = new ConcurrentHashMap<>();
 
-    public LiveChatService(LiveDAO dao, LiveChatFilter filter, SimpMessagingTemplate messagingTemplate) {
+    public LiveChatService(LiveDAO dao, LiveChatFilter filter, SimpMessagingTemplate messagingTemplate,
+            LiveKitRoomService roomService) {
         this.dao = dao;
         this.filter = filter;
         this.messagingTemplate = messagingTemplate;
+        this.roomService = roomService;
     }
 
     // 보낸 사람은 클라이언트 값이 아니라 WebSocket 세션의 로그인 아이디로 판단
@@ -44,7 +47,7 @@ public class LiveChatService {
         boolean isHost = room.getHost_seq().longValue() == me;
 
         // ① 현재 시청 중인지 + ② 강퇴 여부 (countWatching에서 KICKED_YN='N'까지 확인)
-        if (!isHost && !dao.isWatching(liveRoomSeq, me)) {
+        if (!isHost && !dao.isWatching(liveRoomSeq, me) && !recoverViewer(room, me)) {
             return;
         }
 
@@ -71,6 +74,27 @@ public class LiveChatService {
         msg.setCreated_at(new Date());
         messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq, msg);
     }
+    
+    
+    // 시청 기록이 없을 때 (webhook 지연·미수신)
+    // 강퇴·차단이 아니고 LiveKit에 실제로 접속해 있으면 시청 기록을 만들고 허용
+    private boolean recoverViewer(LiveRoomDTO room, long memberSeq) {
+        long liveRoomSeq = room.getLive_room_seq();
+        if (dao.isKicked(liveRoomSeq, memberSeq) || dao.isBanned(room.getHost_seq(), memberSeq)) {
+            return false;
+        }
+        Boolean connected = roomService.isConnected(
+                LiveKitRoomService.roomName(liveRoomSeq), String.valueOf(memberSeq));
+        if (!Boolean.TRUE.equals(connected)) {
+            return false;
+        }
+        // 뒤늦게 webhook이 와도 closeViewer → insertViewer라서 기록이 겹치지 않음
+        dao.closeViewer(liveRoomSeq, memberSeq);
+        dao.insertViewer(liveRoomSeq, memberSeq);
+        return true;
+    }
+
+    
 
     private boolean tryAcquire(long memberSeq) {
         long now = System.currentTimeMillis();

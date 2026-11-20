@@ -243,6 +243,16 @@
         WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
           AND MEMBER_SEQ = #{memberSeq}
     </update>
+    
+    
+    <!-- 강퇴 해제: 차단 해제 시 지금 방송의 강퇴 표시도 풀기 -->
+    <update id="unkickViewer" parameterType="map">
+        UPDATE LIVE_VIEWER
+        SET KICKED_YN = 'N'
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND KICKED_YN = 'Y'
+    </update>
 
     <!-- ===================== 차단 ===================== -->
 
