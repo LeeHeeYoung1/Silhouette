@@ -110,6 +110,7 @@ public class LiveService {
 		result.put("live_room_seq", seq);
 		result.put("token", token);
 		result.put("url", livekitUrl);
+		result.put("my_member_seq", me);
 		return result;
 	}
 
@@ -299,6 +300,15 @@ public class LiveService {
 		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq, kicked);
 		sendSystem(liveRoomSeq, nickname(target) + "님이 강퇴되었어요.");
 		return rows;
+	}
+
+	// 프로필 모달
+	public LiveProfileDTO profile(long memberSeq) {
+		LiveProfileDTO profile = dao.selectProfile(memberSeq);
+		if (profile == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "없는 회원이에요.");
+		}
+		return profile;
 	}
 
 	// ========================= 종료 =========================

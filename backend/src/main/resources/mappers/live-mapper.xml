@@ -31,6 +31,16 @@
         WHERE MEMBER_SEQ = #{memberSeq}
     </select>
 
+    <!-- 프로필 모달용 (프로필 미등록 회원은 닉네임만) -->
+    <select id="selectProfile" resultType="com.app.silhouette.live.LiveProfileDTO">
+        SELECT m.MEMBER_SEQ, m.NICKNAME, m.GENDER,
+               p.MBTI, p.HEIGHT, p.DRINKING, p.SMOKING, p.RELIGION
+        FROM MEMBER m
+        LEFT JOIN MEMBER_PROFILE p ON p.MEMBER_SEQ = m.MEMBER_SEQ
+        WHERE m.MEMBER_SEQ = #{memberSeq}
+          AND m.MEMBER_STATUS = 'ACTIVE'
+    </select>
+
     <!-- ===================== 방송 ===================== -->
 
     <!-- 공통 조회 컬럼: 방송 + 방송자 + 현재 시청자 수 -->

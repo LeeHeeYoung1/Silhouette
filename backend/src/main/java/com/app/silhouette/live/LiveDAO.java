@@ -30,6 +30,10 @@ public class LiveDAO {
         return cnt > 0;
     }
 
+    public LiveProfileDTO selectProfile(long memberSeq) {
+        return mybatis.selectOne(NS + "selectProfile", memberSeq);
+    }
+
     public String selectNickname(long memberSeq) {
         return mybatis.selectOne(NS + "selectNickname", memberSeq);
     }

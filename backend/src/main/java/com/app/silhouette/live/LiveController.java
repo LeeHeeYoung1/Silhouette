@@ -52,6 +52,12 @@ public class LiveController {
         return ResponseEntity.ok(service.detail(liveRoomSeq));
     }
 
+    // 프로필 모달 (방송자·채팅 닉네임 클릭)
+    @GetMapping("/member/{memberSeq}")
+    public ResponseEntity<LiveProfileDTO> profile(@PathVariable long memberSeq) {
+        return ResponseEntity.ok(service.profile(memberSeq));
+    }
+
     // 시청 입장 검증 → { token, url, room }
     @PostMapping("/{liveRoomSeq}/join")
     public ResponseEntity<Map<String, Object>> join(@RequestAttribute("id") String loginId,
