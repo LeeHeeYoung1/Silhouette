@@ -260,6 +260,9 @@ public class LiveService {
 		if ("participant_joined".equals(type)) {
 			if (isHost) {
 				dao.clearHostDisconnected(liveRoomSeq);     // 재접속 → 방송 이어감
+				if (room.getDisconnected_at() != null) {
+					sendSystem(liveRoomSeq, "방송자가 다시 연결됐어요.");
+				}
 				return;
 			}
 			// 토큰 발급 후 강퇴·차단된 경우 (토큰은 유효기간이 남아 있음)
@@ -268,23 +271,41 @@ public class LiveService {
 				return;
 			}
 			// 같은 계정 재접속이면 이전 기록을 먼저 닫음
-			tx.executeWithoutResult(status -> {
-				dao.closeViewer(liveRoomSeq, memberSeq);
+			Integer reopened = tx.execute(status -> {
+				int closed = dao.closeViewer(liveRoomSeq, memberSeq);
 				dao.insertViewer(liveRoomSeq, memberSeq);
+				return closed;
 			});
+			if (reopened == null || reopened == 0) {   // 재접속이면 입장 안내 생략
+				sendSystem(liveRoomSeq, nickname(memberSeq) + "님이 입장했어요.");
+			}
 			return;
 		}
 
 		// participant_left
 		if (isHost) {
 			dao.markHostDisconnected(liveRoomSeq);
+			sendSystem(liveRoomSeq, "방송자의 연결이 끊겼어요. 잠시만 기다려주세요.");
 			return;
 		}
 		// 다른 탭으로 재접속하면서 이전 연결이 끊긴 경우 → 새 연결이 살아 있으니 닫지 않음
 		if (Boolean.TRUE.equals(roomService.isConnected(roomName, String.valueOf(memberSeq)))) {
 			return;
 		}
-		dao.closeViewer(liveRoomSeq, memberSeq);
+		if (dao.closeViewer(liveRoomSeq, memberSeq) > 0) {
+			sendSystem(liveRoomSeq, nickname(memberSeq) + "님이 나갔어요.");
+		}
+	}
+
+	// SYSTEM 메시지 (입장·퇴장·강퇴 안내)
+	private void sendSystem(long liveRoomSeq, String content) {
+		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq,
+				LiveMessageDTO.of("SYSTEM", liveRoomSeq, content));
+	}
+
+	private String nickname(long memberSeq) {
+		String nickname = dao.selectNickname(memberSeq);
+		return nickname == null ? "알 수 없음" : nickname;
 	}
 
 	// ========================= 공통 =========================

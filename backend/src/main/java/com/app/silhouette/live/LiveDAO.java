@@ -1,5 +1,6 @@
 package com.app.silhouette.live;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +111,26 @@ public class LiveDAO {
     }
 
     // ===== 채팅 =====
+
+    public boolean isWatching(long liveRoomSeq, long memberSeq) {
+        int cnt = mybatis.selectOne(NS + "countWatching",
+                Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
+        return cnt > 0;
+    }
+
+    // 저장 후 LIVE_CHAT_SEQ 반환
+    public long insertChat(long liveRoomSeq, long memberSeq, String content) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("liveRoomSeq", liveRoomSeq);
+        params.put("memberSeq", memberSeq);
+        params.put("content", content);
+        mybatis.insert(NS + "insertChat", params);
+        return (Long) params.get("liveChatSeq");
+    }
+
+    public List<String> selectFilterWords() {
+        return mybatis.selectList(NS + "selectFilterWords");
+    }
 
     public int deleteChatsExceptReported(long liveRoomSeq) {
         return mybatis.delete(NS + "deleteChatsExceptReported", liveRoomSeq);

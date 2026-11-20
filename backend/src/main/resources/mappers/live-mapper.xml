@@ -192,6 +192,30 @@
 
     <!-- ===================== 채팅 ===================== -->
 
+    <!-- 지금 시청 중인지 (열린 시청 기록이 있고 강퇴 안 됨) -->
+    <select id="countWatching" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM LIVE_VIEWER
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND MEMBER_SEQ = #{memberSeq}
+          AND LEFT_AT IS NULL
+          AND KICKED_YN = 'N'
+    </select>
+
+    <insert id="insertChat" parameterType="map">
+        <selectKey keyProperty="liveChatSeq" resultType="long" order="BEFORE">
+            SELECT LIVE_CHAT_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO LIVE_CHAT (LIVE_CHAT_SEQ, LIVE_ROOM_SEQ, MEMBER_SEQ, CONTENT, CREATED_AT)
+        VALUES (#{liveChatSeq}, #{liveRoomSeq}, #{memberSeq}, #{content}, SYSTIMESTAMP)
+    </insert>
+
+    <!-- 금칙어 전체 (서버 메모리에 캐싱) -->
+    <select id="selectFilterWords" resultType="string">
+        SELECT BAD_WORD
+        FROM FILTER_WORD
+    </select>
+
     <!-- 방송 종료 시 채팅 삭제 (신고된 채팅은 보존) -->
     <delete id="deleteChatsExceptReported">
         DELETE FROM LIVE_CHAT c
