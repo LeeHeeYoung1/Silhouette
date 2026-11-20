@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 public class ProfileDTO {
 
 	// ===== 회원 기본 정보 (MEMBER, 읽기만) =====
-	private Long memberSeq;
-	private String loginId;
+	private Long member_Seq;
+	private String login_Id;
 	private String nickname;
 	private String gender;
 	private Integer age;              // 생년월일로 계산한 만 나이
@@ -32,11 +32,11 @@ public class ProfileDTO {
 
 	public ProfileDTO() {}
 
-	public Long getMemberSeq() { return memberSeq; }
-	public void setMemberSeq(Long memberSeq) { this.memberSeq = memberSeq; }
+	public Long getMemberSeq() { return member_Seq; }
+	public void setMemberSeq(Long member_Seq) { this.member_Seq = member_Seq; }
 
-	public String getLoginId() { return loginId; }
-	public void setLoginId(String loginId) { this.loginId = loginId; }
+	public String getLoginId() { return login_Id; }
+	public void setLoginId(String login_Id) { this.login_Id = login_Id; }
 
 	public String getNickname() { return nickname; }
 	public void setNickname(String nickname) { this.nickname = nickname; }
