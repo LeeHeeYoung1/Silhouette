@@ -5,7 +5,8 @@
 <mapper namespace="AttendanceMapper">
 
     <select id="selectWeeklyAttendance" parameterType="map" resultType="com.app.silhouette.attendance.AttendanceDTO">
-        SELECT ATTENDANCE_SEQ  AS attendanceSeq,
+        SELECT
+            ATTENDANCE_SEQ  AS attendanceSeq,
             MEMBER_SEQ      AS memberSeq,
             ATTEND_DATE     AS attendDate,
             CONTINUOUS_DAYS AS continuousDays,
@@ -42,7 +43,7 @@
             REWARD_MILEAGE,
             REWARD_TICKET
         ) VALUES (
-            ATTENDANCE_SEQ.NEXTVAL,
+            SEQ_ATTENDANCE.NEXTVAL,
             #{memberSeq},
             #{attendDate},
             #{continuousDays},
@@ -77,7 +78,7 @@
             DESCRIPTION,
             CREATED_AT
         ) VALUES (
-            MILEAGE_LEDGER_SEQ.NEXTVAL,
+            SEQ_MILEAGE_LEDGER.NEXTVAL,
             #{memberSeq},
             NULL,
             #{sourceType},
@@ -103,8 +104,25 @@
     </select>
 
     <insert id="insertTicketLedger" parameterType="map">
-        INSERT INTO TICKET_LEDGER VALUES ( TICKET_LEDGER_SEQ.NEXTVAL, #{memberSeq}, NULL,
-            #{sourceType}, #{changeAmount}, #{balanceAfter}, #{description}, SYSDATE )
+        INSERT INTO TICKET_LEDGER (
+            TICKET_LEDGER_SEQ,
+            MEMBER_SEQ,
+            PAYMENT_SEQ,
+            SOURCE_TYPE,
+            CHANGE_AMOUNT,
+            BALANCE_AFTER,
+            DESCRIPTION,
+            CREATED_AT
+        ) VALUES (
+            SEQ_TICKET_LEDGER.NEXTVAL,
+            #{memberSeq},
+            NULL,
+            #{sourceType},
+            #{changeAmount},
+            #{balanceAfter},
+            #{description},
+            SYSDATE
+        )
     </insert>
 
 </mapper>
