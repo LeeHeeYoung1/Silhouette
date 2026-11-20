@@ -13,6 +13,7 @@ import Live from './pages/live/live';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
+import BlindChatting from './pages/blindChatting/blindChatting';
 
 function App() {
   return (
@@ -44,6 +45,9 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/chatting/:roomId" element={<Chatting />} />
         <Route path="/chattingRoomList" element={<ChatRoomList />} />
+
+        {/* 블라인드 (blind) 라우트 */}
+        <Route path='/chat/:roomSeq' element={<BlindChatting />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
