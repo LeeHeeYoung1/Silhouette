@@ -281,6 +281,11 @@ public class LiveService {
 		if (dao.deleteBan(me, target) == 0) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "차단 목록에 없는 회원이에요.");
 		}
+		// 차단할 때 지금 방송에서 같이 강퇴했으므로, 방송 중이면 강퇴 표시도 해제
+		LiveRoomDTO onAir = dao.selectMyOnAir(me);
+		if (onAir != null) {
+			dao.unkickViewer(onAir.getLive_room_seq(), target);
+		}
 	}
 
 	public List<LiveViewerDTO> bans(String loginId) {
