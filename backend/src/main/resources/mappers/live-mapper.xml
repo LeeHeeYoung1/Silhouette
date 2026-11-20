@@ -162,7 +162,7 @@
 
     <insert id="insertHashtag" parameterType="map">
         INSERT INTO LIVE_HASHTAG (LIVE_HASHTAG_SEQ, LIVE_ROOM_SEQ, TAG)
-        VALUES (LIVE_HASHTAG_SEQ.NEXTVAL, #{liveRoomSeq}, #{tag})
+        VALUES (SEQ_LIVE_HASHTAG.NEXTVAL, #{liveRoomSeq}, #{tag})
     </insert>
 
     <delete id="deleteHashtags">
@@ -254,7 +254,7 @@
 
     <insert id="insertBan" parameterType="map">
         INSERT INTO LIVE_BAN (LIVE_BAN_SEQ, HOST_SEQ, MEMBER_SEQ, CREATED_AT)
-        VALUES (LIVE_BAN_SEQ.NEXTVAL, #{hostSeq}, #{memberSeq}, SYSTIMESTAMP)
+        VALUES (SEQ_LIVE_BAN.NEXTVAL, #{hostSeq}, #{memberSeq}, SYSTIMESTAMP)
     </insert>
 
     <delete id="deleteBan" parameterType="map">
@@ -286,7 +286,7 @@
 
     <insert id="insertChat" parameterType="map">
         <selectKey keyProperty="liveChatSeq" resultType="long" order="BEFORE">
-            SELECT LIVE_CHAT_SEQ.NEXTVAL FROM DUAL
+            SELECT SEQ_LIVE_CHAT.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO LIVE_CHAT (LIVE_CHAT_SEQ, LIVE_ROOM_SEQ, MEMBER_SEQ, CONTENT, CREATED_AT)
         VALUES (#{liveChatSeq}, #{liveRoomSeq}, #{memberSeq}, #{content}, SYSTIMESTAMP)
@@ -335,7 +335,7 @@
             LIVE_REPORT_SEQ, LIVE_ROOM_SEQ, LIVE_CHAT_SEQ, REPORTER_SEQ,
             REASON, DETAIL, STATUS, CREATED_AT
         ) VALUES (
-            LIVE_REPORT_SEQ.NEXTVAL, #{live_room_seq}, #{live_chat_seq, jdbcType=NUMERIC}, #{reporter_seq},
+            SEQ_LIVE_REPORT.NEXTVAL, #{live_room_seq}, #{live_chat_seq, jdbcType=NUMERIC}, #{reporter_seq},
             #{reason}, #{detail, jdbcType=VARCHAR}, 'WAIT', SYSTIMESTAMP
         )
     </insert>
