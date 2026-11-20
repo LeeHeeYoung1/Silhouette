@@ -81,7 +81,10 @@ public class ChattingService {
 
         List<ChatAttachmentDTO> attachments = chattingDAO.selectAttachmentList(roomSeq);
         for (ChatAttachmentDTO attachment : attachments) {
-            if ("AUDIO".equals(attachment.getFile_type()) && attachment.getStored_name() != null) {
+            if (("AUDIO".equals(attachment.getFile_type())
+                    || "FILE".equals(attachment.getFile_type())
+                    || "IMAGE".equals(attachment.getFile_type()))
+                    && attachment.getStored_name() != null) {
                 attachment.setFile_url(createSignedUrl(attachment.getStored_name()));
             }
         }
@@ -165,10 +168,110 @@ public class ChattingService {
         }
     }
 
+    // 일반 파일 업로드
+    public Map<String, Object> uploadChatFile(Long roomSeq, Long memberSeq,
+            MultipartFile file) throws IOException {
+        return uploadChatAttachment(roomSeq, memberSeq, file, "FILE", false);
+    }
+
+    // 사진 업로드
+    public Map<String, Object> uploadChatImage(Long roomSeq, Long memberSeq,
+            MultipartFile file) throws IOException {
+        return uploadChatAttachment(roomSeq, memberSeq, file, "IMAGE", true);
+    }
+
+    // 일반 파일과 사진의 공통 업로드 처리
+    private Map<String, Object> uploadChatAttachment(Long roomSeq, Long memberSeq,
+            MultipartFile file, String type, boolean imageOnly) throws IOException {
+
+        if (!isRoomMember(roomSeq, memberSeq)) {
+            throw new IllegalArgumentException("이 채팅방에 참여하고 있지 않습니다.");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        }
+
+        if (file.getSize() > 20 * 1024 * 1024) {
+            throw new IllegalArgumentException("파일은 20MB 이하만 업로드할 수 있습니다.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || contentType.trim().isEmpty()) {
+            contentType = "application/octet-stream";
+        }
+
+        if (imageOnly && !contentType.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("이미지 파일만 업로드할 수 있습니다.");
+        }
+
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.trim().isEmpty()) {
+            originalName = imageOnly ? "사진" : "첨부파일";
+        }
+
+        String extension = "";
+        int dotIndex = originalName.lastIndexOf('.');
+        if (dotIndex >= 0) {
+            String fileExtension = originalName.substring(dotIndex);
+            if (fileExtension.matches("\\.[a-zA-Z0-9]{1,10}")) {
+                extension = fileExtension;
+            }
+        }
+
+        String storedName = UUID.randomUUID().toString() + extension;
+        BlobId blobId = BlobId.of(bucketName, storedName);
+
+        try {
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(contentType)
+                    .build();
+            storage.create(blobInfo, file.getBytes());
+
+            ChattingMessageDTO message = new ChattingMessageDTO();
+            message.setChat_room_seq(roomSeq);
+            message.setSender_seq(memberSeq);
+            message.setMessage_type(type);
+            message.setSystem_event_type(null);
+            message.setMessage_content(imageOnly ? "사진" : originalName);
+            message.setCreated_at(new java.util.Date());
+            message.setDeleted_yn("N");
+            chattingDAO.insertMessage(message);
+
+            ChatAttachmentDTO attachment = new ChatAttachmentDTO();
+            attachment.setChat_message_seq(message.getChat_message_seq());
+            attachment.setOriginal_name(originalName);
+            attachment.setStored_name(storedName);
+            attachment.setFile_url("gs://" + bucketName + "/" + storedName);
+            attachment.setFile_type(type);
+            attachment.setFile_size(file.getSize());
+            attachment.setDuration(0L);
+            chattingDAO.insertAttachment(attachment);
+
+            // 응답과 실시간 전송에는 브라우저에서 접근 가능한 서명 URL을 전달합니다.
+            attachment.setFile_url(createSignedUrl(storedName));
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", message);
+            result.put("attachment", attachment);
+            return result;
+
+        } catch (Exception e) {
+            storage.delete(blobId);
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            }
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new IllegalStateException("첨부파일 저장 중 오류가 발생했습니다.", e);
+        }
+    }
+
     private String createSignedUrl(String storedName) {
         Blob blob = storage.get(BlobId.of(bucketName, storedName));
         if (blob == null) {
-            throw new IllegalStateException("GCS에서 음성 파일을 찾을 수 없습니다.");
+            throw new IllegalStateException("GCS에서 첨부파일을 찾을 수 없습니다.");
         }
         return blob.signUrl(15, TimeUnit.MINUTES).toString();
     }
