@@ -79,44 +79,9 @@ const Event = () => {
   const ticketCount = attendance?.currentTicket ?? 0;
   const weekDays = attendance?.weekDays ?? [];
 
-  // 1. AI 기반 매력 & 분석 테스트 이벤트
-  const aiTestEvents = [
-    {
-      id: 'ai-face-grade',
-      category: 'aiTest',
-      icon: '✨',
-      badge: 'HOT',
-      statusClass: styles.statusHot,
-      title: 'AI 분위기 & 매력도 랭크 분석',
-      desc: '실루엣 AI가 내 프로필 사진의 조화도와 고유한 분위기 키워드(청순/도회/댕댕/시크)를 정밀 분석합니다.',
-      tags: ['#AI얼굴등급', '#분위기점수', '#매력포인트'],
-      btnText: '내 매력 분석하기',
-    },
-    {
-      id: 'ai-voice-tone',
-      category: 'aiTest',
-      icon: '🎙️',
-      badge: 'NEW',
-      statusClass: styles.statusNew,
-      title: 'AI 목소리 온·습도 테스트',
-      desc: '3초 음성 녹음으로 상대방의 심장을 두근거리게 만드는 내 목소리의 온도와 톤 매력 지수를 측정해보세요.',
-      tags: ['#꿀보이스', '#음성설렘지수', '#첫인상목소리'],
-      btnText: '목소리 진단하기',
-    },
-    {
-      id: 'ai-first-impression',
-      category: 'aiTest',
-      icon: '🔮',
-      badge: 'AI 추천',
-      statusClass: styles.statusActive,
-      title: '실루엣 첫인상 AI 가상 매칭',
-      desc: '얼굴을 보기 전 실루엣과 분위기 데이터만으로 나와 케미스트리가 가장 폭발하는 이상형을 AI가 추천합니다.',
-      tags: ['#케미99%', '#블라인드AI', '#운명적첫만남'],
-      btnText: '블라인드 매칭 돌리기',
-    },
-  ];
+  
 
-  // 2. 나의 연애 성향 & 밸런스 테스트 (음식, 이상형, 연애스타일)
+  // 나의 연애 성향 & 밸런스 테스트 (음식, 이상형, 연애스타일)
   const styleTestEvents = [
     {
       id: 'food-balance',
@@ -153,7 +118,7 @@ const Event = () => {
     },
   ];
 
-  // 3. 소개팅 어플 스페셜 프로모션 이벤트
+  // 소개팅 어플 스페셜 프로모션 이벤트
   const specialEvents = [
     {
       id: 'blind-vote',
@@ -191,7 +156,7 @@ const Event = () => {
   ];
 
   // 탭 필터링 로직
-  const allEvents = [...aiTestEvents, ...styleTestEvents, ...specialEvents];
+  const allEvents = [...styleTestEvents, ...specialEvents];
   const filteredEvents =
     activeTab === 'all'
       ? allEvents
@@ -247,13 +212,6 @@ const Event = () => {
           onClick={() => setActiveTab('attend')}
         >
           📅 일일 출석체크
-        </button>
-        <button
-          type="button"
-          className={`${styles.tabBtn} ${activeTab === 'aiTest' ? styles.tabBtnActive : ''}`}
-          onClick={() => setActiveTab('aiTest')}
-        >
-          🤖 AI 매력 분석
         </button>
         <button
           type="button"
