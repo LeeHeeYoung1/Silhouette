@@ -474,8 +474,13 @@ const Event = () => {
                 className={styles.checkInBtn}
                 style={{ flex: 1 }}
                 onClick={() => {
-                  alert(`[${selectedEvent.title}] 기능으로 연결됩니다! 💖`);
-                  setSelectedEvent(null);
+                  if (selectedEvent.id === 'food-balance') {
+                    navi('/event/food-test');
+                    setSelectedEvent(null);
+                  } else {
+                    alert(`[${selectedEvent.title}] 기능으로 연결됩니다! 💖`);
+                    setSelectedEvent(null);
+                  }
                 }}
               >
                 지금 참여하기 ✨
