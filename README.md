@@ -25,7 +25,7 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 | 채팅 | 블라인드 채팅 | 시간제한 채팅 및 Go/Stop 상호 선택에 따른 프로필 공개 |
 | 채팅 | AI 추천 답변 | 대화 맥락을 기반으로 답변 후보 제공 |
 | 채팅 | 실시간 채팅 | 매칭 이후 상대방과 실시간 대화 |
-| 라이브 | 라이브 방송 | WebRTC 기반 실시간 영상·음성 송출 및 시청 |
+| 라이브 | 라이브 방송 | LiveKit 기반 실시간 영상·음성 송출 및 시청, 방송 채팅(금칙어·도배 방지), 강퇴·차단, 신고 및 관리자 강제 종료 |
 | 이벤트 | 출석체크 | 출석에 따른 마일리지 및 이용권 지급 |
 | 관리자 | 운영 관리 | 회원 및 콘텐츠 관리, 서비스 운영 설정 |
 | 관리자 | 통계 대시보드 | 연령대·성별·지역별 서비스 이용 현황 시각화 |
@@ -34,12 +34,14 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 
 | 구분 | 기술 |
 |---|---|
-| Backend | Java, Spring Boot |
-| Frontend | React, JavaScript, HTML, CSS |
-| Database | (확정 후 입력) |
-| ORM / SQL | (확정 후 입력) |
+| Backend | Java 21, Spring Boot 4.0 |
+| Frontend | React 19, Vite 8, JavaScript, CSS Modules |
+| Database | Oracle |
+| ORM / SQL | MyBatis 4.0 |
 | Real-time | WebSocket, STOMP |
-| Streaming | WebRTC |
+| Streaming | LiveKit (WebRTC SFU), livekit-client, @livekit/components-react |
+| Storage | Google Cloud Storage (게시판 첨부, 라이브 썸네일) |
+| Auth | JWT (java-jwt) |
 | AI | (실제 적용 기술 및 API 입력) |
 | Tools | Git, GitHub, Notion, Figma |
 
@@ -75,10 +77,28 @@ cd Silhouette
 
 ### 2. Backend 실행
 
-- `backend` 프로젝트를 STS4에서 Import
-- `application.properties` 환경 설정
-- 데이터베이스 및 외부 API 설정
-- Spring Boot 애플리케이션 실행
+#### application.properties
+
+`backend/src/main/resources/application.properties.example`을 복사해 `application.properties`를 만들고 값을 채운다. (이 파일은 Git에 올리지 않는다)
+
+| 항목 | 설명 |
+|---|---|
+| `spring.datasource.*` | Oracle 접속 정보 |
+| `jwt.secret`, `jwt.expiration` | JWT 서명 키, 만료 시간 |
+| `gcp.credentials.location`, `gcp.project.id`, `gcp.bucket` | GCS 업로드 |
+| `livekit.url`, `livekit.api-key`, `livekit.api-secret` | LiveKit Cloud 프로젝트 |
+| `live.max-viewers` | 방송당 최대 시청자 수 (기본 50) |
+| `spring.servlet.multipart.max-file-size` / `max-request-size` | 업로드 크기 (5MB / 10MB) |
+
+#### 라이브 webhook (로컬 개발)
+
+LiveKit Cloud는 `localhost`로 webhook을 보낼 수 없어, 시청자 수·입장 안내·끊긴 방송 자동 종료를 확인하려면 터널이 필요하다.
+
+1. `ngrok http 80` 실행
+2. LiveKit Cloud → Settings → Webhooks에 `https://<ngrok 주소>/api/livekit/webhook` 등록 (서명 키 = `livekit.api-key`)
+3. 시청자로 입장했을 때 서버 콘솔에 `LiveKit webhook 수신`이 찍히면 정상
+
+배포 서버에서는 ngrok 없이 배포 주소로 등록한다.
 
 ### 3. Frontend 실행
 
