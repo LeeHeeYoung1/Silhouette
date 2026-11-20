@@ -376,7 +376,7 @@ function Signup() {
 
     try {
      const resp = await axios.post(
-  'http://10.5.4.15/members/signup',
+  'http://localhost:80/members/signup',
   {
     member_Seq: null,
     login_Id: formData.loginId,
