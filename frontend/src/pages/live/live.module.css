@@ -1,88 +1,871 @@
+/* ===================== 공통 ===================== */
+
 .lobby {
-  max-width: 360px;
-  margin: 40px auto;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1140px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text-main);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--error);
+  margin: 0;
+}
+
+.notice {
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.noticeBox {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-sub);
+}
+
+.primaryButton,
+.ghostButton,
+.dangerButton,
+.iconButton,
+.linkButton {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.primaryButton {
+  padding: 10px 18px;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  background: var(--primary-gradient);
+  box-shadow: var(--shadow-glow);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.ghostButton {
+  padding: 8px 14px;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+}
+
+.ghostButton:hover:not(:disabled) {
+  background: var(--input-focus-bg);
+}
+
+.dangerButton {
+  padding: 8px 14px;
+  color: #fff;
+  background: var(--error);
+  border: none;
+}
+
+.iconButton {
+  padding: 4px 8px;
+  color: var(--text-sub);
+  background: transparent;
+  border: none;
+}
+
+.linkButton {
+  padding: 0;
+  color: var(--accent-pink);
+  font-weight: 600;
+  background: none;
+  border: none;
+}
+
+.primaryButton:disabled,
+.ghostButton:disabled,
+.dangerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag,
+.tagError {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8em;
+  background: var(--input-bg);
+  color: var(--text-sub);
+}
+
+.tagError {
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+
+.liveBadge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #e5484d;
+}
+
+/* ===================== 로비 ===================== */
+
+.lobbyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lobbyHeader h2 {
+  margin: 0;
+}
+
+.lobbyActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.searchBar {
+  display: flex;
+  gap: 8px;
+}
+
+.searchBar input,
+.form input,
+.form select,
+.chatInput input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.form select option {
+  color: #222;
+}
+
+.searchBar input:focus,
+.form input:focus,
+.form select:focus,
+.chatInput input:focus,
+.textarea:focus {
+  background: var(--input-focus-bg);
+  border-color: var(--accent-purple);
+}
+
+.categoryTabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tab,
+.tabActive {
+  padding: 6px 14px;
+  font: inherit;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text-sub);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+}
+
+.tabActive {
+  color: #fff;
+  border-color: transparent;
+  background: var(--primary-gradient);
+}
+
+.empty {
+  padding: 60px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px dashed var(--card-border);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--glass-reflect);
+  transition: transform 0.15s ease;
+}
+
+.card:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.card:disabled {
+  cursor: default;
+}
+
+.thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--profile-card-bg);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.thumb .liveBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+
+.viewerBadge,
+.mineBadge {
+  position: absolute;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.viewerBadge {
+  left: 8px;
+}
+
+.mineBadge {
+  right: 8px;
+  background: var(--accent-purple);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+
+.cardTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+/* ===================== 모달 ===================== */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  color: var(--text-main);
+  border-radius: var(--radius-md);
+  background: var(--terms-card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h3 {
+  margin: 0;
+}
+
+.form {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.lobby label {
+.form label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.lobby input {
-  padding: 8px;
-}
-
-.buttons {
+.labelRow {
   display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.form small {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.thumbPicker {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.thumbPicker img,
+.thumbEmpty {
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.thumbEmpty {
+  display: grid;
+  place-items: center;
+  font-size: 0.85em;
+  color: var(--text-muted);
+  border: 1px dashed var(--text-muted);
+}
+
+.thumbButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thumbButtons label {
+  text-align: center;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.buttons button {
-  flex: 1;
-  padding: 10px;
+.radioGroup label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   cursor: pointer;
 }
 
-.error {
-  color: #e5484d;
+.quote {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent-pink);
+  border-radius: 6px;
+  background: var(--input-bg);
+  word-break: break-all;
 }
 
-.room {
-  height: calc(100vh - 120px);
-}
-.lobby {
-  max-width: 480px;
+.profileHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1em;
 }
 
-.buttons input {
-  flex: 2;
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--profile-card-bg);
+}
+
+.profileRows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.profileRows div {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+}
+
+.profileRows dt {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.profileRows dd {
+  margin: 0;
+}
+
+.simpleList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.simpleList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===================== 방송 화면 ===================== */
+
+.roomWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1140px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-main);
+}
+
+.roomHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.roomInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roomTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roomTitleRow h2 {
+  margin: 0;
+  font-size: 1.3em;
+  overflow-wrap: anywhere;
+}
+
+.roomMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-sub);
+}
+
+.roomActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.roomBody {
+  display: flex;
+  gap: 12px;
+  height: calc(100vh - 220px);
+  min-height: 420px;
+}
+
+.stageArea {
+  flex: 1;
+  min-width: 0;
+}
+
+.side {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* 채팅 닫힘: 연결은 유지하고 화면에서만 숨김 → 영상 풀커버 */
+.sideHidden {
+  display: none;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.cameraOff,
+.stageMessage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  color: #e8ebf5;
+  background: #11131f;
+}
+
+.stageMessage p {
+  max-width: 420px;
+  margin: 0;
+}
+
+.avatarLarge {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mediaControls {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.mediaControls button {
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.mediaControls button.off {
+  background: #e5484d;
+}
+
+.micBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.startAudio {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: 12px 22px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-gradient);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ----- 채팅 ----- */
+
+.chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+.chatList {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 10px 12px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chatSystem {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.chatItem {
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.chatNick {
+  padding: 0;
+  margin-right: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--accent-blue);
+  background: none;
+  border: none;
+}
+
+.chatContent {
+  color: var(--text-main);
+}
+
+.chatReport {
+  margin-left: 4px;
+  padding: 0 2px;
+  font-size: 0.75em;
+  cursor: pointer;
+  opacity: 0;
+  background: none;
+  border: none;
+}
+
+.chatItem:hover .chatReport,
+.chatReport:focus-visible {
+  opacity: 0.8;
+}
+
+.hostBadge {
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-pink);
+}
+
+.chatHint {
+  margin: 0;
+  padding: 0 12px 4px;
+  font-size: 0.8em;
+  color: var(--error);
+}
+
+.chatInput {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--cell-border);
+}
+
+.chatInput .primaryButton {
+  padding: 8px 14px;
+}
+
+/* ----- 시청자 패널 (방송자) ----- */
+
+.viewerPanel {
+  max-height: 40%;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
 }
 
 .listHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 16px;
+  margin-bottom: 6px;
 }
 
-.list {
+.viewerPanel ul {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
+}
+
+.viewerPanel li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.viewerPanel li .chatNick {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewerPanel li .ghostButton,
+.viewerPanel li .dangerButton {
+  padding: 4px 10px;
+  font-size: 0.85em;
+}
+
+/* ===================== 관리자 ===================== */
+
+.reportList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reportItem {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
 }
 
-.item {
+.reportHead {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* ===================== 모바일 ===================== */
 
-.info span {
-  font-size: 13px;
-  color: #888;
-}
+@media (max-width: 760px) {
+  .roomBody {
+    flex-direction: column;
+    height: auto;
+  }
 
-.mine {
-  font-size: 13px;
-  color: #888;
-}
+  .stageArea {
+    aspect-ratio: 16 / 9;
+    flex: none;
+  }
 
-.empty {
-  color: #888;
+  .side {
+    width: 100%;
+    height: 60vh;
+  }
+
+  .mediaControls {
+    bottom: 8px;
+  }
+
+  .mediaControls button {
+    padding: 6px 10px;
+    font-size: 0.85em;
+  }
 }

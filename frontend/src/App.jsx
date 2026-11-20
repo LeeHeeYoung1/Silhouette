@@ -10,6 +10,7 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import Live from './pages/live/live';
+import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
@@ -40,6 +41,7 @@ function App() {
 
         <Route path="/board/*" element={<Navigate to="/post/free" replace />} />
         <Route path="/live" element={<Live />} />
+        <Route path="/admin/live" element={<LiveAdmin />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
