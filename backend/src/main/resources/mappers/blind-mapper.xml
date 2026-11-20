@@ -6,23 +6,56 @@
 	
 	<insert id="insertBlindChatRoom">
 		<selectKey keyProperty="blindChatRoomSeq" resultType="Long" order="BEFORE">
-			SELECT BLIND_CHAT_ROOM_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_BLIND_CHAT_ROOM.NEXTVAL FROM DUAL
 		</selectKey>
-		
-		INSERT INTO BLIND_CHAT_ROOM VALUES ( #{blindChatRoomSeq}, #{blindMatchingSeq, jdbcType=NUMERIC}, #{linkedChatRoomSeq, jdbcType=NUMERIC},
-			#{timeLimitMin, jdbcType=NUMERIC}, SYSDATE, SYSDATE + (#{timeLimitMin, jdbcType=NUMERIC} / 24 / 60), #{status, jdbcType=NUMERIC}, NULL, SYSDATE )
-			
+		INSERT INTO BLIND_CHAT_ROOM (
+			BLIND_CHAT_ROOM_SEQ,
+			BLIND_MATCHING_SEQ,
+			LINKED_CHAT_ROOM_SEQ,
+			TIME_LIMIT_MIN,
+			STARTED_AT,
+			EXPIRE_AT,
+			STATUS,
+			ENDED_AT,
+			CREATED_AT
+		) VALUES (
+			#{blindChatRoomSeq},
+			#{blindMatchingSeq, jdbcType=NUMERIC},
+			#{linkedChatRoomSeq, jdbcType=NUMERIC},
+			#{timeLimitMin, jdbcType=NUMERIC},
+			SYSDATE,
+			SYSDATE + (#{timeLimitMin, jdbcType=NUMERIC} / 24 / 60),
+			#{status, jdbcType=VARCHAR},
+			NULL,
+			SYSDATE
+		)
 	</insert>
 	
 	<insert id="insertBlindMessage">
 		<selectKey keyProperty="blindChatMessageSeq" resultType="Long" order="BEFORE">
-			SELECT BLIND_CHAT_MESSAGE_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_BLIND_CHAT_MESSAGE.NEXTVAL FROM DUAL
 		</selectKey>
-	
-		INSERT INTO BLIND_CHAT_MESSAGE VALUES ( #{blindChatMessageSeq}, #{blindChatRoomSeq, jdbcType=NUMERIC},
+		INSERT INTO BLIND_CHAT_MESSAGE (
+			BLIND_CHAT_MESSAGE_SEQ,
+			BLIND_CHAT_ROOM_SEQ,
+			SENDER_SEQ,
+			MSG_TYPE,
+			CONTENT,
+			AI_REPLY_SUGGESTION_SEQ,
+			FILTERED_YN,
+			READ_AT,
+			SENT_AT
+		) VALUES (
+			#{blindChatMessageSeq},
+			#{blindChatRoomSeq, jdbcType=NUMERIC},
 			(SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{senderId, jdbcType=VARCHAR}),
-			#{msgType, jdbcType=VARCHAR}, #{content, jdbcType=VARCHAR}, #{aiReplySuggestionSeq, jdbcType=NUMERIC},
-			NVL(#{filteredYn, jdbcType=CHAR}, 'N'), NULL, SYSTIMESTAMP )
+			#{msgType, jdbcType=VARCHAR},
+			#{content, jdbcType=VARCHAR},
+			#{aiReplySuggestionSeq, jdbcType=NUMERIC},
+			NVL(#{filteredYn, jdbcType=CHAR}, 'N'),
+			NULL,
+			SYSTIMESTAMP
+		)
 	</insert>
 	
 </mapper>
