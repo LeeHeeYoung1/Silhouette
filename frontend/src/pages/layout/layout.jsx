@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import styles from './layout.module.css';
-
+import useOnboardingGuard from '../onboarding/useOnboardingGuard';
 function Layout() {
   const navigate = useNavigate();
+
+  
+  useOnboardingGuard(); 
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('silhouette_theme') || 'light';
@@ -48,6 +51,17 @@ function Layout() {
             >
               홈
             </NavLink>
+
+              {/* ↓ 추가 */}
+            <NavLink
+              to="/profile"
+              className={({ isActive }) =>
+                `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`
+              }
+            >
+              프로필
+            </NavLink>
+            
 
              <NavLink
               to="/chattingRoomList"

@@ -14,7 +14,11 @@ import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
+// import Profile from './pages/profile/profile';
+import Onboarding from './pages/onboarding/onboarding';
+
 import BlindChatting from './pages/blindChatting/blindChatting';
+
 
 function App() {
   return (
@@ -24,7 +28,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/event" element={<Event />} />
-
+        {/* <Route path="/profile" element={<Profile />} /> */}
+        
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
           <Route index element={<Navigate to="free" replace />} />
@@ -52,7 +57,11 @@ function App() {
         <Route path='/chat/:roomSeq' element={<BlindChatting />} />
       </Route>
 
+        <Route path="/onboarding" element={<Onboarding />} />   {/* ← 여기 추가 */}
+
       <Route path="*" element={<Navigate to="/" replace />} />
+
+      
     </Routes>
   );
 }
