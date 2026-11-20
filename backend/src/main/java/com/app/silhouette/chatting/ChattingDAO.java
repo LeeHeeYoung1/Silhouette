@@ -43,6 +43,10 @@ public class ChattingDAO {
         return mybatis.insert("Chatting.insertMessage", message);
     }
 
+    public int insertAttachment(ChatAttachmentDTO attachment) {
+        return mybatis.insert("Chatting.insertAttachment", attachment);
+    }
+
     public int insertMessageRead(ChattingMessageReadDTO messageRead) {
         return mybatis.insert("Chatting.insertMessageRead", messageRead);
     }
@@ -56,6 +60,10 @@ public class ChattingDAO {
         param.put("roomSeq", roomSeq);
         param.put("memberSeq", memberSeq);
         return mybatis.selectList("Chatting.selectMessageListForMember", param);
+    }
+
+    public List<ChatAttachmentDTO> selectAttachmentList(Long roomSeq) {
+        return mybatis.selectList("Chatting.selectAttachmentList", roomSeq);
     }
 
     public int isRoomMember(Long roomSeq, Long memberSeq) {
