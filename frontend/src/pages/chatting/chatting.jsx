@@ -103,7 +103,7 @@ const Chatting = () => {
     setIsConnected(false);
 
     const client = new StompClient({
-      brokerURL: 'ws://localhost:80/chat',
+      brokerURL: 'ws://10.5.4.15/chat',
 
       connectHeaders: {
         Authorization: `Bearer ${token}`
