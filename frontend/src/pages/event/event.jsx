@@ -1,35 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../stores/useAuthStore';
+import { getMyMemberSeq, getWeeklyAttendance, checkInAttendance } from '../../api/attendance';
 import styles from './event.module.css';
 
 const Event = () => {
+  const { token } = useAuthStore();
+  const navi = useNavigate();
+
   // 활성 카테고리 탭 (all, attend, aiTest, styleTest, special)
   const [activeTab, setActiveTab] = useState('all');
 
-  // 출석체크 상태
-  const [isCheckedToday, setIsCheckedToday] = useState(false);
-  const [streakDays, setStreakDays] = useState(5);
-  const [heartsCount, setHeartsCount] = useState(18);
+  // 출석체크 상태 (서버 응답 AttendanceDTO 그대로 보관)
+  const [memberSeq, setMemberSeq] = useState(null);
+  const [attendance, setAttendance] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // 모달/알림창 (테스트 클릭 시 바로가기 피드백)
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const handleCheckIn = () => {
-    if (isCheckedToday) return;
-    setIsCheckedToday(true);
-    setStreakDays((prev) => prev + 1);
-    setHeartsCount((prev) => prev + 1);
+  // 비로그인 시 로그인 페이지로
+  useEffect(() => {
+    if (!token) navi('/login');
+  }, [token, navi]);
+
+  // 1) 내 회원번호 조회 → 2) 이번 주 출석 현황 조회
+  useEffect(() => {
+    if (!token) return;
+    let ignore = false;
+
+    const load = async () => {
+      setIsLoading(true);
+      setErrorMsg('');
+      try {
+        const { data: seq } = await getMyMemberSeq();
+        const mySeq = Number(seq);
+        const { data } = await getWeeklyAttendance(mySeq);
+        if (ignore) return;
+        setMemberSeq(mySeq);
+        setAttendance(data);
+      } catch (error) {
+        console.error('출석 현황 조회 실패:', error);
+        if (!ignore) setErrorMsg('출석 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
+
+  // 오늘 출석체크
+  const handleCheckIn = async () => {
+    if (!memberSeq || isChecking || attendance?.todayAttended) return;
+
+    setIsChecking(true);
+    try {
+      const { data } = await checkInAttendance(memberSeq);
+      setAttendance(data); // 서버가 갱신된 주간 현황을 그대로 돌려줌
+      alert(`출석 완료! 🎉\n${data.todayRewardTitle ?? ''}`);
+    } catch (error) {
+      const message = error.response?.data?.message || '출석체크 중 오류가 발생했어요.';
+      alert(message);
+    } finally {
+      setIsChecking(false);
+    }
   };
 
-  // 주간 스탬프 7일 데이터
-  const weekDays = [
-    { day: '월', date: '11/17', done: true },
-    { day: '화', date: '11/18', done: isCheckedToday, isToday: true },
-    { day: '수', date: '11/19', done: false },
-    { day: '목', date: '11/20', done: false },
-    { day: '금', date: '11/21', done: false },
-    { day: '토', date: '11/22', done: false },
-    { day: '일', date: '11/23', done: false },
-  ];
+  // 화면 표시용 값
+  const isCheckedToday = attendance?.todayAttended ?? false;
+  const streakDays = attendance?.currentStreak ?? 0;
+  const mileage = attendance?.currentMileage ?? 0;
+  const ticketCount = attendance?.currentTicket ?? 0;
+  const weekDays = attendance?.weekDays ?? [];
 
   // 1. AI 기반 매력 & 분석 테스트 이벤트
   const aiTestEvents = [
@@ -174,8 +222,12 @@ const Event = () => {
             <span className={`${styles.statValue} ${styles.statPink}`}>{streakDays}일째 🔥</span>
           </div>
           <div className={styles.statBox}>
-            <span className={styles.statLabel}>보유 하트</span>
-            <span className={styles.statValue}>💖 {heartsCount}개</span>
+            <span className={styles.statLabel}>보유 마일리지</span>
+            <span className={styles.statValue}>🪙 {mileage.toLocaleString()}M</span>
+          </div>
+          <div className={styles.statBox}>
+            <span className={styles.statLabel}>매칭 이용권</span>
+            <span className={styles.statValue}>🎫 {ticketCount}장</span>
           </div>
         </div>
       </section>
@@ -225,9 +277,9 @@ const Event = () => {
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2 className={styles.sectionTitle}>
-                <span>📅 일일 출석체크 & 하트 충전</span>
+                <span>📅 일일 출석체크 & 혜택 충전</span>
               </h2>
-              <span className={styles.sectionSubtitle}>매일 00:00(자정) 갱신 · 연속 출석 시 보너스 혜택</span>
+              <span className={styles.sectionSubtitle}>매일 00:00(자정) 갱신 · 연속 출석 시 보너스 마일리지 및 이용권 지급</span>
             </div>
           </div>
 
@@ -242,36 +294,72 @@ const Event = () => {
 
               {/* 주간 7일 스탬프 */}
               <div className={styles.weekStampRow}>
-                {weekDays.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`
-                      ${styles.weekStampItem}
-                      ${item.done ? styles.stampDone : ''}
-                      ${item.isToday ? styles.stampTodayActive : ''}
-                    `}
-                  >
-                    <span className={styles.weekDayText}>{item.day}</span>
-                    <span className={styles.stampIcon}>{item.done ? '💖' : item.isToday ? '✨' : '·'}</span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.date}</span>
-                  </div>
-                ))}
+                {weekDays.map((item, idx) => {
+                  const attended = item.attended ?? item.done;
+                  const isToday = item.today ?? item.isToday;
+                  const dayName = item.dayOfWeek ?? item.day;
+                  const dateText = item.dateLabel ?? item.date;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`
+                        ${styles.weekStampItem}
+                        ${attended ? styles.stampDone : ''}
+                        ${isToday ? styles.stampTodayActive : ''}
+                      `}
+                      style={{ position: 'relative' }}
+                    >
+                      {item.bonusBadge && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-8px',
+                            right: '-4px',
+                            background: 'linear-gradient(135deg, #f43f5e, #fb7185)',
+                            color: '#fff',
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 6px rgba(244, 63, 94, 0.4)',
+                          }}
+                        >
+                          {item.bonusBadge}
+                        </span>
+                      )}
+                      <span className={styles.weekDayText}>{dayName}</span>
+                      <span className={styles.stampIcon}>
+                        {attended ? '💖' : isToday ? '✨' : '·'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{dateText}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className={styles.attendRight}>
               <div className={styles.attendRewardInfo}>
-                오늘의 출석 보상 <br />
-                <span style={{ color: 'var(--accent-pink)' }}>대화 하트 1개 💖</span>
+                오늘의 출석 혜택 <br />
+                <span style={{ color: 'var(--accent-pink)' }}>
+                  {attendance?.todayRewardTitle || '10 마일리지 🪙'}
+                </span>
               </div>
-              <span className={styles.attendRewardSub}>연속 7일 달성 시 '프로필 부스터' 추가 지급</span>
+              <span className={styles.attendRewardSub}>
+                {attendance?.todayRewardSub || '연속 3일 +20M · 5일 +30M · 7일 이용권 1회'}
+              </span>
               <button
                 type="button"
                 className={styles.checkInBtn}
                 onClick={handleCheckIn}
-                disabled={isCheckedToday}
+                disabled={isCheckedToday || isChecking || isLoading}
               >
-                {isCheckedToday ? '오늘 출석 완료! 💖' : '오늘의 하트 받기 ✨'}
+                {isCheckedToday
+                  ? '오늘 출석 완료! 💖'
+                  : isChecking
+                  ? '출석 처리 중...'
+                  : '오늘의 출석체크 ✨'}
               </button>
             </div>
           </div>
