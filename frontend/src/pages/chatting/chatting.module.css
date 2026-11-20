@@ -611,3 +611,35 @@
     font-size: 19px;
   }
 }
+
+
+/* 음성 메시지 */
+.audioMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  max-width: 100%;
+}
+
+.audioMessage audio {
+  width: 100%;
+  max-width: 280px;
+  height: 38px;
+}
+
+.audioMessage span {
+  color: #777;
+  font-size: 0.7rem;
+}
+
+.recordingButton {
+  border-color: #a64b4b;
+  background: #351d1d;
+  color: #f0b0b0;
+}
+
+.recordingButton:hover {
+  background: #482323;
+  border-color: #d06a6a;
+}
