@@ -148,3 +148,45 @@
 .notice {
   color: #555;
 }
+
+.side {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side .chat {
+  width: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewerPanel {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.viewerPanel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.viewerPanel li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.viewerPanel li span {
+  flex: 1;
+}
+
+.roomTitle {
+  margin: 0 0 8px;
+}

@@ -6,6 +6,7 @@ import '@livekit/components-styles';
 import useAuthStore from '../../stores/useAuthStore';
 import { getLiveList, startLive, joinLive, endLive } from '../../api/live';
 import LiveChat from './liveChat';
+import ViewerPanel from './viewerPanel';
 import styles from './live.module.css';
 
 // 서버 에러 → 화면에 보여줄 메시지
@@ -53,7 +54,7 @@ function Live() {
       const { data } = await startLive({ title: title.trim() });
       setIsHost(true);
       setNotice('');
-      setConn(data);
+      setConn({ ...data, room: { title: title.trim() } });
     } catch (e) {
       setError(errorMessage(e, '방송을 시작하지 못했어요.'));
     }
@@ -89,6 +90,18 @@ function Live() {
     }
     setConn(null);
     setIsHost(false);
+  };
+
+  // 내가 강퇴됨
+  const handleKicked = () => {
+    setNotice('방송자에 의해 퇴장되었어요.');
+    setConn(null);
+    setIsHost(false);
+  };
+
+  // 방송 정보 수정 반영
+  const handleRoomUpdate = (room) => {
+    setConn((prev) => (prev ? { ...prev, room } : prev));
   };
 
   // 채팅으로 END 수신 (방송자 종료 / 연결 끊김 / 관리자 종료)
@@ -171,7 +184,17 @@ function Live() {
             <VideoConference />
           </LiveKitRoom>
         </div>
-        <LiveChat liveRoomSeq={conn.live_room_seq} onEnd={handleEnd} />
+        <div className={styles.side}>
+          <h3 className={styles.roomTitle}>{conn.room?.title}</h3>
+          {isHost && <ViewerPanel liveRoomSeq={conn.live_room_seq} />}
+          <LiveChat
+            liveRoomSeq={conn.live_room_seq}
+            myMemberSeq={conn.my_member_seq}
+            onEnd={handleEnd}
+            onKicked={handleKicked}
+            onRoomUpdate={handleRoomUpdate}
+          />
+        </div>
       </div>
     </div>
   );

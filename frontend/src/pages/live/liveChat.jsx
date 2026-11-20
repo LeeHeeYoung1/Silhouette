@@ -8,7 +8,8 @@ const SEND_INTERVAL = 1000;
 
 // 라이브 채팅 (들어온 시점 이후 메시지만 표시)
 // onEnd(endedBy): 방송 종료(END) 수신 시 호출
-function LiveChat({ liveRoomSeq, onEnd }) {
+// onKicked(): 내가 강퇴됐을 때 / onRoomUpdate(room): 방송 정보 수정 시
+function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate }) {
   const token = useAuthStore((state) => state.token);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -16,11 +17,11 @@ function LiveChat({ liveRoomSeq, onEnd }) {
   const clientRef = useRef(null);
   const lastSentRef = useRef(0);
   const listRef = useRef(null);
-  const onEndRef = useRef(onEnd);
+  const handlersRef = useRef({});
 
   useEffect(() => {
-    onEndRef.current = onEnd;
-  }, [onEnd]);
+    handlersRef.current = { onEnd, onKicked, onRoomUpdate, myMemberSeq };
+  }, [onEnd, onKicked, onRoomUpdate, myMemberSeq]);
 
   useEffect(() => {
     const client = new StompClient({
@@ -31,8 +32,19 @@ function LiveChat({ liveRoomSeq, onEnd }) {
         setConnected(true);
         client.subscribe(`/sub/live/${liveRoomSeq}`, (frame) => {
           const msg = JSON.parse(frame.body);
+          const h = handlersRef.current;
           if (msg.type === 'END') {
-            onEndRef.current?.(msg.content);
+            h.onEnd?.(msg.content);
+            return;
+          }
+          if (msg.type === 'KICKED') {
+            if (h.myMemberSeq != null && Number(msg.member_seq) === Number(h.myMemberSeq)) {
+              h.onKicked?.();
+            }
+            return;
+          }
+          if (msg.type === 'ROOM_UPDATE') {
+            h.onRoomUpdate?.(msg.room);
             return;
           }
           if (msg.type === 'CHAT' || msg.type === 'SYSTEM') {

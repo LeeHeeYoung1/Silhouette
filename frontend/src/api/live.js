@@ -14,3 +14,18 @@ export const joinLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/j
 
 // 방송 종료 (방송자)
 export const endLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/end`);
+
+// 방송 정보 수정 (방송자) { title, description, category, hashtags, thumbnail_url }
+export const updateLive = (liveRoomSeq, body) => Client.put(`/api/live/${liveRoomSeq}`, body);
+
+// 현재 시청자 목록 (방송자)
+export const getViewers = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}/viewers`);
+
+// 강퇴 (이번 방송만)
+export const kickViewer = (liveRoomSeq, memberSeq) =>
+  Client.post(`/api/live/${liveRoomSeq}/kick/${memberSeq}`);
+
+// 차단 (내 모든 방송) / 해제 / 목록
+export const banMember = (memberSeq) => Client.post(`/api/live/ban/${memberSeq}`);
+export const unbanMember = (memberSeq) => Client.delete(`/api/live/ban/${memberSeq}`);
+export const getBans = () => Client.get('/api/live/ban');
