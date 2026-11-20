@@ -1,421 +1,624 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './onboarding.module.css';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
+import styles from './onboarding.module.css';
 import {
-    MBTI_LIST, JOB_LIST, DRINKING_LIST, SMOKING_LIST, RELIGION_LIST,
-    FACE_TYPE_LIST, SKIN_TYPE_LIST, LOVE_TYPE_LIST, HOBBY_LIST, FAVORITE_LIST,
-    DISLIKE_LIST, FOOD_LIST, BODY_TYPE_LIST, SMOKING_PREF_LIST, DRINKING_PREF_LIST,
+  MBTI_LIST, JOB_LIST, DRINKING_LIST, SMOKING_LIST, RELIGION_LIST,
+  FACE_TYPE_LIST, SKIN_TYPE_LIST, LOVE_TYPE_LIST, HOBBY_LIST,
+  FAVORITE_LIST, DISLIKE_LIST, FOOD_LIST, BODY_TYPE_LIST,
+  SMOKING_PREF_LIST, DRINKING_PREF_LIST,
+  MILITARY_LIST, MILITARY_PREF_LIST,
 } from './onboardingOptions';
 
-/* =========================================================
-   실루엣 온보딩 (Onboarding) - 담당: 권형석
-   - 경로: /onboarding
-   - 나의 정보(MEMBER_PROFILE, 필수) + 이상형(IDEAL_TYPE, 선택)
-   ========================================================= */
+const MAX_INTRO = 300;
+const MAX_MEMO = 150;
+const PHOTO_COUNT = 4;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;   // 한 장 10MB
+const TOTAL_STEPS = 6;
+const STEP_TITLES = [
+  '프로필 사진', '기본 정보', '생활 습관', '외모 · 연애 성향', '취향 · 자기소개', '이상형 (선택)',
+];
 
-const STEPS = ['기본 정보', '나는 이런 사람', '나의 취향', '이상형', '자기소개'];
-
-// 글자 수 제한 (한글은 1글자 = 약 3바이트라 DB 칸 길이보다 넉넉히 작게)
-const MAX_INTRO = 300;   // MEMBER_PROFILE.INTRODUCTION
-const MAX_MEMO = 150;    // IDEAL_TYPE.MEMO (VARCHAR2 500바이트)
-
-/* ---------- 칩 선택 (하나 / 여러 개 공용) ---------- */
-function ChipGroup({ options, value, onChange, multiple = false, max }) {
-    const isSelected = (opt) => (multiple ? value.includes(opt) : value === opt);
-
-    const handleClick = (opt) => {
-        if (!multiple) {
-            onChange(value === opt ? '' : opt);   // 다시 누르면 선택 해제
-            return;
-        }
-        if (value.includes(opt)) {
-            onChange(value.filter((v) => v !== opt));   // 빼기
-        } else if (!max || value.length < max) {
-            onChange([...value, opt]);                  // 넣기
-        } else {
-            alert(`최대 ${max}개까지 선택할 수 있습니다.`);
-        }
-    };
-
-    return (
-        <div className={styles.chips}>
-            {options.map((opt) => (
-                <button
-                    key={opt}
-                    type="button"
-                    className={`${styles.chip} ${isSelected(opt) ? styles.chipActive : ''}`}
-                    onClick={() => handleClick(opt)}
-                >
-                    {opt}
-                </button>
-            ))}
-        </div>
-    );
-}
-
-/* ---------- 입력 칸 묶음 (제목 + 내용) ---------- */
-function Field({ label, hint, children }) {
-    return (
-        <div className={styles.field}>
-            <label className={styles.label}>
-                {label}
-                {hint && <span className={styles.hint}>{hint}</span>}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-/* ---------- 이상형 빈 값 (처음 값, 건너뛰기에 같이 씀) ---------- */
-const EMPTY_IDEAL = {
-    ageMin: '', ageMax: '', minHeight: '', maxHeight: '',
-    bodyType: [], mbtiPref: [], smokingPref: '', drinkingPref: '', memo: '',
-};
-
-// 입력칸 값 → 숫자 (빈칸이면 null)
+// ===== 도우미 함수 =====
 const toNum = (v) => (v === '' || v == null ? null : Number(v));
+const isMaleGender = (g) => g === 'MALE' || g === 'M';
+const isFemaleGender = (g) => g === 'FEMALE' || g === 'F';
+const genderLabel = (g) => (isMaleGender(g) ? '남성' : isFemaleGender(g) ? '여성' : g ?? '-');
+const joinList = (arr) => (arr.length ? arr.join(', ') : null);   // ['등산','독서'] → '등산, 독서'
 
-// 성별 표시 (DB 값이 M/F면 한글로, 그 외는 그대로)
-const genderLabel = (g) => (g === 'M' ? '남성' : g === 'F' ? '여성' : g || '');
+// ===== 칩 선택 (하나 또는 여러 개) =====
+function Chips({ options, value, onSelect }) {
+  const isActive = (opt) => (Array.isArray(value) ? value.includes(opt) : value === opt);
+  return (
+    <div className={styles.chips}>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          className={`${styles.chip} ${isActive(opt) ? styles.chipActive : ''}`}
+          onClick={() => onSelect(opt)}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ===== 카드 선택 (병역용: 아이콘 + 이름 + 설명) =====
+function OptionCards({ options, value, onSelect }) {
+  return (
+    <div className={styles.optionGrid}>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          className={`${styles.optionCard} ${value === opt.value ? styles.optionCardActive : ''}`}
+          onClick={() => onSelect(opt.value)}
+        >
+          <span className={styles.optionIcon}>{opt.icon}</span>
+          <span className={styles.optionTitle}>{opt.value}</span>
+          <span className={styles.optionDesc}>{opt.desc}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ===== 입력 칸 묶음 (제목 + 안내 + 입력) =====
+function Field({ label, hint, children }) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.label}>{label}</label>
+      {hint && <p className={styles.hint}>{hint}</p>}
+      {children}
+    </div>
+  );
+}
 
 function Onboarding() {
-    const navigate = useNavigate();
-    const { id: loginId, token } = useAuthStore();
+  const navigate = useNavigate();
+  const { id: loginId, token } = useAuthStore();
 
-    const [step, setStep] = useState(0);                 // 지금 단계 (0부터)
-    const [submitting, setSubmitting] = useState(false); // 저장 중 중복 클릭 방지
+  const [step, setStep] = useState(1);
+  const [basic, setBasic] = useState(null);       // MEMBER: 닉네임, 성별, 나이
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-    // 회원 기본 정보 (MEMBER, 표시만)
-    const [basic, setBasic] = useState({ nickname: '', gender: '', age: null });
+  // ===== 사진 4장 =====
+  const [photos, setPhotos] = useState([null, null, null, null]);     // 실제 파일
+  const [previews, setPreviews] = useState([null, null, null, null]); // 미리보기 주소
+  const fileInputRef = useRef(null);   // 숨겨진 파일 선택창
+  const slotRef = useRef(0);           // 지금 고르는 칸 번호
+  const previewsRef = useRef(previews);
+  previewsRef.current = previews;
 
-    // 나의 정보 (MEMBER_PROFILE, 전부 필수)
-    const [profile, setProfile] = useState({
-        height: '', weight: '', mbti: '', job: '',
-        loveType: [], drinking: '', smoking: '', religion: '', faceType: '', skinType: '',
-        hobby: [], favorite: [], dislike: [], foodPreference: [],
-        introduction: '',
+  // 나의 정보 (MEMBER_PROFILE)
+  const [profile, setProfile] = useState({
+    mbti: '', job: '', height: '', weight: '',
+    militaryStatus: '',                              // 남성만
+    drinking: '', smoking: '', religion: '', foodPreference: [],
+    faceType: '', skinType: '', loveType: '',
+    hobby: [], favorite: [], dislike: [], introduction: '',
+  });
+
+  // 이상형 (IDEAL_TYPE, 선택)
+  const [ideal, setIdeal] = useState({
+    ageMin: '', ageMax: '', minHeight: '', maxHeight: '',
+    bodyType: [], mbtiPref: [], smokingPref: '', drinkingPref: '',
+    militaryPref: [],                                // 여성만
+    memo: '',
+  });
+
+  const isMale = isMaleGender(basic?.gender);
+  const isFemale = isFemaleGender(basic?.gender);
+
+  // ===== 처음 들어왔을 때: 로그인 확인 → 이미 했으면 메인 → 기본 정보 불러오기 =====
+  useEffect(() => {
+    if (!token || !loginId) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    let cancelled = false;
+
+    Client.get('/api/profile/status', { params: { loginId } })
+      .then((res) => {
+        if (cancelled) return null;
+        if (res.data.completed) {
+          navigate('/', { replace: true });
+          return null;
+        }
+        return Client.get('/api/profile/basic', { params: { loginId } });
+      })
+      .then((res) => {
+        if (!cancelled && res) setBasic(res.data);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setError('회원 정보를 불러오지 못했습니다.');
+      });
+
+    return () => { cancelled = true; };
+  }, [token, loginId, navigate]);
+
+  // 화면을 떠날 때 미리보기 주소 정리 (메모리 누수 방지)
+  useEffect(() => {
+    return () => {
+      previewsRef.current.forEach((url) => url && URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // ===== 사진 고르기 / 지우기 =====
+  const openPicker = (index) => {
+    slotRef.current = index;
+    fileInputRef.current.value = '';   // 같은 파일 다시 골라도 반응하게
+    fileInputRef.current.click();
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('이미지 파일만 올릴 수 있어요.');
+      return;
+    }
+    if (file.size > MAX_PHOTO_SIZE) {
+      setError('사진은 한 장에 10MB까지 올릴 수 있어요.');
+      return;
+    }
+    const index = slotRef.current;
+    setError('');
+    setPhotos((prev) => {
+      const next = [...prev];
+      next[index] = file;
+      return next;
+    });
+    setPreviews((prev) => {
+      const next = [...prev];
+      if (next[index]) URL.revokeObjectURL(next[index]);
+      next[index] = URL.createObjectURL(file);
+      return next;
+    });
+  };
+
+  const removePhoto = (index) => {
+    setPhotos((prev) => {
+      const next = [...prev];
+      next[index] = null;
+      return next;
+    });
+    setPreviews((prev) => {
+      const next = [...prev];
+      if (next[index]) URL.revokeObjectURL(next[index]);
+      next[index] = null;
+      return next;
+    });
+  };
+
+  // ===== 값 바꾸기 =====
+  const setProfileValue = (key, value) =>
+    setProfile((prev) => ({ ...prev, [key]: value }));
+
+  const toggleProfileList = (key, value) =>
+    setProfile((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter((v) => v !== value)
+        : [...prev[key], value],
+    }));
+
+  const setIdealValue = (key, value) =>
+    setIdeal((prev) => ({ ...prev, [key]: value }));
+
+  const toggleIdealList = (key, value) =>
+    setIdeal((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter((v) => v !== value)
+        : [...prev[key], value],
+    }));
+
+  // 이상형 병역: '상관없음'을 고르면 나머지 해제, 다른 걸 고르면 '상관없음' 해제
+  const toggleMilitaryPref = (value) =>
+    setIdeal((prev) => {
+      if (value === '상관없음') {
+        return { ...prev, militaryPref: prev.militaryPref.includes('상관없음') ? [] : ['상관없음'] };
+      }
+      const rest = prev.militaryPref.filter((v) => v !== '상관없음');
+      return {
+        ...prev,
+        militaryPref: rest.includes(value) ? rest.filter((v) => v !== value) : [...rest, value],
+      };
     });
 
-    // 이상형 (IDEAL_TYPE, 전부 선택)
-    const [ideal, setIdeal] = useState(EMPTY_IDEAL);
+  // ===== 단계별 검사 (문제 있으면 메시지, 없으면 '') =====
+  const validateStep = (s) => {
+    if (s === 1) {
+      if (photos.filter(Boolean).length !== PHOTO_COUNT) return '프로필 사진 4장을 모두 올려 주세요.';
+    }
+    if (s === 2) {
+      if (!profile.mbti) return 'MBTI를 선택해 주세요.';
+      if (!profile.job) return '직업을 선택해 주세요.';
+      const h = toNum(profile.height);
+      const w = toNum(profile.weight);
+      if (!h || h < 130 || h > 220) return '키를 130~220cm 사이로 입력해 주세요.';
+      if (!w || w < 30 || w > 200) return '몸무게를 30~200kg 사이로 입력해 주세요.';
+      if (isMale && !profile.militaryStatus) return '병역 사항을 선택해 주세요.';
+    }
+    if (s === 3) {
+      if (!profile.drinking) return '음주 여부를 선택해 주세요.';
+      if (!profile.smoking) return '흡연 여부를 선택해 주세요.';
+      if (!profile.religion) return '종교를 선택해 주세요.';
+      if (profile.foodPreference.length === 0) return '음식 취향을 하나 이상 선택해 주세요.';
+    }
+    if (s === 4) {
+      if (!profile.faceType) return '얼굴상을 선택해 주세요.';
+      if (!profile.skinType) return '피부 타입을 선택해 주세요.';
+      if (!profile.loveType) return '연애 스타일을 선택해 주세요.';
+    }
+    if (s === 5) {
+      if (profile.hobby.length === 0) return '취미를 하나 이상 선택해 주세요.';
+      if (profile.favorite.length === 0) return '좋아하는 것을 하나 이상 선택해 주세요.';
+      if (profile.dislike.length === 0) return '싫어하는 것을 하나 이상 선택해 주세요.';
+      if (!profile.introduction.trim()) return '자기소개를 입력해 주세요.';
+    }
+    if (s === 6) {
+      const aMin = toNum(ideal.ageMin);
+      const aMax = toNum(ideal.ageMax);
+      const hMin = toNum(ideal.minHeight);
+      const hMax = toNum(ideal.maxHeight);
+      if (aMin && aMax && aMin > aMax) return '이상형 나이의 최소값이 최대값보다 클 수 없어요.';
+      if (hMin && hMax && hMin > hMax) return '이상형 키의 최소값이 최대값보다 클 수 없어요.';
+    }
+    return '';
+  };
 
-    // 칸 하나만 바꾸기
-    const setP = (key, value) => setProfile((prev) => ({ ...prev, [key]: value }));
-    const setI = (key, value) => setIdeal((prev) => ({ ...prev, [key]: value }));
+  const handleNext = () => {
+    const msg = validateStep(step);
+    if (msg) { setError(msg); return; }
+    setError('');
+    setStep((prev) => prev + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    const isFirst = step === 0;
-    const isLast = step === STEPS.length - 1;
+  const handlePrev = () => {
+    setError('');
+    setStep((prev) => prev - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    /* ---------- 들어올 때: 로그인 확인 → 이미 했으면 메인 → 아니면 기본 정보 ---------- */
-    useEffect(() => {
-        if (!token || !loginId) {
-            navigate('/login', { replace: true });
-            return;
-        }
+  // ===== 저장: ① 사진 4장 → ② 프로필 + 이상형 =====
+  const submit = async (skipIdeal) => {
+    if (!skipIdeal) {
+      const msg = validateStep(6);
+      if (msg) { setError(msg); return; }
+    }
+    if (photos.filter(Boolean).length !== PHOTO_COUNT) {
+      setError('프로필 사진 4장을 모두 올려 주세요.');
+      setStep(1);
+      return;
+    }
 
-        let cancelled = false;   // 화면을 떠난 뒤 늦게 온 응답 무시
-
-        Client.get('/api/profile/status', { params: { loginId } })
-            .then((res) => {
-                if (cancelled) return;
-                if (res.data.completed) {
-                    navigate('/', { replace: true });   // 이미 온보딩 완료
-                    return;
-                }
-                return Client.get('/api/profile/basic', { params: { loginId } })
-                    .then((r) => {
-                        if (cancelled) return;
-                        setBasic({
-                            nickname: r.data.nickname,
-                            gender: genderLabel(r.data.gender),
-                            age: r.data.age,
-                        });
-                    });
-            })
-            .catch((err) => console.error(err));
-
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, loginId]);
-
-    /* ---------- 단계별 확인 (통과면 null, 막히면 안내 문구) ---------- */
-    const validateStep = () => {
-        const p = profile;
-        if (step === 0) {
-            const h = Number(p.height);
-            const w = Number(p.weight);
-            if (!h || h < 100 || h > 250) return '키를 100~250cm 사이로 입력해 주세요.';
-            if (!w || w < 30 || w > 200) return '몸무게를 30~200kg 사이로 입력해 주세요.';
-            if (!p.mbti) return 'MBTI를 선택해 주세요.';
-            if (!p.job) return '직업을 선택해 주세요.';
-        }
-        if (step === 1) {
-            if (p.loveType.length === 0) return '연애 스타일을 하나 이상 선택해 주세요.';
-            if (!p.drinking) return '음주 여부를 선택해 주세요.';
-            if (!p.smoking) return '흡연 여부를 선택해 주세요.';
-            if (!p.religion) return '종교를 선택해 주세요.';
-            if (!p.faceType) return '얼굴상을 선택해 주세요.';
-            if (!p.skinType) return '피부 톤을 선택해 주세요.';
-        }
-        if (step === 2) {
-            if (p.hobby.length === 0) return '취미를 하나 이상 선택해 주세요.';
-            if (p.favorite.length === 0) return '좋아하는 것을 하나 이상 선택해 주세요.';
-            if (p.dislike.length === 0) return '싫어하는 것을 하나 이상 선택해 주세요.';
-            if (p.foodPreference.length === 0) return '음식 취향을 하나 이상 선택해 주세요.';
-        }
-        if (step === 3) {
-            const { ageMin, ageMax, minHeight, maxHeight } = ideal;
-            if (ageMin && ageMax && Number(ageMin) > Number(ageMax)) return '이상형 나이 범위를 확인해 주세요.';
-            if (minHeight && maxHeight && Number(minHeight) > Number(maxHeight)) return '이상형 키 범위를 확인해 주세요.';
-        }
-        if (step === 4) {
-            if (!p.introduction.trim()) return '자기소개를 입력해 주세요.';
-        }
-        return null;
+    const payload = {
+      loginId,
+      profile: {
+        mbti: profile.mbti,
+        job: profile.job,
+        height: toNum(profile.height),
+        weight: toNum(profile.weight),
+        introduction: profile.introduction.trim(),
+        loveType: profile.loveType,
+        hobby: joinList(profile.hobby),
+        favorite: joinList(profile.favorite),
+        dislike: joinList(profile.dislike),
+        drinking: profile.drinking,
+        smoking: profile.smoking,
+        religion: profile.religion,
+        foodPreference: joinList(profile.foodPreference),
+        faceType: profile.faceType,
+        skinType: profile.skinType,
+        militaryStatus: isMale ? profile.militaryStatus : null,
+      },
+      ideal: skipIdeal ? null : {
+        ageMin: toNum(ideal.ageMin),
+        ageMax: toNum(ideal.ageMax),
+        minHeight: toNum(ideal.minHeight),
+        maxHeight: toNum(ideal.maxHeight),
+        bodyType: joinList(ideal.bodyType),
+        mbtiPref: joinList(ideal.mbtiPref),
+        smokingPref: ideal.smokingPref || null,
+        drinkingPref: ideal.drinkingPref || null,
+        militaryPref: isFemale ? joinList(ideal.militaryPref) : null,
+        memo: ideal.memo.trim() || null,
+      },
     };
 
-    const handleNext = () => {
-        const error = validateStep();
-        if (error) {
-            alert(error);
-            return;
-        }
-        if (isLast) {
-            handleSubmit();
-        } else {
-            setStep(step + 1);
-        }
-    };
+    setSubmitting(true);
+    setError('');
 
-    const handlePrev = () => {
-        if (!isFirst) setStep(step - 1);
-    };
+    try {
+      // ① 사진 4장 업로드 (순서대로 1~4번, 1번이 대표)
+      const formData = new FormData();
+      formData.append('loginId', loginId);
+      photos.forEach((file) => formData.append('files', file));
+      await Client.post('/api/profile/images', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-    // 이상형 건너뛰기
-    const handleSkipIdeal = () => {
-        if (!window.confirm('이상형을 입력하지 않으면 매칭 확률이 낮아질 수 있어요.\n나중에 프로필에서 입력할 수 있습니다. 건너뛸까요?')) return;
-        setIdeal(EMPTY_IDEAL);
-        setStep(step + 1);
-    };
+      // ② 프로필 + 이상형 저장
+      await Client.post('/api/profile', payload);
 
-    /* ---------- 저장: 서버로 전송 ---------- */
-    const handleSubmit = async () => {
-        if (submitting) return;
-        setSubmitting(true);
+      navigate('/', { replace: true });
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 409) {
+        alert('이미 온보딩을 완료했어요.');
+        navigate('/', { replace: true });
+      } else if (status === 401) {
+        alert('로그인이 필요합니다.');
+        navigate('/login', { replace: true });
+      } else if (status === 413) {
+        setError('사진 용량이 너무 커요. 더 작은 사진으로 바꿔 주세요.');
+        setStep(1);
+      } else if (status === 400) {
+        setError('입력하지 않은 항목이 있어요. 다시 확인해 주세요.');
+      } else {
+        console.error(err);
+        setError('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-        const payload = {
-            loginId,
-            profile: {
-                ...profile,
-                height: toNum(profile.height),
-                weight: toNum(profile.weight),
-                loveType: profile.loveType.join(','),
-                hobby: profile.hobby.join(','),
-                favorite: profile.favorite.join(','),
-                dislike: profile.dislike.join(','),
-                foodPreference: profile.foodPreference.join(','),
-                introduction: profile.introduction.trim(),
-            },
-            ideal: {
-                ...ideal,
-                ageMin: toNum(ideal.ageMin),
-                ageMax: toNum(ideal.ageMax),
-                minHeight: toNum(ideal.minHeight),
-                maxHeight: toNum(ideal.maxHeight),
-                bodyType: ideal.bodyType.join(','),
-                mbtiPref: ideal.mbtiPref.join(','),
-                memo: ideal.memo.trim(),
-            },
-        };
+  const handleSkipIdeal = () => {
+    if (window.confirm('이상형을 건너뛰면 매칭 확률이 낮아질 수 있어요. 건너뛸까요?')) {
+      submit(true);
+    }
+  };
 
-        try {
-            await Client.post('/api/profile', payload);
-            alert('프로필이 등록되었습니다. 실루엣에 오신 걸 환영해요!');
-            navigate('/', { replace: true });
-        } catch (err) {
-            console.error(err);
-            const status = err.response?.status;
-            if (status === 409) {
-                navigate('/', { replace: true });            // 이미 등록됨
-            } else if (status === 401) {
-                alert('로그인 정보가 없습니다. 다시 로그인해 주세요.');
-                navigate('/login', { replace: true });
-            } else if (status === 400) {
-                alert('입력하지 않은 항목이 있어요. 다시 확인해 주세요.');
-            } else {
-                alert('프로필 등록에 실패했습니다.');
-            }
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
+  // ===== 화면 =====
+  if (!basic) {
     return (
-        <div className={styles.page}>
-            <div className={styles.card}>
-                {/* 진행 표시 */}
-                <div className={styles.progress}>
-                    <span className={styles.stepCount}>{step + 1} / {STEPS.length}</span>
-                    <div className={styles.progressBar}>
-                        <div className={styles.progressFill} style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
-                    </div>
-                </div>
-
-                <h2 className={styles.title}>{STEPS[step]}</h2>
-
-                <div className={styles.body}>
-                    {/* ===== 1. 기본 정보 ===== */}
-                    {step === 0 && (
-                        <>
-                            <div className={styles.infoBox}>
-                                <span>{basic.nickname || '닉네임'}</span>
-                                <span>·</span>
-                                <span>{basic.gender || '성별'}</span>
-                                <span>·</span>
-                                <span>{basic.age != null ? `만 ${basic.age}세` : '나이'}</span>
-                                <span className={styles.hint}>회원가입 정보는 수정할 수 없어요</span>
-                            </div>
-
-                            <div className={styles.row}>
-                                <Field label="키" hint="cm">
-                                    <input type="number" className={styles.input} value={profile.height}
-                                        onChange={(e) => setP('height', e.target.value)} placeholder="175" />
-                                </Field>
-                                <Field label="몸무게" hint="kg">
-                                    <input type="number" className={styles.input} value={profile.weight}
-                                        onChange={(e) => setP('weight', e.target.value)} placeholder="65" />
-                                </Field>
-                            </div>
-                            <Field label="MBTI">
-                                <ChipGroup options={MBTI_LIST} value={profile.mbti} onChange={(v) => setP('mbti', v)} />
-                            </Field>
-                            <Field label="직업">
-                                <ChipGroup options={JOB_LIST} value={profile.job} onChange={(v) => setP('job', v)} />
-                            </Field>
-                        </>
-                    )}
-
-                    {/* ===== 2. 나는 이런 사람 ===== */}
-                    {step === 1 && (
-                        <>
-                            <Field label="나의 연애 스타일" hint="최대 3개">
-                                <ChipGroup options={LOVE_TYPE_LIST} value={profile.loveType} multiple max={3}
-                                    onChange={(v) => setP('loveType', v)} />
-                            </Field>
-                            <Field label="음주">
-                                <ChipGroup options={DRINKING_LIST} value={profile.drinking} onChange={(v) => setP('drinking', v)} />
-                            </Field>
-                            <Field label="흡연">
-                                <ChipGroup options={SMOKING_LIST} value={profile.smoking} onChange={(v) => setP('smoking', v)} />
-                            </Field>
-                            <Field label="종교">
-                                <ChipGroup options={RELIGION_LIST} value={profile.religion} onChange={(v) => setP('religion', v)} />
-                            </Field>
-                            <Field label="얼굴상">
-                                <ChipGroup options={FACE_TYPE_LIST} value={profile.faceType} onChange={(v) => setP('faceType', v)} />
-                            </Field>
-                            <Field label="피부 톤">
-                                <ChipGroup options={SKIN_TYPE_LIST} value={profile.skinType} onChange={(v) => setP('skinType', v)} />
-                            </Field>
-                        </>
-                    )}
-
-                    {/* ===== 3. 나의 취향 ===== */}
-                    {step === 2 && (
-                        <>
-                            <Field label="취미" hint="최대 5개">
-                                <ChipGroup options={HOBBY_LIST} value={profile.hobby} multiple max={5}
-                                    onChange={(v) => setP('hobby', v)} />
-                            </Field>
-                            <Field label="좋아하는 것" hint="최대 5개">
-                                <ChipGroup options={FAVORITE_LIST} value={profile.favorite} multiple max={5}
-                                    onChange={(v) => setP('favorite', v)} />
-                            </Field>
-                            <Field label="싫어하는 것" hint="최대 5개">
-                                <ChipGroup options={DISLIKE_LIST} value={profile.dislike} multiple max={5}
-                                    onChange={(v) => setP('dislike', v)} />
-                            </Field>
-                            <Field label="음식 취향" hint="최대 5개">
-                                <ChipGroup options={FOOD_LIST} value={profile.foodPreference} multiple max={5}
-                                    onChange={(v) => setP('foodPreference', v)} />
-                            </Field>
-                        </>
-                    )}
-
-                    {/* ===== 4. 이상형 (선택) ===== */}
-                    {step === 3 && (
-                        <>
-                            <p className={styles.notice}>
-                                이상형은 선택 사항이에요. 입력하면 더 잘 맞는 상대를 추천받을 수 있어요.
-                            </p>
-                            <div className={styles.row}>
-                                <Field label="나이" hint="세">
-                                    <div className={styles.range}>
-                                        <input type="number" className={styles.input} value={ideal.ageMin}
-                                            onChange={(e) => setI('ageMin', e.target.value)} placeholder="25" />
-                                        <span>~</span>
-                                        <input type="number" className={styles.input} value={ideal.ageMax}
-                                            onChange={(e) => setI('ageMax', e.target.value)} placeholder="32" />
-                                    </div>
-                                </Field>
-                                <Field label="키" hint="cm">
-                                    <div className={styles.range}>
-                                        <input type="number" className={styles.input} value={ideal.minHeight}
-                                            onChange={(e) => setI('minHeight', e.target.value)} placeholder="160" />
-                                        <span>~</span>
-                                        <input type="number" className={styles.input} value={ideal.maxHeight}
-                                            onChange={(e) => setI('maxHeight', e.target.value)} placeholder="180" />
-                                    </div>
-                                </Field>
-                            </div>
-                            <Field label="체형">
-                                <ChipGroup options={BODY_TYPE_LIST} value={ideal.bodyType} multiple
-                                    onChange={(v) => setI('bodyType', v)} />
-                            </Field>
-                            <Field label="MBTI" hint="여러 개 선택">
-                                <ChipGroup options={MBTI_LIST} value={ideal.mbtiPref} multiple
-                                    onChange={(v) => setI('mbtiPref', v)} />
-                            </Field>
-                            <Field label="흡연">
-                                <ChipGroup options={SMOKING_PREF_LIST} value={ideal.smokingPref} onChange={(v) => setI('smokingPref', v)} />
-                            </Field>
-                            <Field label="음주">
-                                <ChipGroup options={DRINKING_PREF_LIST} value={ideal.drinkingPref} onChange={(v) => setI('drinkingPref', v)} />
-                            </Field>
-                            <Field label="이상형 한마디" hint={`${ideal.memo.length}/${MAX_MEMO}자 · 선택`}>
-                                <textarea className={styles.textarea} value={ideal.memo} maxLength={MAX_MEMO}
-                                    onChange={(e) => setI('memo', e.target.value)} placeholder="웃음이 많은 사람이 좋아요" />
-                            </Field>
-                            <button type="button" className={styles.skipBtn} onClick={handleSkipIdeal}>
-                                이상형은 나중에 입력할게요
-                            </button>
-                        </>
-                    )}
-
-                    {/* ===== 5. 자기소개 ===== */}
-                    {step === 4 && (
-                        <Field label="자기소개" hint={`${profile.introduction.length}/${MAX_INTRO}자`}>
-                            <textarea className={styles.textarea} value={profile.introduction} maxLength={MAX_INTRO}
-                                onChange={(e) => setP('introduction', e.target.value)}
-                                placeholder="나를 소개하는 한마디를 남겨주세요" />
-                        </Field>
-                    )}
-                </div>
-
-                {/* 이전 / 다음 */}
-                <div className={styles.buttons}>
-                    <button type="button" className={styles.prevBtn} onClick={handlePrev} disabled={isFirst || submitting}>
-                        이전
-                    </button>
-                    <button type="button" className={styles.nextBtn} onClick={handleNext} disabled={submitting}>
-                        {isLast ? (submitting ? '저장 중...' : '시작하기') : '다음'}
-                    </button>
-                </div>
-            </div>
+      <div className={styles.page}>
+        <div className={styles.card}>
+          <p className={styles.notice}>{error || '불러오는 중...'}</p>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.card}>
+        {/* 진행 상황 */}
+        <div className={styles.header}>
+          <p className={styles.stepLabel}>{step} / {TOTAL_STEPS} · {STEP_TITLES[step - 1]}</p>
+          <div className={styles.progress}>
+            <div className={styles.progressBar} style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+          </div>
+        </div>
+
+        {/* ===== 1단계: 프로필 사진 4장 ===== */}
+        {step === 1 && (
+          <Field
+            label="프로필 사진 4장"
+            hint="첫 번째 사진이 대표 사진이 돼요. 4장을 모두 올려야 다음으로 넘어갈 수 있어요."
+          >
+            <div className={styles.photoGrid}>
+              {previews.map((url, i) => (
+                <div key={i} className={styles.photoSlot} onClick={() => openPicker(i)}>
+                  {url ? (
+                    <>
+                      <img src={url} alt={`프로필 사진 ${i + 1}`} className={styles.photoImg} />
+                      <button
+                        type="button"
+                        className={styles.photoRemove}
+                        onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <span className={styles.photoPlus}>＋</span>
+                  )}
+                  {i === 0 && <span className={styles.photoBadge}>대표</span>}
+                </div>
+              ))}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handlePhotoChange}
+            />
+            <p className={styles.counter}>{photos.filter(Boolean).length} / {PHOTO_COUNT}</p>
+          </Field>
+        )}
+
+        {/* ===== 2단계: 기본 정보 ===== */}
+        {step === 2 && (
+          <>
+            <div className={styles.infoBox}>
+              <div className={styles.infoItem}><span>닉네임</span><strong>{basic.nickname}</strong></div>
+              <div className={styles.infoItem}><span>성별</span><strong>{genderLabel(basic.gender)}</strong></div>
+              <div className={styles.infoItem}><span>나이</span><strong>만 {basic.age}세</strong></div>
+            </div>
+
+            <Field label="MBTI">
+              <Chips options={MBTI_LIST} value={profile.mbti} onSelect={(v) => setProfileValue('mbti', v)} />
+            </Field>
+
+            <Field label="직업">
+              <Chips options={JOB_LIST} value={profile.job} onSelect={(v) => setProfileValue('job', v)} />
+            </Field>
+
+            <div className={styles.row}>
+              <Field label="키 (cm)">
+                <input type="number" className={styles.input} placeholder="예: 175"
+                  value={profile.height} onChange={(e) => setProfileValue('height', e.target.value)} />
+              </Field>
+              <Field label="몸무게 (kg)">
+                <input type="number" className={styles.input} placeholder="예: 68"
+                  value={profile.weight} onChange={(e) => setProfileValue('weight', e.target.value)} />
+              </Field>
+            </div>
+
+            {/* 남성만: 병역 */}
+            {isMale && (
+              <Field label="병역" hint="남성 회원에게만 표시돼요. 프로필에 공개됩니다.">
+                <OptionCards options={MILITARY_LIST} value={profile.militaryStatus}
+                  onSelect={(v) => setProfileValue('militaryStatus', v)} />
+              </Field>
+            )}
+          </>
+        )}
+
+        {/* ===== 3단계: 생활 습관 ===== */}
+        {step === 3 && (
+          <>
+            <Field label="음주">
+              <Chips options={DRINKING_LIST} value={profile.drinking} onSelect={(v) => setProfileValue('drinking', v)} />
+            </Field>
+            <Field label="흡연">
+              <Chips options={SMOKING_LIST} value={profile.smoking} onSelect={(v) => setProfileValue('smoking', v)} />
+            </Field>
+            <Field label="종교">
+              <Chips options={RELIGION_LIST} value={profile.religion} onSelect={(v) => setProfileValue('religion', v)} />
+            </Field>
+            <Field label="음식 취향" hint="여러 개 선택할 수 있어요.">
+              <Chips options={FOOD_LIST} value={profile.foodPreference} onSelect={(v) => toggleProfileList('foodPreference', v)} />
+            </Field>
+          </>
+        )}
+
+        {/* ===== 4단계: 외모 · 연애 성향 ===== */}
+        {step === 4 && (
+          <>
+            <Field label="얼굴상">
+              <Chips options={FACE_TYPE_LIST} value={profile.faceType} onSelect={(v) => setProfileValue('faceType', v)} />
+            </Field>
+            <Field label="피부 타입">
+              <Chips options={SKIN_TYPE_LIST} value={profile.skinType} onSelect={(v) => setProfileValue('skinType', v)} />
+            </Field>
+            <Field label="연애 스타일">
+              <Chips options={LOVE_TYPE_LIST} value={profile.loveType} onSelect={(v) => setProfileValue('loveType', v)} />
+            </Field>
+          </>
+        )}
+
+        {/* ===== 5단계: 취향 · 자기소개 ===== */}
+        {step === 5 && (
+          <>
+            <Field label="취미" hint="여러 개 선택할 수 있어요.">
+              <Chips options={HOBBY_LIST} value={profile.hobby} onSelect={(v) => toggleProfileList('hobby', v)} />
+            </Field>
+            <Field label="좋아하는 것" hint="여러 개 선택할 수 있어요.">
+              <Chips options={FAVORITE_LIST} value={profile.favorite} onSelect={(v) => toggleProfileList('favorite', v)} />
+            </Field>
+            <Field label="싫어하는 것" hint="여러 개 선택할 수 있어요.">
+              <Chips options={DISLIKE_LIST} value={profile.dislike} onSelect={(v) => toggleProfileList('dislike', v)} />
+            </Field>
+            <Field label="자기소개">
+              <textarea className={styles.textarea} maxLength={MAX_INTRO} rows={5}
+                placeholder="나를 소개하는 글을 적어 주세요."
+                value={profile.introduction} onChange={(e) => setProfileValue('introduction', e.target.value)} />
+              <p className={styles.counter}>{profile.introduction.length} / {MAX_INTRO}</p>
+            </Field>
+          </>
+        )}
+
+        {/* ===== 6단계: 이상형 (선택) ===== */}
+        {step === 6 && (
+          <>
+            <p className={styles.notice}>
+              이상형은 선택 사항이에요. 입력하지 않으면 매칭 확률이 낮아질 수 있어요.
+            </p>
+
+            <div className={styles.row}>
+              <Field label="나이 (최소)">
+                <input type="number" className={styles.input} placeholder="예: 25"
+                  value={ideal.ageMin} onChange={(e) => setIdealValue('ageMin', e.target.value)} />
+              </Field>
+              <Field label="나이 (최대)">
+                <input type="number" className={styles.input} placeholder="예: 32"
+                  value={ideal.ageMax} onChange={(e) => setIdealValue('ageMax', e.target.value)} />
+              </Field>
+            </div>
+
+            <div className={styles.row}>
+              <Field label="키 (최소 cm)">
+                <input type="number" className={styles.input} placeholder="예: 160"
+                  value={ideal.minHeight} onChange={(e) => setIdealValue('minHeight', e.target.value)} />
+              </Field>
+              <Field label="키 (최대 cm)">
+                <input type="number" className={styles.input} placeholder="예: 185"
+                  value={ideal.maxHeight} onChange={(e) => setIdealValue('maxHeight', e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label="체형" hint="여러 개 선택할 수 있어요.">
+              <Chips options={BODY_TYPE_LIST} value={ideal.bodyType} onSelect={(v) => toggleIdealList('bodyType', v)} />
+            </Field>
+            <Field label="MBTI" hint="여러 개 선택할 수 있어요.">
+              <Chips options={MBTI_LIST} value={ideal.mbtiPref} onSelect={(v) => toggleIdealList('mbtiPref', v)} />
+            </Field>
+            <Field label="흡연">
+              <Chips options={SMOKING_PREF_LIST} value={ideal.smokingPref} onSelect={(v) => setIdealValue('smokingPref', v)} />
+            </Field>
+            <Field label="음주">
+              <Chips options={DRINKING_PREF_LIST} value={ideal.drinkingPref} onSelect={(v) => setIdealValue('drinkingPref', v)} />
+            </Field>
+
+            {/* 여성만: 이상형 병역 */}
+            {isFemale && (
+              <Field label="병역" hint="여러 개 선택할 수 있어요. '상관없음'은 단독으로 선택돼요.">
+                <Chips options={MILITARY_PREF_LIST} value={ideal.militaryPref} onSelect={toggleMilitaryPref} />
+              </Field>
+            )}
+
+            <Field label="하고 싶은 말">
+              <textarea className={styles.textarea} maxLength={MAX_MEMO} rows={3}
+                placeholder="이상형에 대해 자유롭게 적어 주세요."
+                value={ideal.memo} onChange={(e) => setIdealValue('memo', e.target.value)} />
+              <p className={styles.counter}>{ideal.memo.length} / {MAX_MEMO}</p>
+            </Field>
+          </>
+        )}
+
+        {/* 에러 메시지 */}
+        {error && <p className={styles.error}>⚠️ {error}</p>}
+
+        {/* 버튼 */}
+        <div className={styles.buttons}>
+          {step > 1 && (
+            <button type="button" className={styles.prevBtn} onClick={handlePrev} disabled={submitting}>
+              이전
+            </button>
+          )}
+
+          {step < TOTAL_STEPS && (
+            <button type="button" className={styles.nextBtn} onClick={handleNext}>
+              다음
+            </button>
+          )}
+
+          {step === TOTAL_STEPS && (
+            <>
+              <button type="button" className={styles.skipBtn} onClick={handleSkipIdeal} disabled={submitting}>
+                건너뛰기
+              </button>
+              <button type="button" className={styles.nextBtn} onClick={() => submit(false)} disabled={submitting}>
+                {submitting ? '저장 중...' : '시작하기'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Onboarding;

@@ -19,37 +19,126 @@
 }
 
 /* ===================== 진행 표시 ===================== */
-.progress {
+.header {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.stepCount {
+.stepLabel {
+  margin: 0;
   font-size: 0.85rem;
-  color: var(--text-dim);
+  color: var(--text-dim, #9ca3af);
 }
 
-.progressBar {
+/* 막대 바탕 */
+.progress {
   height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
-.progressFill {
+/* 채워지는 막대 */
+.progressBar {
   height: 100%;
   background: linear-gradient(90deg, #a855f7, #ec4899);
   transition: width 0.3s ease;
 }
 
-.title {
-  margin: 0;
-  font-size: 1.4rem;
+/* ===================== 프로필 사진 4칸 (증명사진 3:4) ===================== */
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 110px);
+  gap: 10px;
+  justify-content: center;
 }
 
-.body {
-  min-height: 240px;
+.photoSlot {
+  position: relative;
+  width: 110px;
+  aspect-ratio: 3 / 4;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.photoSlot:hover {
+  border-color: rgba(168, 85, 247, 0.6);
+}
+
+.photoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photoPlus {
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.photoRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.photoBadge {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .photoGrid {
+    grid-template-columns: repeat(2, 110px);
+  }
+}
+
+/* ===================== 회원 기본 정보 상자 ===================== */
+.infoBox {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-dim, #9ca3af);
+}
+
+.infoItem strong {
+  font-size: 0.95rem;
+  color: inherit;
+  color: #fff;
 }
 
 /* ===================== 입력 칸 ===================== */
@@ -62,17 +151,15 @@
 }
 
 .label {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
   font-size: 0.92rem;
   font-weight: 600;
 }
 
 .hint {
+  margin: -4px 0 0;
   font-size: 0.78rem;
   font-weight: 400;
-  color: var(--text-dim);
+  color: var(--text-dim, #9ca3af);
 }
 
 .row {
@@ -90,17 +177,25 @@
   color: inherit;
   font-size: 0.9rem;
   box-sizing: border-box;
+  outline: none;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #a855f7;
 }
 
 .textarea {
   min-height: 110px;
   resize: vertical;
+  font-family: inherit;
 }
 
-.range {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.counter {
+  margin: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-dim, #9ca3af);
 }
 
 /* ===================== 칩 (선택 버튼) ===================== */
@@ -132,19 +227,51 @@
   font-weight: 600;
 }
 
-/* ===================== 안내 상자 ===================== */
-.infoBox {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 18px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  font-size: 0.92rem;
+/* ===================== 병역 카드 ===================== */
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
+.optionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optionCard:hover {
+  border-color: rgba(168, 85, 247, 0.6);
+}
+
+.optionCardActive {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.15);
+}
+
+.optionIcon {
+  font-size: 26px;
+}
+
+.optionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.optionDesc {
+  font-size: 0.75rem;
+  color: var(--text-dim, #9ca3af);
+}
+
+/* ===================== 안내 / 에러 ===================== */
 .notice {
   margin: 0 0 16px;
   padding: 10px 14px;
@@ -152,6 +279,12 @@
   background: rgba(236, 72, 153, 0.1);
   color: #f9a8d4;
   font-size: 0.85rem;
+}
+
+.error {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.88rem;
 }
 
 /* ===================== 버튼 ===================== */
@@ -162,7 +295,8 @@
 }
 
 .prevBtn,
-.nextBtn {
+.nextBtn,
+.skipBtn {
   flex: 1;
   padding: 12px;
   border-radius: 10px;
@@ -176,11 +310,6 @@
   color: inherit;
 }
 
-.prevBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .nextBtn {
   border: none;
   background: linear-gradient(90deg, #a855f7, #ec4899);
@@ -189,12 +318,14 @@
 }
 
 .skipBtn {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.25);
   background: transparent;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  cursor: pointer;
+  color: var(--text-dim, #9ca3af);
+}
+
+.prevBtn:disabled,
+.nextBtn:disabled,
+.skipBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 public class ProfileDTO {
 
 	// ===== 회원 기본 정보 (MEMBER, 읽기만) =====
-	private Long member_Seq;
-	private String login_Id;
+	private Long memberSeq;
+	private String loginId;
 	private String nickname;
 	private String gender;
 	private Integer age;              // 생년월일로 계산한 만 나이
@@ -28,15 +28,16 @@ public class ProfileDTO {
 	private String foodPreference;
 	private String faceType;
 	private String skinType;
+	private String militaryStatus;    // 병역 (남성만: 군필, 미필, 복무 중, 면제)
 	private LocalDateTime createdAt;
 
 	public ProfileDTO() {}
 
-	public Long getMemberSeq() { return member_Seq; }
-	public void setMemberSeq(Long member_Seq) { this.member_Seq = member_Seq; }
+	public Long getMemberSeq() { return memberSeq; }
+	public void setMemberSeq(Long memberSeq) { this.memberSeq = memberSeq; }
 
-	public String getLoginId() { return login_Id; }
-	public void setLoginId(String login_Id) { this.login_Id = login_Id; }
+	public String getLoginId() { return loginId; }
+	public void setLoginId(String loginId) { this.loginId = loginId; }
 
 	public String getNickname() { return nickname; }
 	public void setNickname(String nickname) { this.nickname = nickname; }
@@ -94,6 +95,9 @@ public class ProfileDTO {
 
 	public String getSkinType() { return skinType; }
 	public void setSkinType(String skinType) { this.skinType = skinType; }
+
+	public String getMilitaryStatus() { return militaryStatus; }
+	public void setMilitaryStatus(String militaryStatus) { this.militaryStatus = militaryStatus; }
 
 	public LocalDateTime getCreatedAt() { return createdAt; }
 	public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -13,6 +13,7 @@ public class IdealTypeDTO {
 	private String mbtiPref;
 	private String smokingPref;
 	private String drinkingPref;
+	private String militaryPref;      // 원하는 병역 (여성만, 여러 개를 쉼표로)
 	private String memo;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
@@ -23,7 +24,7 @@ public class IdealTypeDTO {
 	public boolean hasAnyValue() {
 		return ageMin != null || ageMax != null || minHeight != null || maxHeight != null
 				|| notBlank(bodyType) || notBlank(mbtiPref) || notBlank(smokingPref)
-				|| notBlank(drinkingPref) || notBlank(memo);
+				|| notBlank(drinkingPref) || notBlank(militaryPref) || notBlank(memo);
 	}
 
 	private boolean notBlank(String s) {
@@ -59,6 +60,9 @@ public class IdealTypeDTO {
 
 	public String getDrinkingPref() { return drinkingPref; }
 	public void setDrinkingPref(String drinkingPref) { this.drinkingPref = drinkingPref; }
+
+	public String getMilitaryPref() { return militaryPref; }
+	public void setMilitaryPref(String militaryPref) { this.militaryPref = militaryPref; }
 
 	public String getMemo() { return memo; }
 	public void setMemo(String memo) { this.memo = memo; }
