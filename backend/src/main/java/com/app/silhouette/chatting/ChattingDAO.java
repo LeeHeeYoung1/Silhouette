@@ -162,4 +162,8 @@ public class ChattingDAO {
     public int deleteChatRoom(Long roomSeq) {
         return mybatis.update("Chatting.deleteChatRoom", roomSeq);
     }
+    
+    public int countJoinedParticipants(Long roomSeq) {
+        return mybatis.selectOne("Chatting.countJoinedParticipants", roomSeq);
+    }
 }
