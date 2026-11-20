@@ -1,5 +1,8 @@
 package com.app.silhouette.live;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import livekit.LivekitWebhook.WebhookEvent;
 @RequestMapping("/api/livekit")
 public class LiveKitWebhookController {
 
+    private static final Logger log = LoggerFactory.getLogger(LiveKitWebhookController.class);
     private final WebhookReceiver receiver;
     private final LiveService liveService;
 
@@ -33,6 +37,7 @@ public class LiveKitWebhookController {
     public ResponseEntity<Void> receive(@RequestBody String body,
             @RequestHeader(value = "Authorization", required = false) String auth) {
         if (auth == null || auth.isBlank()) {
+            log.warn("LiveKit webhook 거부: Authorization 헤더 없음");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -40,9 +45,12 @@ public class LiveKitWebhookController {
         try {
             event = receiver.receive(body, auth);   // 서명·본문 해시 검증
         } catch (Exception e) {
+            log.warn("LiveKit webhook 서명 검증 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        log.info("LiveKit webhook 수신: {} room={} identity={}", event.getEvent(),
+                event.getRoom().getName(), event.getParticipant().getIdentity());
         liveService.handleWebhook(event);
         return ResponseEntity.ok().build();
     }
