@@ -1,0 +1,33 @@
+spring.application.name=backend
+server.port=80
+
+# Oracle
+spring.datasource.url=
+spring.datasource.username=
+spring.datasource.password=
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+# MyBatis
+mybatis.mapper-locations=classpath:mappers/*.xml
+
+# JWT (secret은 32바이트 이상)
+jwt.secret=
+jwt.expiration=
+
+# Google Cloud Storage (키 파일은 resources에 두고 Git에 올리지 않음)
+gcp.credentials.location=classpath:
+gcp.project.id=
+gcp.bucket=
+
+# LiveKit
+livekit.url=
+livekit.api-key=
+livekit.api-secret=
+live.max-viewers=50
+
+# Upload
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=25MB
+
+# Spring AI (아직 미사용)
+spring.ai.model.chat=none
