@@ -29,3 +29,26 @@ export const kickViewer = (liveRoomSeq, memberSeq) =>
 export const banMember = (memberSeq) => Client.post(`/api/live/ban/${memberSeq}`);
 export const unbanMember = (memberSeq) => Client.delete(`/api/live/ban/${memberSeq}`);
 export const getBans = () => Client.get('/api/live/ban');
+
+// 신고 { live_chat_seq(채팅 신고일 때만), reason: ADULT|ABUSE|SPAM|ETC, detail }
+export const reportLive = (liveRoomSeq, body) => Client.post(`/api/live/${liveRoomSeq}/report`, body);
+
+// 썸네일 업로드 (jpg/png/webp, 5MB 이하) → { thumbnail_url }
+export const uploadThumbnail = (file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return Client.post('/api/upload/thumbnail', form);
+};
+
+// ----- 관리자 -----
+
+// 방송 강제 종료
+export const adminEndLive = (liveRoomSeq, endReason) =>
+  Client.post(`/api/admin/live/${liveRoomSeq}/end`, { end_reason: endReason });
+
+// 신고 목록 { status: WAIT|DONE, page }
+export const getLiveReports = (params) => Client.get('/api/admin/live/report', { params });
+
+// 신고 처리 완료
+export const doneLiveReport = (liveReportSeq) =>
+  Client.post(`/api/admin/live/report/${liveReportSeq}/done`);
