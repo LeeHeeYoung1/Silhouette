@@ -12,7 +12,7 @@
 	<insert id="createChatRoom"
 		parameterType="com.app.silhouette.chatting.ChattingRoomDTO">
 		<selectKey keyProperty="chat_room_seq" resultType="long" order="BEFORE">
-		SELECT CHAT_ROOM_SEQ.NEXTVAL FROM DUAL
+		SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_ROOM ( CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE,
 		MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT ) VALUES (
@@ -23,7 +23,7 @@
 		parameterType="com.app.silhouette.chatting.ChattingParticipantDTO">
 		<selectKey keyProperty="chat_participant_seq" resultType="long"
 			order="BEFORE">
-			SELECT CHAT_PARTICIPANT_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_CHAT_PARTICIPANT.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_PARTICIPANT ( CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ,
 		MEMBER_SEQ, PARTICIPANT_ROLE, PARTICIPANT_STATUS, JOINED_AT ) VALUES (
@@ -34,7 +34,7 @@
 		parameterType="com.app.silhouette.chatting.ChattingRoomListDTO">
 		<selectKey keyProperty="chat_room_list_seq" resultType="long"
 			order="BEFORE">
-			SELECT CHAT_ROOM_LIST_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_CHAT_ROOM_LIST.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_ROOM_LIST ( CHAT_ROOM_LIST_SEQ, MEMBER_SEQ,
 		CHAT_ROOM_SEQ, STATUS, LAST_READ_MESSAGE_SEQ, DELETED_MESSAGE_SEQ,
@@ -106,7 +106,7 @@
 		parameterType="com.app.silhouette.chatting.ChattingMessageDTO">
 		<selectKey keyProperty="chat_message_seq" resultType="long"
 			order="BEFORE">
-			SELECT CHAT_MESSAGE_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_CHAT_MESSAGE.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_MESSAGE ( CHAT_MESSAGE_SEQ, CHAT_ROOM_SEQ, SENDER_SEQ,
 		MESSAGE_TYPE, SYSTEM_EVENT_TYPE, MESSAGE_CONTENT, CREATED_AT, DELETED_YN
@@ -114,11 +114,25 @@
 		#{message_type}, #{system_event_type, jdbcType=VARCHAR},
 		#{message_content}, SYSDATE, 'N' ) </insert>
 
+	<insert id="insertAttachment"
+		parameterType="com.app.silhouette.chatting.ChatAttachmentDTO">
+		<selectKey keyProperty="chat_attachment_seq" resultType="long" order="BEFORE">
+			SELECT SEQ_CHAT_ATTACHMENT.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO CHAT_ATTACHMENT (
+			CHAT_ATTACHMENT_SEQ, CHAT_MESSAGE_SEQ, ORIGINAL_NAME, STORED_NAME,
+			FILE_URL, FILE_TYPE, FILE_SIZE, DURATION, CREATED_AT
+		) VALUES (
+			#{chat_attachment_seq}, #{chat_message_seq}, #{original_name}, #{stored_name},
+			#{file_url}, #{file_type}, #{file_size}, #{duration}, SYSDATE
+		)
+	</insert>
+
 	<insert id="insertMessageRead"
 		parameterType="com.app.silhouette.chatting.ChattingMessageReadDTO">
 		<selectKey keyProperty="chat_message_read_seq" resultType="long"
 			order="BEFORE">
-			SELECT CHAT_MESSAGE_READ_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_CHAT_MESSAGE_READ.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_MESSAGE_READ ( CHAT_MESSAGE_READ_SEQ, CHAT_MESSAGE_SEQ,
 		MEMBER_SEQ ) VALUES ( #{chat_message_read_seq}, #{chat_message_seq},
@@ -126,12 +140,12 @@
 
 	<select id="selectMessageList" parameterType="long"
 		resultType="com.app.silhouette.chatting.ChattingMessageDTO">
-		SELECT CHAT_MESSAGE_SEQ, CHAT_ROOM_SEQ, SENDER_SEQ, MESSAGE_TYPE,
-		SYSTEM_EVENT_TYPE, MESSAGE_CONTENT, CREATED_AT, DELETED_YN
-		FROM CHAT_MESSAGE
-		WHERE CHAT_ROOM_SEQ = #{value}
-		AND DELETED_YN = 'N'
-		ORDER BY CHAT_MESSAGE_SEQ ASC
+		SELECT CM.CHAT_MESSAGE_SEQ, CM.CHAT_ROOM_SEQ, CM.SENDER_SEQ, CM.MESSAGE_TYPE,
+		CM.SYSTEM_EVENT_TYPE, CM.MESSAGE_CONTENT, CM.CREATED_AT, CM.DELETED_YN
+		FROM CHAT_MESSAGE CM
+		WHERE CM.CHAT_ROOM_SEQ = #{value}
+		AND CM.DELETED_YN = 'N'
+		ORDER BY CM.CHAT_MESSAGE_SEQ ASC
 	</select>
 
 	<select id="selectMessageListForMember"
@@ -156,6 +170,18 @@
 		AND CRL.DELETED_AT IS NULL
 		)
 		ORDER BY CM.CHAT_MESSAGE_SEQ ASC
+	</select>
+
+	<select id="selectAttachmentList" parameterType="long"
+		resultType="com.app.silhouette.chatting.ChatAttachmentDTO">
+		SELECT CA.CHAT_ATTACHMENT_SEQ, CA.CHAT_MESSAGE_SEQ, CA.ORIGINAL_NAME,
+		CA.STORED_NAME, CA.FILE_URL, CA.FILE_TYPE, CA.FILE_SIZE, CA.DURATION,
+		CA.CREATED_AT
+		FROM CHAT_ATTACHMENT CA
+		JOIN CHAT_MESSAGE CM ON CM.CHAT_MESSAGE_SEQ = CA.CHAT_MESSAGE_SEQ
+		WHERE CM.CHAT_ROOM_SEQ = #{value}
+		AND CM.DELETED_YN = 'N'
+		ORDER BY CA.CHAT_ATTACHMENT_SEQ ASC
 	</select>
 
 	<select id="isRoomMember" resultType="int">
@@ -186,7 +212,7 @@
 		parameterType="com.app.silhouette.chatting.ChattingInvitationDTO">
 		<selectKey keyProperty="chat_invitation_seq" resultType="long"
 			order="BEFORE">
-			SELECT CHAT_INVITATION_SEQ.NEXTVAL FROM DUAL
+			SELECT SEQ_CHAT_INVITATION.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO CHAT_INVITATION ( CHAT_INVITATION_SEQ, CHAT_ROOM_SEQ,
 		INVITER_SEQ, INVITEE_SEQ, INVITATION_STATUS, INVITED_AT, RESPONDED_AT )

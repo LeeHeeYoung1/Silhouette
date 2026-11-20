@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -94,6 +96,54 @@ public class ChattingController {
             return ResponseEntity.ok(chattingService.getMessageList(roomSeq, memberSeq));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // 채팅방 첨부파일 목록 (메시지 목록과 별도 조회)
+    @GetMapping("/messages/{chat_room_seq}/attachments")
+    public ResponseEntity<?> getAttachmentList(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        try {
+            return ResponseEntity.ok(chattingService.getAttachmentList(roomSeq, memberSeq));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // 음성 메시지 업로드 및 실시간 전송
+    @PostMapping(value = "/room/{chat_room_seq}/voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadVoiceMessage(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "duration", required = false) Long duration,
+            HttpServletRequest request) {
+
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+
+        try {
+            Map<String, Object> result = chattingService.uploadVoiceMessage(
+                    roomSeq, memberSeq, file, duration);
+
+            Object payload = result;
+
+            messagingTemplate.convertAndSend(
+                    "/sub/chat/" + roomSeq,
+                    payload
+            );
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("음성 메시지 업로드에 실패했습니다.");
         }
     }
 
@@ -220,8 +270,12 @@ public class ChattingController {
         System.out.println("메시지 브로드캐스트 주소: /sub/chat/" + message.getChat_room_seq());
 
         
+        Object payload = message;
+
         messagingTemplate.convertAndSend(
-                "/sub/chat/" + message.getChat_room_seq(), message);
+                "/sub/chat/" + message.getChat_room_seq(),
+                payload
+        );
     }
 
     private Long getLoginMemberSeq(HttpServletRequest request) {
