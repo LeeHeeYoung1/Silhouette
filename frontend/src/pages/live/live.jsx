@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 import useAuthStore from '../../stores/useAuthStore';
-import { getLiveList, startLive, watchLive, endLive } from '../../api/live';
+import { getLiveList, startLive, joinLive, endLive } from '../../api/live';
 import styles from './live.module.css';
 
 // 서버 에러 → 화면에 보여줄 메시지
@@ -15,7 +15,7 @@ const errorMessage = (e, fallback) => {
 
 function Live() {
   const id = useAuthStore((state) => state.id);
-  const [conn, setConn] = useState(null); // { token, url }
+  const [conn, setConn] = useState(null); // { token, url, live_room_seq? }
   const [isHost, setIsHost] = useState(false);
   const [title, setTitle] = useState('');
   const [lives, setLives] = useState([]);
@@ -47,7 +47,7 @@ function Live() {
       return;
     }
     try {
-      const { data } = await startLive(title.trim());
+      const { data } = await startLive({ title: title.trim() });
       setIsHost(true);
       setConn(data);
     } catch (e) {
@@ -58,7 +58,7 @@ function Live() {
   const handleWatch = async (liveSeq) => {
     setError('');
     try {
-      const { data } = await watchLive(liveSeq);
+      const { data } = await joinLive(liveSeq);
       setIsHost(false);
       setConn(data);
     } catch (e) {
@@ -71,7 +71,7 @@ function Live() {
   const handleDisconnected = async () => {
     if (isHost) {
       try {
-        await endLive();
+        await endLive(conn.live_room_seq);
       } catch {
         // 실패해도 다음 방송 시작 때 정리됨
       }
@@ -108,22 +108,22 @@ function Live() {
         ) : (
           <ul className={styles.list}>
             {lives.map((live) => (
-              <li key={live.live_Seq} className={styles.item}>
+              <li key={live.live_room_seq} className={styles.item}>
                 <div className={styles.info}>
                   <strong>{live.title}</strong>
                   <span>
-                    {live.nickname || live.login_Id} ·{' '}
-                    {new Date(live.started_At).toLocaleTimeString('ko-KR', {
+                    {live.host_nickname || live.host_login_id} · 👀 {live.viewer_count} ·{' '}
+                    {new Date(live.started_at).toLocaleTimeString('ko-KR', {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}{' '}
                     시작
                   </span>
                 </div>
-                {live.login_Id === id ? (
+                {live.host_login_id === id ? (
                   <span className={styles.mine}>내 방송</span>
                 ) : (
-                  <button onClick={() => handleWatch(live.live_Seq)}>👀 시청하기</button>
+                  <button onClick={() => handleWatch(live.live_room_seq)}>👀 시청하기</button>
                 )}
               </li>
             ))}
