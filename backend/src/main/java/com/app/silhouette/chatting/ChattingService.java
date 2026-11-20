@@ -131,8 +131,16 @@ public class ChattingService {
         if (chattingDAO.isRoomMember(roomSeq, memberSeq) == 0) {
             throw new IllegalArgumentException("참여 중인 채팅방이 아닙니다.");
         }
+
+        // 현재 회원만 채팅방에서 나가기
         chattingDAO.leaveParticipant(roomSeq, memberSeq);
         chattingDAO.leaveRoomList(roomSeq, memberSeq);
+
+        // 남아 있는 참여자가 없는지 확인
+        if (chattingDAO.countJoinedParticipants(roomSeq) == 0) {
+            chattingDAO.cancelRoomInvitations(roomSeq);
+            chattingDAO.deleteChatRoom(roomSeq);
+        }
     }
 
     public boolean isRoomMember(Long roomSeq, Long memberSeq) {
