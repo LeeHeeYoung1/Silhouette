@@ -21,7 +21,15 @@ import com.google.cloud.storage.Storage;
 @Service
 public class ProfileService {
 
-	private static final int PHOTO_COUNT = 4;   // 프로필 사진은 항상 4장
+	private static final int PHOTO_COUNT = 4;       // 프로필 사진은 항상 4장
+
+	// 범위 상수 (프론트 onboarding.jsx 상수와 같은 값)
+	private static final int HEIGHT_MIN = 100;      // 키 최소 (본인·이상형)
+	private static final int HEIGHT_MAX = 250;      // 키 최대
+	private static final int WEIGHT_MIN = 30;       // 몸무게 최소
+	private static final int WEIGHT_MAX = 200;      // 몸무게 최대
+	private static final int IDEAL_AGE_MIN = 14;    // 이상형 나이 최소
+	private static final int IDEAL_AGE_MAX = 100;   // 이상형 나이 최대
 
 	private final ProfileDAO profileDAO;
 	private final Storage storage;
@@ -83,7 +91,13 @@ public class ProfileService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "프로필 항목을 모두 입력해 주세요.");
 		}
 
-		// 3-1) 병역: 남성은 필수, 여성은 저장하지 않음
+		// ✅ 3-1) 본인 키·몸무게 범위 (몸무게 문구 수정, 띄어쓰기 수정)
+		checkRange(p.getHeight(), HEIGHT_MIN, HEIGHT_MAX,
+				"키는 " + HEIGHT_MIN + "~" + HEIGHT_MAX + "cm 사이로 입력해 주세요.");
+		checkRange(p.getWeight(), WEIGHT_MIN, WEIGHT_MAX,
+				"몸무게는 " + WEIGHT_MIN + "~" + WEIGHT_MAX + "kg 사이로 입력해 주세요.");
+
+		// 3-2) 병역: 남성은 필수, 여성은 저장하지 않음
 		if (male) {
 			if (isBlank(p.getMilitaryStatus())) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "병역 사항을 선택해 주세요.");
@@ -104,6 +118,7 @@ public class ProfileService {
 				ideal.setMilitaryPref(null);   // 이상형 병역은 여성만
 			}
 			if (ideal.hasAnyValue()) {
+				checkIdealRange(ideal);        // ✅ 이상형 나이·키 범위 검사 (저장 전에)
 				ideal.setLoginId(loginId);
 				if (profileDAO.countIdealType(loginId) > 0) {
 					profileDAO.updateIdealType(ideal);
@@ -217,6 +232,33 @@ public class ProfileService {
 
 	// ===================== 도우미 =====================
 
+	// ✅ 숫자 범위 검사 (값이 없으면 통과, 있으면 min~max 안이어야 함)
+	private void checkRange(Integer value, int min, int max, String message) {
+		if (value != null && (value < min || value > max)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+		}
+	}
+
+	// ✅ 이상형 나이·키 범위 + 최소 ≤ 최대
+	private void checkIdealRange(IdealTypeDTO ideal) {
+		String ageMsg = "이상형 나이는 " + IDEAL_AGE_MIN + "~" + IDEAL_AGE_MAX + "세 사이로 입력해 주세요.";
+		String heightMsg = "이상형 키는 " + HEIGHT_MIN + "~" + HEIGHT_MAX + "cm 사이로 입력해 주세요.";
+
+		checkRange(ideal.getAgeMin(), IDEAL_AGE_MIN, IDEAL_AGE_MAX, ageMsg);
+		checkRange(ideal.getAgeMax(), IDEAL_AGE_MIN, IDEAL_AGE_MAX, ageMsg);
+		checkRange(ideal.getMinHeight(), HEIGHT_MIN, HEIGHT_MAX, heightMsg);
+		checkRange(ideal.getMaxHeight(), HEIGHT_MIN, HEIGHT_MAX, heightMsg);
+
+		if (ideal.getAgeMin() != null && ideal.getAgeMax() != null
+				&& ideal.getAgeMin() > ideal.getAgeMax()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이상형 나이의 최소값이 최대값보다 클 수 없습니다.");
+		}
+		if (ideal.getMinHeight() != null && ideal.getMaxHeight() != null
+				&& ideal.getMinHeight() > ideal.getMaxHeight()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이상형 키의 최소값이 최대값보다 클 수 없습니다.");
+		}
+	}
+
 	// 이미지 파일인지 검사
 	private void checkImage(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
@@ -251,7 +293,7 @@ public class ProfileService {
 		try {
 			storage.delete(BlobId.of(bucketName, storedName));
 		} catch (RuntimeException e) {
-			System.out.println("GCS 파일 삭제 실패: " + storedName);
+			// ✅ 예전 파일 정리 실패는 저장 결과에 영향 없음 (System.out.println 제거)
 		}
 	}
 
