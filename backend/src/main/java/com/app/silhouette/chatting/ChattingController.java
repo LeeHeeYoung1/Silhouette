@@ -1,3 +1,4 @@
+
 package com.app.silhouette.chatting;
 
 import java.util.Date;
@@ -35,16 +36,19 @@ public class ChattingController {
         this.messagingTemplate = messagingTemplate;
     }
 
-    // 채팅방 생성: 생성자 참여 후 선택한 회원들에게 초대 발송
+    // 채팅방 생성
     @PostMapping("/room")
     public ResponseEntity<?> createRoom(@RequestBody Map<String, Object> data,
             HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
 
         ChattingRoomDTO room = new ChattingRoomDTO();
+
         room.setRoom_name(data.get("room_name") == null ? "새 채팅방" : data.get("room_name").toString());
         room.setRoom_type(data.get("room_type") == null ? "1:1" : data.get("room_type").toString());
 
@@ -53,6 +57,7 @@ public class ChattingController {
         }
 
         List<Long> inviteeSeqs = new java.util.ArrayList<>();
+
         if (data.get("invitee_seqs") instanceof List<?>) {
             for (Object value : (List<?>) data.get("invitee_seqs")) {
                 inviteeSeqs.add(Long.valueOf(value.toString()));
@@ -60,26 +65,33 @@ public class ChattingController {
         }
 
         room.setRoom_type(inviteeSeqs.size() > 1 ? "GROUP" : "1:1");
+
         return ResponseEntity.ok(chattingService.createRoom(room, memberSeq, inviteeSeqs));
     }
 
     // 내 채팅방 목록
     @GetMapping("/rooms")
     public ResponseEntity<?> getRoomList(HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         return ResponseEntity.ok(chattingService.getRoomList(memberSeq));
     }
 
     // 내 회원 번호
     @GetMapping("/member-seq")
     public ResponseEntity<?> getMemberSeq(HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         return ResponseEntity.ok(memberSeq);
     }
 
@@ -88,10 +100,13 @@ public class ChattingController {
     public ResponseEntity<?> getMessageList(
             @PathVariable("chat_room_seq") Long roomSeq,
             HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         try {
             return ResponseEntity.ok(chattingService.getMessageList(roomSeq, memberSeq));
         } catch (IllegalArgumentException e) {
@@ -99,15 +114,18 @@ public class ChattingController {
         }
     }
 
-    // 채팅방 첨부파일 목록 (메시지 목록과 별도 조회)
+    // 채팅방 첨부파일 목록
     @GetMapping("/messages/{chat_room_seq}/attachments")
     public ResponseEntity<?> getAttachmentList(
             @PathVariable("chat_room_seq") Long roomSeq,
             HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         try {
             return ResponseEntity.ok(chattingService.getAttachmentList(roomSeq, memberSeq));
         } catch (IllegalArgumentException e) {
@@ -124,6 +142,7 @@ public class ChattingController {
             HttpServletRequest request) {
 
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
@@ -132,18 +151,83 @@ public class ChattingController {
             Map<String, Object> result = chattingService.uploadVoiceMessage(
                     roomSeq, memberSeq, file, duration);
 
-            Object payload = result;
-
             messagingTemplate.convertAndSend(
                     "/sub/chat/" + roomSeq,
-                    payload
+                    (Object) result
             );
+
             return ResponseEntity.ok(result);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("음성 메시지 업로드에 실패했습니다.");
+        }
+    }
+
+    // 일반 파일 업로드 및 실시간 전송
+    @PostMapping(value = "/room/{chat_room_seq}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadChatFile(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        Long memberSeq = getLoginMemberSeq(request);
+
+        if (memberSeq == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+
+        try {
+            Map<String, Object> result = chattingService.uploadChatFile(roomSeq, memberSeq, file);
+
+            messagingTemplate.convertAndSend(
+                    "/sub/chat/" + roomSeq,
+                    (Object) result
+            );
+
+            return ResponseEntity.ok(result);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("파일 업로드에 실패했습니다.");
+        }
+    }
+
+    // 사진 업로드 및 실시간 전송
+    @PostMapping(value = "/room/{chat_room_seq}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadChatImage(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        Long memberSeq = getLoginMemberSeq(request);
+
+        if (memberSeq == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+
+        try {
+            Map<String, Object> result = chattingService.uploadChatImage(roomSeq, memberSeq, file);
+
+            messagingTemplate.convertAndSend(
+                    "/sub/chat/" + roomSeq,
+                    (Object) result
+            );
+
+            return ResponseEntity.ok(result);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("사진 업로드에 실패했습니다.");
         }
     }
 
@@ -151,13 +235,17 @@ public class ChattingController {
     @GetMapping("/members")
     public ResponseEntity<?> searchMembers(@RequestParam("keyword") String keyword,
             HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
+
         return ResponseEntity.ok(chattingService.searchMembers(keyword.trim(), memberSeq));
     }
 
@@ -165,15 +253,21 @@ public class ChattingController {
     @PostMapping("/invite")
     public ResponseEntity<?> inviteMember(@RequestBody Map<String, Object> data,
             HttpServletRequest request) {
+
         Long inviterSeq = getLoginMemberSeq(request);
+
         if (inviterSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         try {
             Long roomSeq = Long.valueOf(data.get("chat_room_seq").toString());
             Long inviteeSeq = Long.valueOf(data.get("invitee_seq").toString());
+
             chattingService.inviteMember(roomSeq, inviterSeq, inviteeSeq);
+
             return ResponseEntity.ok("초대를 보냈습니다.");
+
         } catch (IllegalArgumentException | NullPointerException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -182,10 +276,13 @@ public class ChattingController {
     // 내가 받은 초대 목록
     @GetMapping("/invitations")
     public ResponseEntity<?> getInvitations(HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         return ResponseEntity.ok(chattingService.getInvitations(memberSeq));
     }
 
@@ -194,6 +291,7 @@ public class ChattingController {
     public ResponseEntity<?> acceptInvitation(
             @PathVariable("invitation_seq") Long invitationSeq,
             HttpServletRequest request) {
+
         return respondInvitation(invitationSeq, request, true);
     }
 
@@ -202,45 +300,58 @@ public class ChattingController {
     public ResponseEntity<?> rejectInvitation(
             @PathVariable("invitation_seq") Long invitationSeq,
             HttpServletRequest request) {
+
         return respondInvitation(invitationSeq, request, false);
     }
 
     private ResponseEntity<?> respondInvitation(Long invitationSeq,
             HttpServletRequest request, boolean accept) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         try {
             chattingService.respondInvitation(invitationSeq, memberSeq, accept);
+
             return ResponseEntity.ok(accept ? "초대를 수락했습니다." : "초대를 거절했습니다.");
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // 채팅방 나가기: 페이지 이동과 별개로 이 API를 호출해야 목록에서 사라짐
+    // 채팅방 나가기
     @PostMapping("/room/{chat_room_seq}/leave")
     public ResponseEntity<?> leaveRoom(
             @PathVariable("chat_room_seq") Long roomSeq,
             HttpServletRequest request) {
+
         Long memberSeq = getLoginMemberSeq(request);
+
         if (memberSeq == null) {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
+
         try {
             chattingService.leaveRoom(roomSeq, memberSeq);
+
             return ResponseEntity.ok("채팅방에서 나왔습니다.");
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // STOMP 메시지 전송: /pub/chat/send
+    // STOMP 메시지 전송
     @MessageMapping("/chat/send")
     public void sendMessage(ChattingMessageDTO message,
             SimpMessageHeaderAccessor headerAccessor) {
+
         Map<String, Object> session = headerAccessor.getSessionAttributes();
+
         if (session == null || session.get("userId") == null
                 || message.getChat_room_seq() == null
                 || message.getMessage_content() == null
@@ -250,11 +361,13 @@ public class ChattingController {
 
         String id = session.get("userId").toString();
         Integer seq = chattingDAO.getMemberSeq(id);
+
         if (seq == null) {
             return;
         }
 
         Long memberSeq = seq.longValue();
+
         if (!chattingService.isRoomMember(message.getChat_room_seq(), memberSeq)) {
             return;
         }
@@ -264,33 +377,36 @@ public class ChattingController {
         message.setSystem_event_type(null);
         message.setCreated_at(new Date());
         message.setDeleted_yn("N");
+
         chattingDAO.insertMessage(message);
-        
+
         System.out.println("메시지 DB 저장 완료");
         System.out.println("메시지 브로드캐스트 주소: /sub/chat/" + message.getChat_room_seq());
 
-        
-        Object payload = message;
-
         messagingTemplate.convertAndSend(
                 "/sub/chat/" + message.getChat_room_seq(),
-                payload
+                (Object) message
         );
     }
 
     private Long getLoginMemberSeq(HttpServletRequest request) {
+
         String id = (String) request.getAttribute("id");
+
         if (id == null) {
             return null;
         }
+
         Integer memberSeq = chattingDAO.getMemberSeq(id);
+
         if (memberSeq == null) {
             return null;
         }
+
         return memberSeq.longValue();
     }
-    
- // 현재 사용자가 채팅방 방장인지 확인
+
+    // 현재 사용자가 채팅방 방장인지 확인
     @GetMapping("/room/{chat_room_seq}/owner")
     public ResponseEntity<?> checkRoomOwner(
             @PathVariable("chat_room_seq") Long roomSeq,
@@ -319,7 +435,9 @@ public class ChattingController {
 
         try {
             chattingService.deleteRoom(roomSeq, memberSeq);
+
             return ResponseEntity.ok("채팅방이 삭제되었습니다.");
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

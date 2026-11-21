@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
@@ -24,7 +25,12 @@ const Chatting = () => {
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+
+  // 파일 및 사진 여러 개 전송 대기 상태
+  const [pendingFiles, setPendingFiles] = useState([]);
 
   const stompClient = useRef(null);
   const messagesEndRef = useRef(null);
@@ -32,6 +38,8 @@ const Chatting = () => {
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingStartRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   // 음성 메시지 재생 시간 표시
   const formatDuration = (value) => {
@@ -120,7 +128,7 @@ const Chatting = () => {
     setIsConnected(false);
 
     const client = new StompClient({
-      brokerURL: 'ws://10.5.4.15/chat',
+      brokerURL: 'ws://localhost/chat',
 
       connectHeaders: {
         Authorization: `Bearer ${token}`
@@ -133,7 +141,6 @@ const Chatting = () => {
 
         setIsConnected(true);
 
-        // 현재 채팅방 구독
         client.subscribe(`/sub/chat/${roomId}`, (frame) => {
           console.log('실시간 메시지 수신:', frame.body);
 
@@ -143,7 +150,6 @@ const Chatting = () => {
           let newMessage = receivedData;
           let newAttachment = null;
 
-          // 음성 메시지는 백엔드에서 message와 attachment를 묶어서 전송
           if (receivedData.message && receivedData.attachment) {
             newMessage = receivedData.message;
             newAttachment = receivedData.attachment;
@@ -157,7 +163,6 @@ const Chatting = () => {
             timestamp: formatTime(newMessage.created_at)
           };
 
-          // 실시간으로 받은 메시지 화면에 추가
           setMessages((prev) => {
             const exists = prev.some(
               (item) =>
@@ -177,7 +182,6 @@ const Chatting = () => {
           });
         });
 
-        // 구독한 다음 이전 메시지 가져오기
         Promise.all([
           Client.get(`/api/chat/messages/${roomId}`),
           Client.get(`/api/chat/messages/${roomId}/attachments`)
@@ -200,11 +204,9 @@ const Chatting = () => {
               timestamp: formatTime(msg.created_at)
             }));
 
-            // 이전 대화와 실시간 메시지 합치기
             setMessages((prev) => {
               const combined = [...loadedMessages, ...prev];
 
-              // 중복 메시지 제거
               const uniqueMessages = combined.filter(
                 (msg, index, self) =>
                   self.findIndex(
@@ -214,7 +216,6 @@ const Chatting = () => {
                   ) === index
               );
 
-              // 메시지 번호 순서대로 정렬
               return uniqueMessages.sort(
                 (a, b) =>
                   Number(a.chat_message_seq) -
@@ -253,7 +254,6 @@ const Chatting = () => {
     stompClient.current = client;
     client.activate();
 
-    // 채팅방을 나가거나 컴포넌트가 종료되면 연결 해제
     return () => {
       isActive = false;
       setIsConnected(false);
@@ -269,25 +269,6 @@ const Chatting = () => {
       behavior: 'smooth'
     });
   }, [messages]);
-
-  // 메시지 전송
-  const sendMessage = (e) => {
-    e.preventDefault();
-
-    if (!inputMessage.trim() || !isConnected || !stompClient.current) {
-      return;
-    }
-
-    stompClient.current.publish({
-      destination: '/pub/chat/send',
-      body: JSON.stringify({
-        chat_room_seq: Number(roomId),
-        message_content: inputMessage.trim()
-      })
-    });
-
-    setInputMessage('');
-  };
 
   // 녹음 중인 시간 표시
   useEffect(() => {
@@ -308,7 +289,7 @@ const Chatting = () => {
   useEffect(() => {
     return () => {
       if (mediaRecorderRef.current &&
-          mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
 
@@ -317,6 +298,42 @@ const Chatting = () => {
       }
     };
   }, []);
+
+  // 컴포넌트 종료 시 사진 미리보기 URL 정리
+  useEffect(() => {
+    return () => {
+      pendingFiles.forEach((item) => {
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+    };
+  }, [pendingFiles]);
+
+  // 메시지 및 대기 파일 전송
+  const sendMessage = async (e) => {
+    e.preventDefault();
+
+    if (!isConnected || !stompClient.current || isUploadingFile) {
+      return;
+    }
+
+    if (inputMessage.trim()) {
+      stompClient.current.publish({
+        destination: '/pub/chat/send',
+        body: JSON.stringify({
+          chat_room_seq: Number(roomId),
+          message_content: inputMessage.trim()
+        })
+      });
+
+      setInputMessage('');
+    }
+
+    if (pendingFiles.length > 0) {
+      await uploadChatAttachments();
+    }
+  };
 
   // 녹음한 음성 파일을 백엔드로 업로드
   const uploadVoiceMessage = async (audioBlob, duration) => {
@@ -348,7 +365,6 @@ const Chatting = () => {
         timestamp: formatTime(newMessage.created_at)
       };
 
-      // STOMP 수신과 업로드 응답이 중복으로 들어오는 경우 한 번만 표시
       setMessages((prev) => {
         const exists = prev.some(
           (item) =>
@@ -371,6 +387,123 @@ const Chatting = () => {
       alert(error.response?.data || '음성 메시지 업로드에 실패했습니다.');
     } finally {
       setIsUploadingVoice(false);
+    }
+  };
+
+  // 파일 또는 사진 여러 개 선택 후 전송 대기 상태로 만들기
+  const handleSelectAttachment = (files, type) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles = [];
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`${file.name}은(는) 10MB를 초과했습니다.`);
+        return;
+      }
+
+      if (type === 'IMAGE' && !file.type.startsWith('image/')) {
+        alert(`${file.name}은(는) 이미지 파일이 아닙니다.`);
+        return;
+      }
+
+      const previewUrl = type === 'IMAGE'
+        ? URL.createObjectURL(file)
+        : null;
+
+      newFiles.push({
+        id: `${Date.now()}-${Math.random()}`,
+        file: file,
+        type: type,
+        previewUrl: previewUrl
+      });
+    });
+
+    setPendingFiles((prev) => [...prev, ...newFiles]);
+
+    setShowUploadMenu(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  // 대기 중인 파일 또는 사진 개별 삭제
+  const removePendingFile = (id) => {
+    setPendingFiles((prev) => {
+      const target = prev.find((item) => item.id === id);
+
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  // 대기 중인 파일과 사진 여러 개 업로드
+  const uploadChatAttachments = async () => {
+    if (pendingFiles.length === 0) return;
+
+    setIsUploadingFile(true);
+
+    try {
+      for (const selectedFile of pendingFiles) {
+        const formData = new FormData();
+        formData.append('file', selectedFile.file);
+
+        const uploadUrl = selectedFile.type === 'IMAGE'
+          ? `/api/chat/room/${roomId}/image`
+          : `/api/chat/room/${roomId}/file`;
+
+        const response = await Client.post(uploadUrl, formData);
+
+        const newMessage = response.data.message;
+        const newAttachment = response.data.attachment;
+
+        const formattedMessage = {
+          ...newMessage,
+          attachment: newAttachment,
+          isMine: true,
+          content: newMessage.message_content,
+          timestamp: formatTime(newMessage.created_at)
+        };
+
+        setMessages((prev) => {
+          const exists = prev.some(
+            (item) =>
+              Number(item.chat_message_seq) ===
+              Number(newMessage.chat_message_seq)
+          );
+
+          if (exists) return prev;
+
+          return [...prev, formattedMessage].sort(
+            (a, b) =>
+              Number(a.chat_message_seq) -
+              Number(b.chat_message_seq)
+          );
+        });
+
+        if (selectedFile.previewUrl) {
+          URL.revokeObjectURL(selectedFile.previewUrl);
+        }
+
+        setPendingFiles((prev) =>
+          prev.filter((item) => item.id !== selectedFile.id)
+        );
+      }
+
+    } catch (error) {
+      console.error('첨부파일 업로드 실패:', error);
+      alert(error.response?.data || '첨부파일 업로드에 실패했습니다.');
+
+    } finally {
+      setIsUploadingFile(false);
     }
   };
 
@@ -430,6 +563,7 @@ const Chatting = () => {
       setIsRecording(true);
       setShowUploadMenu(true);
       recorder.start();
+
     } catch (error) {
       console.error('마이크 접근 실패:', error);
 
@@ -444,7 +578,7 @@ const Chatting = () => {
   // 음성 녹음 종료
   const stopRecording = () => {
     if (!mediaRecorderRef.current ||
-        mediaRecorderRef.current.state === 'inactive') {
+      mediaRecorderRef.current.state === 'inactive') {
       return;
     }
 
@@ -479,7 +613,6 @@ const Chatting = () => {
   };
 
   // 회원 검색
-  // 닉네임으로 회원 검색
   const searchMembers = async () => {
     if (!keyword.trim()) {
       setMembers([]);
@@ -538,8 +671,8 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/leave`);
 
       alert('채팅방에서 나왔습니다.');
-
       navigate('/chattingRoomList');
+
     } catch (error) {
       alert(
         error.response?.data || '채팅방 나가기에 실패했습니다.'
@@ -567,7 +700,7 @@ const Chatting = () => {
     }
   }, [roomId, token]);
 
-  // 채팅방 삭제: 방장만 가능
+  // 채팅방 삭제
   const deleteRoom = async () => {
     const confirmed = window.confirm(
       '채팅방을 삭제하시겠습니까?\n삭제하면 모든 참여자의 채팅방 목록에서 사라집니다.'
@@ -579,8 +712,8 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/delete`);
 
       alert('채팅방이 삭제되었습니다.');
-
       navigate('/chattingRoomList');
+
     } catch (error) {
       alert(
         error.response?.data || '채팅방 삭제에 실패했습니다.'
@@ -767,20 +900,59 @@ const Chatting = () => {
                   )}
 
                   <div className={styles.messageBubble}>
-                    {msg.message_type === 'AUDIO' && msg.attachment?.file_url ? (
-                      <div className={styles.audioMessage}>
-                        <audio
-                          controls
-                          preload="none"
-                          src={msg.attachment.file_url}
-                        />
-                        <span>
-                          {formatDuration(msg.attachment.duration)}
-                        </span>
-                      </div>
-                    ) : (
-                      msg.content
-                    )}
+                    {msg.message_type === 'AUDIO' &&
+                      msg.attachment?.file_url && (
+                        <div className={styles.audioMessage}>
+                          <audio
+                            controls
+                            preload="none"
+                            src={msg.attachment.file_url}
+                          />
+                          <span>
+                            {formatDuration(msg.attachment.duration)}
+                          </span>
+                        </div>
+                      )}
+
+                    {msg.message_type === 'FILE' &&
+                      msg.attachment?.file_url && (
+                        <div className={styles.fileMessage}>
+                          <span>📎</span>
+
+                          <a
+                            href={msg.attachment.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {msg.attachment.original_name}
+                          </a>
+
+                          <span>
+                            ({(
+                              Number(msg.attachment.file_size || 0) /
+                              1024
+                            ).toFixed(1)} KB)
+                          </span>
+                        </div>
+                      )}
+
+                    {msg.message_type === 'IMAGE' &&
+                      msg.attachment?.file_url && (
+                        <div className={styles.imageMessage}>
+                          <img
+                            src={msg.attachment.file_url}
+                            alt={
+                              msg.attachment.original_name ||
+                              '채팅 사진'
+                            }
+                          />
+                        </div>
+                      )}
+
+                    {msg.message_type !== 'AUDIO' &&
+                      msg.message_type !== 'FILE' &&
+                      msg.message_type !== 'IMAGE' &&
+                      msg.content}
                   </div>
 
                   {!msg.isMine && showTime && (
@@ -817,9 +989,7 @@ const Chatting = () => {
             <input
               type="text"
               value={inputMessage}
-              onChange={(e) =>
-                setInputMessage(e.target.value)
-              }
+              onChange={(e) => setInputMessage(e.target.value)}
               placeholder="어둠 속에 메시지를 남기세요..."
               className={styles.textInput}
               disabled={!isConnected}
@@ -828,26 +998,103 @@ const Chatting = () => {
             <button
               type="submit"
               className={styles.sendButton}
-              disabled={!isConnected}
+              disabled={
+                !isConnected ||
+                isUploadingFile ||
+                (!inputMessage.trim() && pendingFiles.length === 0)
+              }
             >
-              전송
+              {isUploadingFile ? '업로드 중...' : '전송'}
             </button>
           </div>
 
+          {/* 파일 선택 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) =>
+              handleSelectAttachment(e.target.files, 'FILE')
+            }
+          />
+
+          {/* 사진 선택 */}
+          <input
+            type="file"
+            ref={imageInputRef}
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) =>
+              handleSelectAttachment(e.target.files, 'IMAGE')
+            }
+          />
+
+          {/* 파일 및 사진 전송 대기 영역 */}
+          {pendingFiles.length > 0 && (
+            <div className={styles.pendingFiles}>
+              {pendingFiles.map((item) => (
+                <div key={item.id} className={styles.pendingItem}>
+
+                  {item.type === 'IMAGE' ? (
+                    <img
+                      src={item.previewUrl}
+                      alt="선택한 사진"
+                      className={styles.pendingImage}
+                    />
+                  ) : (
+                    <div className={styles.pendingFile}>
+                      📎 {item.file.name}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className={styles.pendingRemove}
+                    onClick={() => removePendingFile(item.id)}
+                    disabled={isUploadingFile}
+                  >
+                    ×
+                  </button>
+
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 업로드 메뉴 */}
           {showUploadMenu && (
             <div className={styles.uploadMenu}>
-              <button type="button" className={styles.uploadButton}>
+              <button
+                type="button"
+                className={styles.uploadButton}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingFile}
+              >
                 <span>📁</span>
                 <span>파일</span>
               </button>
 
               <button
                 type="button"
-                className={`${styles.uploadButton} ${isRecording ? styles.recordingButton : ''}`}
+                className={styles.uploadButton}
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isUploadingFile}
+              >
+                <span>🖼️</span>
+                <span>사진</span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.uploadButton} ${isRecording ? styles.recordingButton : ''
+                  }`}
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isUploadingVoice}
               >
                 <span>{isRecording ? '⏹️' : '🎙️'}</span>
+
                 <span>
                   {isUploadingVoice
                     ? '업로드 중...'
@@ -857,7 +1104,10 @@ const Chatting = () => {
                 </span>
               </button>
 
-              <button type="button" className={styles.uploadButton}>
+              <button
+                type="button"
+                className={styles.uploadButton}
+              >
                 <span>🎬</span>
                 <span>동영상</span>
               </button>
