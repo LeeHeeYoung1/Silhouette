@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Faq">
+
+    <!-- 목록: 카테고리 선택 시 해당 카테고리만, 일반 회원은 보이는 것(Y)만 -->
+    <select id="selectFaqList" parameterType="map" resultType="com.app.silhouette.post.FaqDTO">
+        select faq_seq, admin_seq, category, question, answer,
+               sort_order, is_active, created_at, updated_at
+          from faq
+        <where>
+            <if test="category != null and category != ''">
+                and category = #{category}
+            </if>
+            <if test="includeInactive != true">
+                and is_active = 'Y'
+            </if>
+        </where>
+         order by sort_order asc, faq_seq asc
+    </select>
+
+    <!-- 한 건 (수정 화면용) -->
+    <select id="selectFaq" parameterType="long" resultType="com.app.silhouette.post.FaqDTO">
+        select faq_seq, admin_seq, category, question, answer,
+               sort_order, is_active, created_at, updated_at
+          from faq
+         where faq_seq = #{faqSeq}
+    </select>
+
+    <!-- 등록: 순서를 비우면 맨 뒤 번호로 -->
+    <insert id="insertFaq" parameterType="com.app.silhouette.post.FaqDTO">
+        <selectKey keyProperty="faqSeq" resultType="long" order="BEFORE">
+            select seq_faq.nextval from dual
+        </selectKey>
+        insert into faq (faq_seq, admin_seq, category, question, answer,
+                         sort_order, is_active, created_at, updated_at)
+        values (#{faqSeq}, #{adminSeq}, #{category}, #{question}, #{answer, jdbcType=CLOB},
+                <choose>
+                    <when test="sortOrder != null">#{sortOrder}</when>
+                    <otherwise>(select nvl(max(sort_order), 0) + 1 from faq)</otherwise>
+                </choose>,
+                #{isActive}, systimestamp, systimestamp)
+    </insert>
+
+    <!-- 수정 -->
+    <update id="updateFaq" parameterType="com.app.silhouette.post.FaqDTO">
+        update faq
+           set category   = #{category},
+               question   = #{question},
+               answer     = #{answer, jdbcType=CLOB},
+               sort_order = #{sortOrder},
+               is_active  = #{isActive},
+               updated_at = systimestamp
+         where faq_seq = #{faqSeq}
+    </update>
+
+    <!-- 삭제 (FAQ는 진짜 삭제, 숨기기는 is_active='N') -->
+    <delete id="deleteFaq" parameterType="long">
+        delete from faq where faq_seq = #{faqSeq}
+    </delete>
+
+</mapper>

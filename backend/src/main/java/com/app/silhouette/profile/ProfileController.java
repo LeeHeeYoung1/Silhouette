@@ -4,76 +4,78 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
+
+import com.app.silhouette.commons.TokenReader;
 
 /* =========================================================
    프로필 · 온보딩 API
-   ✅ 로그인 아이디는 화면이 보낸 loginId가 아니라 "토큰"에서 꺼냄
-      → 남의 아이디를 넣어 요청해도 내 정보만 조회·수정됨
+   ✅ 로그인 아이디는 화면이 보낸 loginId가 아니라
+      Authorization 헤더의 토큰(JwtUtil 검증)에서 꺼냄
    ========================================================= */
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {
 
+	private static final String AUTH = "Authorization";
+
 	private final ProfileService profileService;
+	private final TokenReader tokenReader;
 
-	public ProfileController(ProfileService profileService) {
+	public ProfileController(ProfileService profileService, TokenReader tokenReader) {
 		this.profileService = profileService;
-	}
-
-	// ✅ 토큰에서 로그인 아이디 꺼내기 (토큰 없거나 익명이면 401)
-	private String loginId(Authentication auth) {
-		if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-		}
-		return auth.getName();
+		this.tokenReader = tokenReader;
 	}
 
 	// 회원 기본 정보: GET /api/profile/basic
 	@GetMapping("/basic")
-	public ProfileDTO selectMemberBasic(Authentication auth) {
-		return profileService.selectMemberBasic(loginId(auth));
+	public ProfileDTO selectMemberBasic(
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		return profileService.selectMemberBasic(tokenReader.loginId(authorization));
 	}
 
 	// 온보딩 완료 여부: GET /api/profile/status
 	@GetMapping("/status")
-	public Map<String, Object> selectOnboardingStatus(Authentication auth) {
-		return profileService.selectOnboardingStatus(loginId(auth));
+	public Map<String, Object> selectOnboardingStatus(
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		return profileService.selectOnboardingStatus(tokenReader.loginId(authorization));
 	}
 
 	// 온보딩 저장: POST /api/profile  { profile, ideal }
 	@PostMapping
-	public Map<String, Object> saveOnboarding(@RequestBody OnboardingDTO dto, Authentication auth) {
-		dto.setLoginId(loginId(auth));   // ✅ 화면이 보낸 loginId는 덮어씀
+	public Map<String, Object> saveOnboarding(
+			@RequestBody OnboardingDTO dto,
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		dto.setLoginId(tokenReader.loginId(authorization));   // 화면이 보낸 loginId는 덮어씀
 		profileService.saveOnboarding(dto);
 		return Map.of("completed", true);
 	}
 
 	// 내 프로필 전체 조회: GET /api/profile/me
 	@GetMapping("/me")
-	public Map<String, Object> selectMyProfile(Authentication auth) {
-		return profileService.selectMyProfile(loginId(auth));
+	public Map<String, Object> selectMyProfile(
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		return profileService.selectMyProfile(tokenReader.loginId(authorization));
 	}
 
 	// 내 프로필 수정: PUT /api/profile  { profile, ideal }
 	@PutMapping
-	public Map<String, Object> updateProfile(@RequestBody OnboardingDTO dto, Authentication auth) {
-		dto.setLoginId(loginId(auth));   // ✅
+	public Map<String, Object> updateProfile(
+			@RequestBody OnboardingDTO dto,
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		dto.setLoginId(tokenReader.loginId(authorization));
 		profileService.updateProfile(dto);
 		return Map.of("updated", true);
 	}
@@ -84,8 +86,8 @@ public class ProfileController {
 	@PostMapping("/images")
 	public List<ProfileImageDTO> uploadImages(
 			@RequestParam("files") List<MultipartFile> files,
-			Authentication auth) throws IOException {
-		return profileService.saveProfileImages(loginId(auth), files);
+			@RequestHeader(value = AUTH, required = false) String authorization) throws IOException {
+		return profileService.saveProfileImages(tokenReader.loginId(authorization), files);
 	}
 
 	// 사진 교체 (프로필 화면): PUT /api/profile/images/1  (file 1개)
@@ -93,14 +95,15 @@ public class ProfileController {
 	public ProfileImageDTO replaceImage(
 			@PathVariable("sortOrder") int sortOrder,
 			@RequestParam("file") MultipartFile file,
-			Authentication auth) throws IOException {
-		return profileService.replaceProfileImage(loginId(auth), sortOrder, file);
+			@RequestHeader(value = AUTH, required = false) String authorization) throws IOException {
+		return profileService.replaceProfileImage(tokenReader.loginId(authorization), sortOrder, file);
 	}
 
 	// 내 사진 목록: GET /api/profile/images
 	@GetMapping("/images")
-	public List<ProfileImageDTO> selectImages(Authentication auth) {
-		return profileService.selectProfileImages(loginId(auth));
+	public List<ProfileImageDTO> selectImages(
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		return profileService.selectProfileImages(tokenReader.loginId(authorization));
 	}
 
 	// 사진 보여주기: GET /api/profile/image/15  (화면은 Client로 blob 요청)

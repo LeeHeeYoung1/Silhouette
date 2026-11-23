@@ -1,0 +1,148 @@
+/* FAQ 작성 · 수정 - 다크 테마, 색 직접 지정 */
+.card {
+    --fw-accent: #a78bfa;
+    --fw-bg: #1b1b22;
+    --fw-input: #24242d;
+    --fw-border: #33333f;
+    --fw-text: #f3f3f7;
+    --fw-sub: #a9a9b8;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px;
+    border-radius: 16px;
+    border: 1px solid var(--fw-border);
+    background: var(--fw-bg);
+    color: var(--fw-text);
+}
+
+.title {
+    margin: 0 0 24px;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.field {
+    flex: 1;
+    margin-bottom: 20px;
+}
+.label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fw-text);
+}
+.hint {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--fw-sub);
+}
+
+.input, .textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--fw-border);
+    background: var(--fw-input);
+    color: var(--fw-text);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+}
+.input::placeholder, .textarea::placeholder { color: #7d7d8c; }
+.input:focus, .textarea:focus { border-color: var(--fw-accent); }
+.textarea { resize: vertical; line-height: 1.6; }
+
+.counter {
+    margin: 6px 0 0;
+    text-align: right;
+    font-size: 13px;
+    color: var(--fw-sub);
+}
+
+.row {
+    display: flex;
+    gap: 16px;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.chip {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--fw-border);
+    background: var(--fw-input);
+    color: var(--fw-sub);
+    font-size: 14px;
+    cursor: pointer;
+}
+.chip:hover { color: var(--fw-text); border-color: var(--fw-accent); }
+.chipActive {
+    background: var(--fw-accent);
+    border-color: var(--fw-accent);
+    color: #15131c;
+    font-weight: 700;
+}
+
+.checkLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    color: var(--fw-text);
+    font-size: 15px;
+    cursor: pointer;
+}
+.checkLabel input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--fw-accent);
+}
+
+.error {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #3a2323;
+    color: #ffb4b4;
+    font-size: 14px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.cancelBtn, .submitBtn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.cancelBtn {
+    border: 1px solid var(--fw-border);
+    background: transparent;
+    color: var(--fw-sub);
+}
+.submitBtn {
+    border: none;
+    background: var(--fw-accent);
+    color: #15131c;
+}
+.cancelBtn:disabled, .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.notice {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--fw-sub);
+}
+
+@media (max-width: 600px) {
+    .card { padding: 20px; }
+    .row { flex-direction: column; gap: 0; }
+}

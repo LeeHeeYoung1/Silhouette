@@ -6,26 +6,32 @@ import Client from '../../api/client';
 
 /* =========================================================
    실루엣 게시판 새글 작성 / 수정 (PostWrite) - 담당: 권형석
-   - /post/free/write      자유게시판 새글 (첨부파일 최대 6개)
-   - /post/free/edit/:id   자유게시판 글 수정 (카테고리·제목·내용)
-   - /post/anon/write      익명게시판 새글 (카테고리 '익명' 고정)
-   - /post/anon/edit/:id   익명게시판 글 수정 (제목·내용)
-   - /post/notice/write    공지사항 (서버 연동 전)
-   - /post/qna/write       1:1 문의 (서버 연동 전)
+   - /post/free/write        자유게시판 새글 (첨부파일 최대 6개)
+   - /post/free/edit/:id     자유게시판 글 수정
+   - /post/anon/write        익명게시판 새글 (카테고리 '익명' 고정)
+   - /post/anon/edit/:id     익명게시판 글 수정
+   - /post/notice/write      ✅ 공지사항 새글 (관리자만)
+   - /post/notice/edit/:id   ✅ 공지사항 수정 (관리자만)
+   - /post/qna/write         1:1 문의 (서버 연동 전)
    ========================================================= */
 
 const MAX_FILES = 6;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;   // 파일당 10MB
 const MAX_TOTAL_SIZE = 50 * 1024 * 1024;  // 전체 50MB
 
-// ✅ 화면의 게시판 이름 → 서버에 보낼 BOARD_TYPE 값
+// 화면의 게시판 이름 → 서버에 보낼 BOARD_TYPE 값
 const BOARD_TYPE_MAP = { free: 'FREE', anon: 'ANON' };
 const ANON_CATEGORY = '익명';
 
-// ✅ 게시판별 첫 카테고리 값
+// ✅ 게시판별 제목 · 본문 최대 글자 (서버와 같음)
+const LIMITS = {
+    notice: { title: 60, content: 5000 },
+    default: { title: 100, content: 3000 },
+};
+
+// 게시판별 첫 카테고리 값
 const defaultCategory = (type) =>
     type === 'anon' ? ANON_CATEGORY
-        : type === 'notice' ? '공지'
         : type === 'qna' ? '시스템문의'
         : '자유';
 
@@ -35,11 +41,12 @@ function PostWrite({ writeType = 'free' }) {
     const { id, token } = useAuthStore();       // id = 로그인 아이디
     const type = params.type || writeType;
 
-    // ✅ 자유·익명 게시판인지 (서버에 저장되는 게시판)
     const isAnon = type === 'anon';
+    const isNotice = type === 'notice';                  // ✅ 공지사항
     const isPostBoard = type === 'free' || isAnon;
+    const limit = isNotice ? LIMITS.notice : LIMITS.default;
 
-    // 주소에 글 번호(:id)가 있으면 수정 모드 (/post/anon/edit/39 → "39")
+    // 주소에 글 번호(:id)가 있으면 수정 모드
     const postSeq = params.id;
     const isEdit = Boolean(postSeq);
 
@@ -51,34 +58,65 @@ function PostWrite({ writeType = 'free' }) {
         }
     }, [token, navigate]);
 
+    // ✅ 공지사항은 관리자만 (서버에서도 막지만, 화면 진입부터 차단)
+    useEffect(() => {
+        if (!isNotice || !token) return;
+        let cancelled = false;
+        Client.get('/api/members/me/role')
+            .then((res) => {
+                if (cancelled || res.data.admin) return;
+                alert('관리자만 공지사항을 작성할 수 있습니다.');
+                navigate('/post/notice', { replace: true });
+            })
+            .catch(() => {
+                if (cancelled) return;
+                navigate('/post/notice', { replace: true });
+            });
+        return () => { cancelled = true; };
+    }, [isNotice, token, navigate]);
+
     // 입력값
     const [form, setForm] = useState({
         category: defaultCategory(type),
         title: '',
         content: '',
-        isSecret: false
+        isSecret: false,
+        isPinned: false        // ✅ 공지 상단 고정
     });
 
-    // ✅ 새글 작성 중에 게시판이 바뀌면 (자유 글쓰기 ↔ 익명 글쓰기) 카테고리를 그 게시판 기본값으로
-    //    같은 PostWrite 화면을 같이 써서, 안 하면 이전 게시판 카테고리가 남아 있음
+    // 새글 작성 중에 게시판이 바뀌면 카테고리를 그 게시판 기본값으로
     useEffect(() => {
         if (isEdit) return;
         setForm((prev) => ({ ...prev, category: defaultCategory(type) }));
     }, [type, isEdit]);
 
-    // 수정 모드: 기존 글 불러오기 (본인 글이 아니면 서버가 403)
+    // 수정 모드: 기존 글 불러오기
     const [loading, setLoading] = useState(isEdit);
 
     useEffect(() => {
         if (!isEdit || !token || !id) return;
         let cancelled = false;
 
-        Client.get(`/api/posts/${postSeq}/edit`, { params: { loginId: id } })
+        // ✅ 공지: 관리자용 수정 조회 / 자유·익명: 본인 글 수정 조회
+        const request = isNotice
+            ? Client.get(`/api/notices/${postSeq}/edit`)
+            : Client.get(`/api/posts/${postSeq}/edit`, { params: { loginId: id } });
+
+        request
             .then((res) => {
                 if (cancelled) return;
 
-                // ✅ 주소와 실제 게시판이 다르면 맞는 주소로 이동
-                //    (예: 익명 글인데 /post/free/edit/39 로 들어온 경우)
+                if (isNotice) {
+                    setForm((prev) => ({
+                        ...prev,
+                        title: res.data.title,
+                        content: res.data.content,
+                        isPinned: res.data.isPinned === 'Y'
+                    }));
+                    return;
+                }
+
+                // 주소와 실제 게시판이 다르면 맞는 주소로 이동
                 const realType = res.data.boardType === 'ANON' ? 'anon' : 'free';
                 if (realType !== type) {
                     navigate(`/post/${realType}/edit/${postSeq}`, { replace: true });
@@ -95,34 +133,31 @@ function PostWrite({ writeType = 'free' }) {
             .catch((err) => {
                 if (cancelled) return;
                 const status = err.response?.status;
-                if (status === 403) alert('본인 글만 수정할 수 있습니다.');
+                if (status === 403) alert(isNotice ? '관리자만 수정할 수 있습니다.' : '본인 글만 수정할 수 있습니다.');
                 else if (status === 404) alert('게시글을 찾을 수 없습니다.');
                 else if (status === 401) alert('로그인이 필요합니다.');
                 else { console.error(err); alert('게시글을 불러오지 못했습니다.'); }
-                navigate(`/post/detail/${postSeq}`, { replace: true });
+                navigate(isNotice ? `/post/notice/${postSeq}` : `/post/detail/${postSeq}`, { replace: true });
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
             });
 
         return () => { cancelled = true; };
-    }, [isEdit, postSeq, id, token, type, navigate]);
+    }, [isEdit, isNotice, postSeq, id, token, type, navigate]);
 
     // 첨부파일: { file, previewUrl }
     const [files, setFiles] = useState([]);
     const fileInputRef = useRef(null);
 
-    // 미리보기 주소 메모리 정리
     useEffect(() => {
         return () => files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl));
     }, [files]);
 
-    // 업로드 영역 클릭 → 숨겨진 파일 선택창 열기
     const handleload = () => {
         fileInputRef.current.click();
     };
 
-    // 파일 선택했을 때
     const handleFileChange = (e) => {
         const selected = Array.from(e.target.files);
         e.target.value = '';
@@ -149,19 +184,43 @@ function PostWrite({ writeType = 'free' }) {
         setFiles([...files, ...added]);
     };
 
-    // 파일 하나 빼기
     const handleRemoveFile = (index) => {
         const target = files[index];
         if (target.previewUrl) URL.revokeObjectURL(target.previewUrl);
         setFiles(files.filter((_, i) => i !== index));
     };
 
-    // 용량 표시 (1234567 → "1.2MB")
     const formatSize = (bytes) =>
         bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.ceil(bytes / 1024)}KB`;
 
-    // ✅ 익명게시판은 카테고리를 무조건 '익명'으로
     const categoryToSend = isAnon ? ANON_CATEGORY : form.category;
+
+    // ✅ 공지사항 저장 (작성 / 수정)
+    const saveNotice = async () => {
+        const body = {
+            title: form.title.trim(),
+            content: form.content.trim(),
+            isPinned: form.isPinned ? 'Y' : 'N'
+        };
+        try {
+            if (isEdit) {
+                await Client.put(`/api/notices/${postSeq}`, body);
+                alert('공지사항이 수정되었습니다.');
+                navigate(`/post/notice/${postSeq}`, { replace: true });
+            } else {
+                const res = await Client.post('/api/notices', body);
+                alert('공지사항이 등록되었습니다.');
+                navigate(`/post/notice/${res.data.noticeSeq}`, { replace: true });
+            }
+        } catch (err) {
+            const status = err.response?.status;
+            if (status === 403) alert('관리자만 작성할 수 있습니다.');
+            else if (status === 401) { alert('로그인이 필요합니다.'); navigate('/login'); }
+            else if (status === 400) alert(`제목은 ${limit.title}자, 내용은 ${limit.content}자 이내로 입력해 주세요.`);
+            else if (status === 404) alert('공지사항을 찾을 수 없습니다.');
+            else { console.error(err); alert('공지사항 저장 중 오류가 발생하였습니다.'); }
+        }
+    };
 
     // 등록 / 수정
     const handleSave = async () => {
@@ -174,7 +233,13 @@ function PostWrite({ writeType = 'free' }) {
             return;
         }
 
-        // 수정 모드: PUT으로 카테고리·제목·내용만 보냄 (게시판은 못 바꿈)
+        // ✅ 공지사항
+        if (isNotice) {
+            await saveNotice();
+            return;
+        }
+
+        // 자유·익명 수정
         if (isEdit) {
             try {
                 await Client.put(`/api/posts/${postSeq}`, {
@@ -196,7 +261,7 @@ function PostWrite({ writeType = 'free' }) {
             return;
         }
 
-        // ✅ 자유·익명 새글: boardType을 같이 보냄
+        // 자유·익명 새글
         if (isPostBoard) {
             const formData = new FormData();
             formData.append('boardType', BOARD_TYPE_MAP[type]);
@@ -225,31 +290,31 @@ function PostWrite({ writeType = 'free' }) {
             return;
         }
 
-        alert('공지사항과 1:1 문의 등록은 준비 중입니다.');
+        alert('1:1 문의 등록은 준비 중입니다.');
     };
 
-    // 취소하면 돌아갈 곳: 수정이면 상세, 새글이면 각 게시판 목록
-    const listPath = isEdit ? `/post/detail/${postSeq}`
+    // 취소하면 돌아갈 곳
+    const listPath = isNotice
+        ? (isEdit ? `/post/notice/${postSeq}` : '/post/notice')
+        : isEdit ? `/post/detail/${postSeq}`
         : isAnon ? '/post/anon'
-        : type === 'notice' ? '/post/notice'
         : type === 'qna' ? '/post/qna'
         : '/post/free';
 
-    // ✅ 헤더 제목
-    const headerTitle = isAnon
-        ? (isEdit ? '🎭 익명 게시판 글 수정' : '🎭 익명 게시판 새글 작성')
+    // 헤더 제목
+    const headerTitle = isNotice
+        ? (isEdit ? '📢 공지사항 수정' : '📢 공지사항 새글 작성')
+        : isAnon ? (isEdit ? '🎭 익명 게시판 글 수정' : '🎭 익명 게시판 새글 작성')
         : isEdit ? '✏️ 자유 게시판 글 수정'
-        : type === 'notice' ? '📢 공지사항 새글 작성'
         : type === 'qna' ? '🔒 1:1 고객 문의 작성'
         : '💬 자유 게시판 새글 작성';
 
-    // ✅ 등록 게시판 이름
+    // 등록 게시판 이름
     const boardName = isAnon ? '익명 게시판'
-        : type === 'notice' ? '공지사항'
+        : isNotice ? '공지사항'
         : type === 'qna' ? '1:1 Q&A'
         : '자유 게시판';
 
-    // 수정 모드에서 기존 글 불러오는 중
     if (loading) {
         return <div className={styles.writeCard}>게시글을 불러오는 중...</div>;
     }
@@ -265,13 +330,21 @@ function PostWrite({ writeType = 'free' }) {
                 <Link to={listPath} className={styles.cancelBtn}>{isEdit ? '수정 취소' : '목록으로 취소'}</Link>
             </div>
 
-            {/* 카테고리 */}
+            {/* 카테고리 / 안내 */}
             {isAnon ? (
-                // ✅ 익명게시판: 선택창 없이 안내만
                 <div style={{ background: 'var(--bg-input)', padding: '12px 18px', borderRadius: 8, fontSize: '0.88rem', color: 'var(--text-sub)', lineHeight: 1.6 }}>
                     🎭 익명 게시판에 작성하는 글은 <strong style={{ color: '#c084fc' }}>작성자와 댓글 작성자 모두 익명</strong>으로 표시됩니다.
                     <br />
                     본문이나 첨부파일 이름에 개인정보(이름, 연락처 등)를 쓰지 않도록 주의해 주세요.
+                </div>
+            ) : isNotice ? (
+                // ✅ 공지: 카테고리 대신 상단 고정
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+                    <input type="checkbox" id="pinnedCheck" checked={form.isPinned}
+                        onChange={(e) => setForm({ ...form, isPinned: e.target.checked })} />
+                    <label htmlFor="pinnedCheck" style={{ fontSize: '0.88rem', color: 'var(--text-sub)', cursor: 'pointer' }}>
+                        📌 상단 고정 (목록 맨 위에 항상 표시)
+                    </label>
                 </div>
             ) : (
                 <div className={styles.writeFormGroup}>
@@ -279,14 +352,7 @@ function PostWrite({ writeType = 'free' }) {
                         <span>카테고리 구분</span>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>* 해당 게시판 분류를 선택하세요.</span>
                     </label>
-                    {type === 'notice' ? (
-                        <select className={styles.selectBox} value={form.category}
-                            onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                            <option value="공지">공지사항 (일반)</option>
-                            <option value="이벤트">이벤트 및 프로모션 안내</option>
-                            <option value="점검">시스템 점검 및 패치노트</option>
-                        </select>
-                    ) : type === 'qna' ? (
+                    {type === 'qna' ? (
                         <select className={styles.selectBox} value={form.category}
                             onChange={(e) => setForm({ ...form, category: e.target.value })}>
                             <option value="시스템문의">시스템 / 매칭 관련 문의</option>
@@ -295,7 +361,6 @@ function PostWrite({ writeType = 'free' }) {
                             <option value="신고/불편접수">비매너 회원 신고 / 차단 문의</option>
                         </select>
                     ) : (
-                        // ✅ 자유게시판: '익명' 옵션 제거
                         <select className={styles.selectBox} value={form.category}
                             onChange={(e) => setForm({ ...form, category: e.target.value })}>
                             <option value="자유">자유</option>
@@ -321,9 +386,9 @@ function PostWrite({ writeType = 'free' }) {
             <div className={styles.writeFormGroup}>
                 <label className={styles.writeLabel}>
                     <span>게시글 제목</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>{form.title.length}/100자</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>{form.title.length}/{limit.title}자</span>
                 </label>
-                <input type="text" maxLength={100} className={styles.writeInput}
+                <input type="text" maxLength={limit.title} className={styles.writeInput}
                     placeholder="제목을 입력해 주세요..."
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -332,7 +397,9 @@ function PostWrite({ writeType = 'free' }) {
             {/* 작성자 미리보기 */}
             <div style={{ display: 'flex', gap: 20, background: 'var(--bg-input)', padding: '12px 18px', borderRadius: 8, fontSize: '0.85rem' }}>
                 <span style={{ color: 'var(--text-dim)' }}>
-                    작성자: <strong style={{ color: '#fff' }}>{isAnon ? '🎭 익명' : (id || '알 수 없음')}</strong>
+                    작성자: <strong style={{ color: '#fff' }}>
+                        {isAnon ? '🎭 익명' : isNotice ? '🛡️ 관리자' : (id || '알 수 없음')}
+                    </strong>
                 </span>
                 <span style={{ color: 'var(--text-dim)' }}>
                     등록 게시판: <strong style={{ color: '#c084fc' }}>{boardName}</strong>
@@ -343,10 +410,10 @@ function PostWrite({ writeType = 'free' }) {
             <div className={styles.writeFormGroup}>
                 <label className={styles.writeLabel}>
                     <span>본문 상세 내용</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>{form.content.length}/3000자</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>{form.content.length}/{limit.content}자</span>
                 </label>
-                <textarea maxLength={3000} className={styles.writeTextarea}
-                    placeholder="건전하고 따뜻한 소통을 위해 비방, 욕설, 광고성 내용은 삼가해 주세요."
+                <textarea maxLength={limit.content} className={styles.writeTextarea}
+                    placeholder={isNotice ? '공지 내용을 입력해 주세요.' : '건전하고 따뜻한 소통을 위해 비방, 욕설, 광고성 내용은 삼가해 주세요.'}
                     value={form.content}
                     onChange={(e) => setForm({ ...form, content: e.target.value })} />
             </div>
@@ -425,7 +492,10 @@ function PostWrite({ writeType = 'free' }) {
                 <Link to={listPath} className={styles.cancelBtn}>{isEdit ? '수정 취소' : '취소하고 돌아가기'}</Link>
                 <button type="button" className={styles.writeBtn} onClick={handleSave}>
                     <i className="fa-solid fa-check"></i>
-                    {isEdit ? '게시글 수정 완료' : (isAnon ? '익명으로 등록' : '게시글 등록 완료')}
+                    {isEdit ? '게시글 수정 완료'
+                        : isAnon ? '익명으로 등록'
+                        : isNotice ? '공지사항 등록'
+                        : '게시글 등록 완료'}
                 </button>
             </div>
         </div>
