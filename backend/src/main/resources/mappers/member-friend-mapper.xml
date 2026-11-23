@@ -5,33 +5,23 @@
 
 <mapper namespace="MemberFriend">
 
-    <!-- 내 친구 목록: 양방향 관계와 중복 프로필 행을 회원 번호 기준으로 한 번만 조회 -->
-    <select id="selectFriendList"
-        parameterType="long"
+    <!-- 내 친구 목록: 양방향으로 저장된 친구 관계를 중복 없이 조회합니다. -->
+    <select id="selectFriendList" parameterType="long"
         resultType="com.app.silhouette.friend.MemberFriendDTO">
-
         SELECT
             F.FRIEND_SEQ AS FRIEND_MEMBER_SEQ,
             F.FRIEND_SEQ AS MEMBER_SEQ,
             'ACCEPTED' AS FRIEND_STATUS,
             M.LOGIN_ID AS LOGIN_ID,
-            (SELECT MAX(MP.NICKNAME)
-             FROM MEMBER_PROFILE MP
+            (SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP
              WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ) AS NICKNAME,
-            (SELECT PI.FILE_URL
-             FROM PROFILE_IMAGE PI
+            (SELECT PI.FILE_URL FROM PROFILE_IMAGE PI
              WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
-               AND PI.PROFILE_IMAGE_SEQ = (
-                   SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
-                   FROM PROFILE_IMAGE PI2
-                   WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ
-               )) AS PROFILE_IMAGE
+               AND PI.PROFILE_IMAGE_SEQ = (SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                 FROM PROFILE_IMAGE PI2 WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ)) AS PROFILE_IMAGE
         FROM (
-            SELECT DISTINCT
-                   CASE
-                       WHEN MEMBER_SEQ = #{value} THEN FRIEND_MEMBER_SEQ
-                       ELSE MEMBER_SEQ
-                   END AS FRIEND_SEQ
+            SELECT DISTINCT CASE WHEN MEMBER_SEQ = #{value}
+                THEN FRIEND_MEMBER_SEQ ELSE MEMBER_SEQ END AS FRIEND_SEQ
             FROM MEMBER_FRIEND
             WHERE (MEMBER_SEQ = #{value} OR FRIEND_MEMBER_SEQ = #{value})
               AND FRIEND_STATUS = 'ACCEPTED'
@@ -39,36 +29,25 @@
         JOIN MEMBER M ON M.MEMBER_SEQ = F.FRIEND_SEQ
         WHERE M.MEMBER_STATUS = 'ACTIVE'
         ORDER BY NICKNAME
-
     </select>
 
-    <!-- 친구 중 닉네임 검색: 회원 번호 기준 중복 제거 -->
-    <select id="searchAcceptedFriends"
-        parameterType="map"
+    <!-- 수락된 친구 중 닉네임에 검색어가 포함된 회원을 찾습니다. -->
+    <select id="searchAcceptedFriends" parameterType="map"
         resultType="com.app.silhouette.friend.MemberFriendDTO">
-
         SELECT
             F.FRIEND_SEQ AS FRIEND_MEMBER_SEQ,
             F.FRIEND_SEQ AS MEMBER_SEQ,
             'ACCEPTED' AS FRIEND_STATUS,
             M.LOGIN_ID AS LOGIN_ID,
-            (SELECT MAX(MP.NICKNAME)
-             FROM MEMBER_PROFILE MP
+            (SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP
              WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ) AS NICKNAME,
-            (SELECT PI.FILE_URL
-             FROM PROFILE_IMAGE PI
+            (SELECT PI.FILE_URL FROM PROFILE_IMAGE PI
              WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
-               AND PI.PROFILE_IMAGE_SEQ = (
-                   SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
-                   FROM PROFILE_IMAGE PI2
-                   WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ
-               )) AS PROFILE_IMAGE
+               AND PI.PROFILE_IMAGE_SEQ = (SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                 FROM PROFILE_IMAGE PI2 WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ)) AS PROFILE_IMAGE
         FROM (
-            SELECT DISTINCT
-                   CASE
-                       WHEN MEMBER_SEQ = #{memberSeq} THEN FRIEND_MEMBER_SEQ
-                       ELSE MEMBER_SEQ
-                   END AS FRIEND_SEQ
+            SELECT DISTINCT CASE WHEN MEMBER_SEQ = #{memberSeq}
+                THEN FRIEND_MEMBER_SEQ ELSE MEMBER_SEQ END AS FRIEND_SEQ
             FROM MEMBER_FRIEND
             WHERE (MEMBER_SEQ = #{memberSeq} OR FRIEND_MEMBER_SEQ = #{memberSeq})
               AND FRIEND_STATUS = 'ACCEPTED'
@@ -76,25 +55,96 @@
         JOIN MEMBER M ON M.MEMBER_SEQ = F.FRIEND_SEQ
         WHERE M.MEMBER_STATUS = 'ACTIVE'
           AND M.MEMBER_SEQ != #{memberSeq}
-          AND LOWER((SELECT MAX(MP.NICKNAME)
-                     FROM MEMBER_PROFILE MP
+          AND LOWER((SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP
                      WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ))
               LIKE '%' || LOWER(#{keyword}) || '%'
         ORDER BY NICKNAME
-
     </select>
 
-    <!-- 채팅 초대 시 친구 여부 확인 -->
+    <!-- 두 회원이 현재 서로 수락된 친구인지 확인합니다. -->
     <select id="isAcceptedFriend" parameterType="map" resultType="int">
-
         SELECT COUNT(*)
         FROM MEMBER_FRIEND
         WHERE FRIEND_STATUS = 'ACCEPTED'
-          AND (
-                (MEMBER_SEQ = #{memberSeq} AND FRIEND_MEMBER_SEQ = #{friendSeq})
-             OR (MEMBER_SEQ = #{friendSeq} AND FRIEND_MEMBER_SEQ = #{memberSeq})
-          )
-
+          AND ((MEMBER_SEQ = #{memberSeq} AND FRIEND_MEMBER_SEQ = #{friendSeq})
+            OR (MEMBER_SEQ = #{friendSeq} AND FRIEND_MEMBER_SEQ = #{memberSeq}))
     </select>
+
+    <!-- 두 회원 사이에 이미 요청 또는 친구 관계가 있는지 확인합니다. -->
+    <select id="countRelationship" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM MEMBER_FRIEND
+        WHERE (MEMBER_SEQ = #{memberSeq} AND FRIEND_MEMBER_SEQ = #{friendSeq})
+           OR (MEMBER_SEQ = #{friendSeq} AND FRIEND_MEMBER_SEQ = #{memberSeq})
+    </select>
+
+    <!-- 친구 요청 생성: 시퀀스로 PK를 발급하고 상태를 PENDING으로 저장합니다. -->
+    <insert id="insertFriendRequest"
+        parameterType="com.app.silhouette.friend.MemberFriendDTO">
+        <selectKey keyProperty="member_friend_seq" resultType="long" order="BEFORE">
+            SELECT SEQ_MEMBER_FRIEND.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO MEMBER_FRIEND (
+            MEMBER_FRIEND_SEQ, MEMBER_SEQ, FRIEND_MEMBER_SEQ, FRIEND_STATUS
+        ) VALUES (
+            #{member_friend_seq}, #{member_seq}, #{friend_member_seq}, 'PENDING'
+        )
+    </insert>
+
+    <!-- 이전 요청이 REJECTED였다면 새 요청 대신 PENDING으로 다시 활성화합니다. -->
+    <update id="reactivateRejectedRequest" parameterType="map">
+        UPDATE MEMBER_FRIEND
+        SET FRIEND_STATUS = 'PENDING'
+        WHERE MEMBER_SEQ = #{requesterSeq}
+          AND FRIEND_MEMBER_SEQ = #{requestedSeq}
+          AND FRIEND_STATUS = 'REJECTED'
+    </update>
+
+    <select id="selectRequestSeqByPair" parameterType="map" resultType="long">
+        SELECT MEMBER_FRIEND_SEQ
+        FROM MEMBER_FRIEND
+        WHERE MEMBER_SEQ = #{requesterSeq}
+          AND FRIEND_MEMBER_SEQ = #{requestedSeq}
+          AND FRIEND_STATUS = 'PENDING'
+    </select>
+
+    <!-- 나를 친구로 요청한 회원의 프로필 정보를 함께 조회합니다. -->
+    <select id="selectIncomingRequests" parameterType="long"
+        resultType="com.app.silhouette.friend.MemberFriendDTO">
+        SELECT
+            MF.MEMBER_FRIEND_SEQ,
+            MF.MEMBER_SEQ,
+            MF.FRIEND_MEMBER_SEQ,
+            MF.FRIEND_STATUS,
+            MF.MEMBER_SEQ AS REQUESTER_MEMBER_SEQ,
+            MF.FRIEND_MEMBER_SEQ AS REQUESTED_MEMBER_SEQ,
+            M.LOGIN_ID AS LOGIN_ID,
+            NVL((SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP
+                 WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ), M.NICKNAME) AS NICKNAME,
+            (SELECT PI.FILE_URL FROM PROFILE_IMAGE PI
+             WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
+               AND PI.PROFILE_IMAGE_SEQ = (SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                 FROM PROFILE_IMAGE PI2 WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ)) AS PROFILE_IMAGE
+        FROM MEMBER_FRIEND MF
+        JOIN MEMBER M ON M.MEMBER_SEQ = MF.MEMBER_SEQ
+        WHERE MF.FRIEND_MEMBER_SEQ = #{value}
+          AND MF.FRIEND_STATUS = 'PENDING'
+        ORDER BY MF.MEMBER_FRIEND_SEQ DESC
+    </select>
+
+    <select id="selectFriendRequest" parameterType="long"
+        resultType="com.app.silhouette.friend.MemberFriendDTO">
+        SELECT MEMBER_FRIEND_SEQ, MEMBER_SEQ, FRIEND_MEMBER_SEQ, FRIEND_STATUS
+        FROM MEMBER_FRIEND
+        WHERE MEMBER_FRIEND_SEQ = #{value}
+    </select>
+
+    <!-- 아직 PENDING인 요청만 최종 상태로 변경합니다. -->
+    <update id="updateFriendRequestStatus">
+        UPDATE MEMBER_FRIEND
+        SET FRIEND_STATUS = #{status}
+        WHERE MEMBER_FRIEND_SEQ = #{requestSeq}
+          AND FRIEND_STATUS = 'PENDING'
+    </update>
 
 </mapper>
