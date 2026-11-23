@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Qna">
+
+    <select id="countQnaList" parameterType="map" resultType="int">
+        select count(*)
+          from qna q
+         where q.is_deleted = 'N'
+        <if test="memberSeq != null">
+           and q.member_seq = #{memberSeq}
+        </if>
+    </select>
+
+    <select id="selectQnaList" parameterType="map" resultType="com.app.silhouette.post.QnaDTO">
+        select *
+          from (
+                select a.*, rownum rn
+                  from (
+                        select q.qna_seq, q.member_seq, q.title, q.is_secret,
+                               q.answer_status, q.created_at, q.updated_at,
+                               m.nickname as writer_name
+                          from qna q
+                          left join member m on m.member_seq = q.member_seq
+                         where q.is_deleted = 'N'
+                        <if test="memberSeq != null">
+                           and q.member_seq = #{memberSeq}
+                        </if>
+                         order by q.qna_seq desc
+                       ) a
+                 where rownum &lt;= #{endRow}
+               )
+         where rn &gt; #{startRow}
+    </select>
+
+    <select id="selectQna" parameterType="long" resultType="com.app.silhouette.post.QnaDTO">
+        select q.qna_seq, q.member_seq, q.title, q.content, q.is_secret, q.secret_password,
+               q.answer_status, q.is_deleted, q.created_at, q.updated_at,
+               m.nickname as writer_name
+          from qna q
+          left join member m on m.member_seq = q.member_seq
+         where q.qna_seq = #{qnaSeq}
+           and q.is_deleted = 'N'
+    </select>
+
+    <insert id="insertQna" parameterType="com.app.silhouette.post.QnaDTO">
+        <selectKey keyProperty="qnaSeq" resultType="long" order="BEFORE">
+            select seq_qna.nextval from dual
+        </selectKey>
+        insert into qna (qna_seq, member_seq, title, content, is_secret, secret_password,
+                         answer_status, is_deleted, created_at, updated_at)
+        values (#{qnaSeq}, #{memberSeq}, #{title}, #{content, jdbcType=CLOB},
+                #{isSecret}, #{secretPassword, jdbcType=VARCHAR},
+                'WAITING', 'N', systimestamp, systimestamp)
+    </insert>
+
+    <update id="updateQna" parameterType="com.app.silhouette.post.QnaDTO">
+        update qna
+           set title           = #{title},
+               content         = #{content, jdbcType=CLOB},
+               is_secret       = #{isSecret},
+               secret_password = #{secretPassword, jdbcType=VARCHAR},
+               updated_at      = systimestamp
+         where qna_seq = #{qnaSeq}
+           and is_deleted = 'N'
+           and answer_status = 'WAITING'
+    </update>
+
+    <update id="deleteQna" parameterType="long">
+        update qna
+           set is_deleted = 'Y',
+               updated_at = systimestamp
+         where qna_seq = #{qnaSeq}
+    </update>
+
+    <update id="updateAnswerStatus" parameterType="map">
+        update qna
+           set answer_status = #{answerStatus},
+               updated_at    = systimestamp
+         where qna_seq = #{qnaSeq}
+    </update>
+
+    <select id="selectAnswer" parameterType="long" resultType="com.app.silhouette.post.QnaAnswerDTO">
+        select a.qna_answer_seq, a.qna_seq, a.admin_seq, a.updated_by, a.content,
+               a.created_at, a.updated_at,
+               m.nickname as admin_name
+          from qna_answer a
+          left join member m on m.member_seq = a.admin_seq
+         where a.qna_seq = #{qnaSeq}
+    </select>
+
+    <insert id="insertAnswer" parameterType="com.app.silhouette.post.QnaAnswerDTO">
+        <selectKey keyProperty="qnaAnswerSeq" resultType="long" order="BEFORE">
+            select seq_qna_answer.nextval from dual
+        </selectKey>
+        insert into qna_answer (qna_answer_seq, qna_seq, admin_seq, updated_by, content,
+                                created_at, updated_at)
+        values (#{qnaAnswerSeq}, #{qnaSeq}, #{adminSeq}, #{adminSeq}, #{content, jdbcType=CLOB},
+                systimestamp, systimestamp)
+    </insert>
+
+    <update id="updateAnswer" parameterType="com.app.silhouette.post.QnaAnswerDTO">
+        update qna_answer
+           set content    = #{content, jdbcType=CLOB},
+               updated_by = #{updatedBy},
+               updated_at = systimestamp
+         where qna_seq = #{qnaSeq}
+    </update>
+
+    <delete id="deleteAnswer" parameterType="long">
+        delete from qna_answer where qna_seq = #{qnaSeq}
+    </delete>
+
+</mapper>

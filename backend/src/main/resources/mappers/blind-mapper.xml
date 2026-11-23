@@ -2,60 +2,277 @@
 <!DOCTYPE mapper
     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    블라인드 매칭 / 블라인드 채팅
+    흐름: 매칭(이성) → BLIND_MATCHING + BLIND_CHAT_ROOM 생성 → 제한시간 동안 익명 채팅
+          → 제한시간 종료 후 투표시간 동안 GO/STOP → 둘 다 GO면 일반 채팅방(CHAT_ROOM, ROOM_TYPE='BLIND') 생성
+
+    상태값
+      BLIND_CHAT_ROOM.STATUS : ON AIR(진행 중) / CONTINUED(둘 다 GO) / ENDED(종료)
+      BLIND_MATCHING.STATUS  : MATCHED / CONTINUED / ENDED
+      BLIND_MATCHING.VOTE_1, VOTE_2 : GO / STOP / LEFT(대화 중 나가기) / NULL(아직 선택 안 함)
+
+    시간은 모두 DB 시각(LOCALTIMESTAMP) 기준으로 저장·비교한다.
+-->
 <mapper namespace="Blind">
-	
-	<insert id="insertBlindChatRoom">
-		<selectKey keyProperty="blindChatRoomSeq" resultType="Long" order="BEFORE">
-			SELECT SEQ_BLIND_CHAT_ROOM.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO BLIND_CHAT_ROOM (
-			BLIND_CHAT_ROOM_SEQ,
-			BLIND_MATCHING_SEQ,
-			LINKED_CHAT_ROOM_SEQ,
-			TIME_LIMIT_MIN,
-			STARTED_AT,
-			EXPIRE_AT,
-			STATUS,
-			ENDED_AT,
-			CREATED_AT
-		) VALUES (
-			#{blindChatRoomSeq},
-			#{blindMatchingSeq, jdbcType=NUMERIC},
-			#{linkedChatRoomSeq, jdbcType=NUMERIC},
-			#{timeLimitMin, jdbcType=NUMERIC},
-			SYSDATE,
-			SYSDATE + (#{timeLimitMin, jdbcType=NUMERIC} / 24 / 60),
-			#{status, jdbcType=VARCHAR},
-			NULL,
-			SYSDATE
-		)
-	</insert>
-	
-	<insert id="insertBlindMessage">
-		<selectKey keyProperty="blindChatMessageSeq" resultType="Long" order="BEFORE">
-			SELECT SEQ_BLIND_CHAT_MESSAGE.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO BLIND_CHAT_MESSAGE (
-			BLIND_CHAT_MESSAGE_SEQ,
-			BLIND_CHAT_ROOM_SEQ,
-			SENDER_SEQ,
-			MSG_TYPE,
-			CONTENT,
-			AI_REPLY_SUGGESTION_SEQ,
-			FILTERED_YN,
-			READ_AT,
-			SENT_AT
-		) VALUES (
-			#{blindChatMessageSeq},
-			#{blindChatRoomSeq, jdbcType=NUMERIC},
-			(SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{senderId, jdbcType=VARCHAR}),
-			#{msgType, jdbcType=VARCHAR},
-			#{content, jdbcType=VARCHAR},
-			#{aiReplySuggestionSeq, jdbcType=NUMERIC},
-			NVL(#{filteredYn, jdbcType=CHAR}, 'N'),
-			NULL,
-			SYSTIMESTAMP
-		)
-	</insert>
-	
+
+    <!-- ===================================================== -->
+    <!-- 회원                                                    -->
+    <!-- ===================================================== -->
+
+    <!-- 매칭 대기열 등록용: 활성 회원의 번호와 성별 -->
+    <select id="selectQueueMember" resultType="com.app.silhouette.blind.BlindQueueMemberDTO">
+        SELECT MEMBER_SEQ AS memberSeq,
+               GENDER     AS gender
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+          AND MEMBER_STATUS = 'ACTIVE'
+    </select>
+
+    <select id="selectMemberSeqByLoginId" resultType="long">
+        SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{loginId}
+    </select>
+
+    <!-- 두 사람 사이에 차단이 있는지 (어느 쪽이든) -->
+    <select id="countBlock" resultType="int">
+        SELECT COUNT(*)
+        FROM MEMBER_BLOCK
+        WHERE (MEMBER_SEQ = #{memberSeq} AND BLOCKED_MEMBER_SEQ = #{targetSeq})
+           OR (MEMBER_SEQ = #{targetSeq} AND BLOCKED_MEMBER_SEQ = #{memberSeq})
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 매칭 + 블라인드 채팅방 생성                               -->
+    <!-- ===================================================== -->
+
+    <insert id="insertMatching" parameterType="com.app.silhouette.blind.BlindRoomDTO">
+        <selectKey keyProperty="blindMatchingSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_BLIND_MATCHING.NEXTVAL FROM DUAL
+        </selectKey>
+                INSERT INTO BLIND_MATCHING (BLIND_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, STATUS, MATCHED_AT)
+        VALUES (#{blindMatchingSeq}, #{memberSeq1}, #{memberSeq2}, 'MATCHED', LOCALTIMESTAMP)
+    </insert>
+
+    <insert id="insertRoom" parameterType="com.app.silhouette.blind.BlindRoomDTO">
+        <selectKey keyProperty="blindChatRoomSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_BLIND_CHAT_ROOM.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO BLIND_CHAT_ROOM (
+            BLIND_CHAT_ROOM_SEQ, BLIND_MATCHING_SEQ, LINKED_CHAT_ROOM_SEQ, TIME_LIMIT_MIN,
+            STARTED_AT, EXPIRE_AT, STATUS, ENDED_AT, CREATED_AT
+        ) VALUES (
+            #{blindChatRoomSeq}, #{blindMatchingSeq}, NULL, #{timeLimitMin},
+            LOCALTIMESTAMP, LOCALTIMESTAMP + NUMTODSINTERVAL(#{timeLimitMin}, 'MINUTE'),
+            'ON AIR', NULL, LOCALTIMESTAMP
+        )
+    </insert>
+
+    <!-- 이미 진행 중인 블라인드 대화가 있는지 (새로고침·재접속 시 그 방으로 보냄) -->
+    <select id="selectActiveRoomSeq" resultType="long">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT r.BLIND_CHAT_ROOM_SEQ
+            FROM BLIND_CHAT_ROOM r
+            JOIN BLIND_MATCHING m ON m.BLIND_MATCHING_SEQ = r.BLIND_MATCHING_SEQ
+            WHERE r.STATUS = 'ON AIR'
+              AND (m.MEMBER_SEQ_1 = #{memberSeq} OR m.MEMBER_SEQ_2 = #{memberSeq})
+              /* 내가 이미 STOP/LEFT 한 방은 제외 */
+              AND NOT (m.MEMBER_SEQ_1 = #{memberSeq} AND m.VOTE_1 IN ('STOP', 'LEFT'))
+              AND NOT (m.MEMBER_SEQ_2 = #{memberSeq} AND m.VOTE_2 IN ('STOP', 'LEFT'))
+            ORDER BY r.BLIND_CHAT_ROOM_SEQ DESC
+        )
+        WHERE ROWNUM = 1
+    ]]>
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 방 조회                                                  -->
+    <!-- ===================================================== -->
+
+    <sql id="roomColumns">
+        r.BLIND_CHAT_ROOM_SEQ   AS blindChatRoomSeq,
+        r.BLIND_MATCHING_SEQ    AS blindMatchingSeq,
+        r.LINKED_CHAT_ROOM_SEQ  AS linkedChatRoomSeq,
+        r.TIME_LIMIT_MIN        AS timeLimitMin,
+        r.EXPIRE_AT             AS expireAt,
+        r.STATUS                AS status,
+        m.MEMBER_SEQ_1          AS memberSeq1,
+        m.MEMBER_SEQ_2          AS memberSeq2,
+        m.VOTE_1                AS vote1,
+        m.VOTE_2                AS vote2,
+        LOCALTIMESTAMP          AS dbNow
+    </sql>
+
+    <select id="selectRoom" resultType="com.app.silhouette.blind.BlindRoomDTO">
+        SELECT <include refid="roomColumns"/>
+        FROM BLIND_CHAT_ROOM r
+        JOIN BLIND_MATCHING m ON m.BLIND_MATCHING_SEQ = r.BLIND_MATCHING_SEQ
+        WHERE r.BLIND_CHAT_ROOM_SEQ = #{roomSeq}
+    </select>
+
+    <!-- 투표 처리용: 방과 매칭 행을 잠가서 두 사람이 동시에 눌러도 한 번만 처리되게 함 -->
+    <select id="selectRoomForUpdate" resultType="com.app.silhouette.blind.BlindRoomDTO">
+        SELECT <include refid="roomColumns"/>
+        FROM BLIND_CHAT_ROOM r
+        JOIN BLIND_MATCHING m ON m.BLIND_MATCHING_SEQ = r.BLIND_MATCHING_SEQ
+        WHERE r.BLIND_CHAT_ROOM_SEQ = #{roomSeq}
+        FOR UPDATE
+    </select>
+
+    <!-- 방 참여자인지 (웹소켓 구독 권한 확인용) -->
+    <select id="countRoomMember" resultType="int">
+        SELECT COUNT(*)
+        FROM BLIND_CHAT_ROOM r
+        JOIN BLIND_MATCHING m ON m.BLIND_MATCHING_SEQ = r.BLIND_MATCHING_SEQ
+        JOIN MEMBER mem ON mem.MEMBER_SEQ IN (m.MEMBER_SEQ_1, m.MEMBER_SEQ_2)
+        WHERE r.BLIND_CHAT_ROOM_SEQ = #{roomSeq}
+          AND mem.LOGIN_ID = #{loginId}
+    </select>
+
+    <!-- 투표시간까지 끝났는데 아직 결론이 안 난 방 (스케줄러가 종료 처리) -->
+    <select id="selectVoteExpiredRoomSeqs" resultType="long">
+    <![CDATA[
+        SELECT BLIND_CHAT_ROOM_SEQ
+        FROM BLIND_CHAT_ROOM
+        WHERE STATUS = 'ON AIR'
+          AND LOCALTIMESTAMP >= EXPIRE_AT + NUMTODSINTERVAL(#{voteSeconds}, 'SECOND')
+    ]]>
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- 메시지                                                   -->
+    <!-- ===================================================== -->
+
+    <insert id="insertMessage" parameterType="com.app.silhouette.blind.BlindChatMessageDTO">
+        <selectKey keyProperty="blindChatMessageSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_BLIND_CHAT_MESSAGE.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO BLIND_CHAT_MESSAGE (
+            BLIND_CHAT_MESSAGE_SEQ, BLIND_CHAT_ROOM_SEQ, SENDER_SEQ, MSG_TYPE, CONTENT,
+            AI_REPLY_SUGGESTION_SEQ, FILTERED_YN, READ_AT, SENT_AT
+        ) VALUES (
+            #{blindChatMessageSeq}, #{blindChatRoomSeq}, #{senderSeq}, 'TEXT', #{content},
+            #{aiReplySuggestionSeq, jdbcType=NUMERIC}, 'N', NULL, LOCALTIMESTAMP
+        )
+    </insert>
+
+    <!-- 방의 메시지 전체 (오래된 순) -->
+    <select id="selectMessages" resultType="com.app.silhouette.blind.BlindChatMessageDTO">
+        SELECT BLIND_CHAT_MESSAGE_SEQ   AS blindChatMessageSeq,
+               BLIND_CHAT_ROOM_SEQ      AS blindChatRoomSeq,
+               SENDER_SEQ               AS senderSeq,
+               CONTENT                  AS content,
+               AI_REPLY_SUGGESTION_SEQ  AS aiReplySuggestionSeq,
+               SENT_AT                  AS sentAt
+        FROM BLIND_CHAT_MESSAGE
+        WHERE BLIND_CHAT_ROOM_SEQ = #{roomSeq}
+        ORDER BY BLIND_CHAT_MESSAGE_SEQ
+    </select>
+
+    <!-- ===================================================== -->
+    <!-- GO / STOP                                               -->
+    <!-- ===================================================== -->
+
+    <!-- 내 선택 저장 (이미 선택했으면 바꾸지 않음, 나가기는 GO도 덮어씀) -->
+    <update id="updateVote">
+        UPDATE BLIND_MATCHING
+        <choose>
+            <when test="slot == 1">SET VOTE_1 = #{vote}</when>
+            <otherwise>SET VOTE_2 = #{vote}</otherwise>
+        </choose>
+        WHERE BLIND_MATCHING_SEQ = #{blindMatchingSeq}
+        <choose>
+            <when test="slot == 1 and overrideGo">AND (VOTE_1 IS NULL OR VOTE_1 = 'GO')</when>
+            <when test="slot == 1">AND VOTE_1 IS NULL</when>
+            <when test="overrideGo">AND (VOTE_2 IS NULL OR VOTE_2 = 'GO')</when>
+            <otherwise>AND VOTE_2 IS NULL</otherwise>
+        </choose>
+    </update>
+
+    <!-- 방 결론 (ON AIR일 때만 → 이미 끝난 방을 두 번 처리하지 않음) -->
+    <update id="updateRoomFinished">
+        UPDATE BLIND_CHAT_ROOM
+        SET STATUS = #{status},
+            LINKED_CHAT_ROOM_SEQ = #{linkedChatRoomSeq, jdbcType=NUMERIC},
+            ENDED_AT = LOCALTIMESTAMP
+        WHERE BLIND_CHAT_ROOM_SEQ = #{roomSeq}
+          AND STATUS = 'ON AIR'
+    </update>
+
+    <update id="updateMatchingStatus">
+        UPDATE BLIND_MATCHING
+        SET STATUS = #{status}
+        WHERE BLIND_MATCHING_SEQ = #{blindMatchingSeq}
+    </update>
+
+    <!-- ===================================================== -->
+    <!-- 둘 다 GO → 일반 채팅방 생성 (chatting 기능 규칙 그대로)     -->
+    <!-- ROOM_TYPE='BLIND', MATCHING_SEQ = BLIND_MATCHING_SEQ    -->
+    <!-- ===================================================== -->
+
+    <insert id="insertChatRoom" parameterType="com.app.silhouette.blind.BlindRoomDTO">
+        <selectKey keyProperty="linkedChatRoomSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO CHAT_ROOM
+            (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT)
+        VALUES
+            (#{linkedChatRoomSeq}, NULL, 'BLIND', #{blindMatchingSeq}, #{memberSeq1}, 'Y', SYSDATE)
+    </insert>
+
+    <insert id="insertChatParticipant">
+        INSERT INTO CHAT_PARTICIPANT
+            (CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ, MEMBER_SEQ, PARTICIPANT_ROLE, PARTICIPANT_STATUS, JOINED_AT)
+        VALUES
+            (SEQ_CHAT_PARTICIPANT.NEXTVAL, #{chatRoomSeq}, #{memberSeq}, #{role}, 'JOINED', SYSDATE)
+    </insert>
+
+    <insert id="insertChatRoomList">
+        INSERT INTO CHAT_ROOM_LIST
+            (CHAT_ROOM_LIST_SEQ, MEMBER_SEQ, CHAT_ROOM_SEQ, STATUS,
+             LAST_READ_MESSAGE_SEQ, DELETED_MESSAGE_SEQ, LEFT_AT, DELETED_AT, CREATED_AT)
+        VALUES
+            (SEQ_CHAT_ROOM_LIST.NEXTVAL, #{memberSeq}, #{chatRoomSeq}, 'ACTIVE',
+             0, 0, NULL, NULL, SYSDATE)
+    </insert>
+
+    <!-- ===================================================== -->
+    <!-- AI 추천답변 (고스트채팅)                                  -->
+    <!-- 생성된 추천과 실제로 골라서 보낸 추천을 기록 (품질 확인용)    -->
+    <!-- ===================================================== -->
+
+    <insert id="insertSuggestion" parameterType="com.app.silhouette.blind.BlindSuggestionDTO">
+        <selectKey keyProperty="aiReplySuggestionSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_AI_REPLY_SUGGESTION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO AI_REPLY_SUGGESTION (
+            AI_REPLY_SUGGESTION_SEQ, BLIND_CHAT_ROOM_SEQ, MEMBER_SEQ, BATCH_KEY, TRIGGER_MESSAGE_SEQ,
+            TONE_TYPE, SUGGESTION, SELECTED_YN, EDITED_YN, MODEL_NAME, CREATED_AT
+        ) VALUES (
+            #{aiReplySuggestionSeq}, #{blindChatRoomSeq}, #{memberSeq}, #{batchKey},
+            #{triggerMessageSeq, jdbcType=NUMERIC}, #{tone, jdbcType=VARCHAR}, #{text},
+            'N', 'N', #{modelName, jdbcType=VARCHAR}, LOCALTIMESTAMP
+        )
+    </insert>
+
+    <!-- 메시지 전송 시: 내 것이고 이 방의 것이며 아직 안 쓴 추천인지 확인 -->
+    <select id="selectSuggestion" resultType="com.app.silhouette.blind.BlindSuggestionDTO">
+        SELECT AI_REPLY_SUGGESTION_SEQ AS aiReplySuggestionSeq,
+               BLIND_CHAT_ROOM_SEQ     AS blindChatRoomSeq,
+               MEMBER_SEQ              AS memberSeq,
+               SUGGESTION              AS text,
+               SELECTED_YN             AS selectedYn
+        FROM AI_REPLY_SUGGESTION
+        WHERE AI_REPLY_SUGGESTION_SEQ = #{seq}
+    </select>
+
+    <update id="updateSuggestionSelected">
+        UPDATE AI_REPLY_SUGGESTION
+        SET SELECTED_YN = 'Y',
+            EDITED_YN = #{editedYn}
+        WHERE AI_REPLY_SUGGESTION_SEQ = #{seq}
+          AND SELECTED_YN = 'N'
+    </update>
+
 </mapper>

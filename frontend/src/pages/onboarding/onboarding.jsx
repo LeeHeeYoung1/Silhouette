@@ -13,13 +13,13 @@ import {
 
 const MAX_INTRO = 300;
 const MAX_MEMO = 150;
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024;   // ✅ 프로필 사진 1장, 최대 10MB
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;   // 프로필 사진 1장, 최대 10MB
 const HEIGHT_MIN = 100;                     // 키 최소 (내 키, 이상형 키 공통)
 const HEIGHT_MAX = 250;                     // 키 최대
+const WEIGHT_MIN = 30;                      // ✅ 몸무게 최소
+const WEIGHT_MAX = 200;                     // ✅ 몸무게 최대
 const IDEAL_AGE_MIN = 14;                   // 이상형 나이 최소
 const IDEAL_AGE_MAX = 100;                  // 이상형 나이 최대
-// 이상형 나이 선택지: 14, 15, ... 100
-const AGE_OPTIONS = Array.from({ length: IDEAL_AGE_MAX - IDEAL_AGE_MIN + 1 }, (_, i) => IDEAL_AGE_MIN + i);
 const TOTAL_STEPS = 6;
 const STEP_TITLES = [
   '프로필 사진', '기본 정보', '생활 습관', '외모 · 연애 성향', '취향 · 자기소개', '이상형 (선택)',
@@ -31,6 +31,8 @@ const isMaleGender = (g) => g === 'MALE' || g === 'M';
 const isFemaleGender = (g) => g === 'FEMALE' || g === 'F';
 const genderLabel = (g) => (isMaleGender(g) ? '남성' : isFemaleGender(g) ? '여성' : g ?? '-');
 const joinList = (arr) => (arr.length ? arr.join(', ') : null);   // ['등산','독서'] → '등산, 독서'
+// ✅ 숫자만 남기고 최대 3자리 (글자 입력칸용)
+const onlyDigits = (v) => String(v).replace(/[^0-9]/g, '').slice(0, 3);
 // 범위 밖 숫자를 min~max 안으로 맞춤 (빈칸은 그대로)
 const clamp = (v, min, max) => {
   if (v === '' || v == null) return '';
@@ -89,6 +91,22 @@ function Field({ label, hint, children }) {
   );
 }
 
+// ✅ 숫자 글자 입력칸 (숫자만, 3자리, 칸을 벗어나면 범위 안으로 보정)
+function NumberText({ value, onChange, min, max, placeholder }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      maxLength={3}
+      className={styles.input}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(onlyDigits(e.target.value))}
+      onBlur={(e) => onChange(clamp(e.target.value, min, max))}
+    />
+  );
+}
+
 function Onboarding() {
   const navigate = useNavigate();
   const { id: loginId, token } = useAuthStore();
@@ -98,7 +116,7 @@ function Onboarding() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // ===== ✅ 프로필 사진 1장 =====
+  // ===== 프로필 사진 1장 =====
   const [photo, setPhoto] = useState(null);       // 실제 파일
   const [preview, setPreview] = useState(null);   // 미리보기 주소
   const fileInputRef = useRef(null);              // 숨겨진 파일 선택창
@@ -160,7 +178,7 @@ function Onboarding() {
     };
   }, []);
 
-  // ===== ✅ 사진 고르기 / 지우기 =====
+  // ===== 사진 고르기 / 지우기 =====
   const openPicker = () => {
     fileInputRef.current.value = '';   // 같은 파일 다시 골라도 반응하게
     fileInputRef.current.click();
@@ -228,7 +246,7 @@ function Onboarding() {
   // ===== 단계별 검사 (문제 있으면 메시지, 없으면 '') =====
   const validateStep = (s) => {
     if (s === 1) {
-      if (!photo) return '프로필 사진을 올려 주세요.';   // ✅ 1장 필수
+      if (!photo) return '프로필 사진을 올려 주세요.';
     }
     if (s === 2) {
       if (!profile.mbti) return 'MBTI를 선택해 주세요.';
@@ -238,7 +256,9 @@ function Onboarding() {
       if (h === null || h < HEIGHT_MIN || h > HEIGHT_MAX) {
         return `키를 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
       }
-      if (w === null || w < 30 || w > 200) return '몸무게를 30~200kg 사이로 입력해 주세요.';
+      if (w === null || w < WEIGHT_MIN || w > WEIGHT_MAX) {
+        return `몸무게를 ${WEIGHT_MIN}~${WEIGHT_MAX}kg 사이로 입력해 주세요.`;
+      }
       if (isMale && !profile.militaryStatus) return '병역 사항을 선택해 주세요.';
     }
     if (s === 3) {
@@ -300,7 +320,7 @@ function Onboarding() {
       const msg = validateStep(6);
       if (msg) { setError(msg); return; }
     }
-    if (!photo) {   // ✅ 사진 1장 필수
+    if (!photo) {
       setError('프로필 사진을 올려 주세요.');
       setStep(1);
       return;
@@ -344,7 +364,7 @@ function Onboarding() {
     setError('');
 
     try {
-      // ① ✅ 프로필 사진 1장 업로드
+      // ① 프로필 사진 1장 업로드
       const formData = new FormData();
       formData.append('loginId', loginId);
       formData.append('files', photo);
@@ -406,7 +426,7 @@ function Onboarding() {
           </div>
         </div>
 
-        {/* ===== 1단계: ✅ 프로필 사진 1장 (필수) ===== */}
+        {/* ===== 1단계: 프로필 사진 1장 (필수) ===== */}
         {step === 1 && (
           <Field
             label="프로필 사진 (필수)"
@@ -458,17 +478,15 @@ function Onboarding() {
               <Chips options={JOB_LIST} value={profile.job} onSelect={(v) => setProfileValue('job', v)} />
             </Field>
 
+            {/* ✅ 키 · 몸무게: 글자 입력 (숫자만) */}
             <div className={styles.row}>
-              <Field label="키 (cm)">
-                <input type="number" className={styles.input} placeholder="예: 175"
-                  min={HEIGHT_MIN} max={HEIGHT_MAX}
-                  value={profile.height}
-                  onChange={(e) => setProfileValue('height', e.target.value)}
-                  onBlur={(e) => setProfileValue('height', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+              <Field label={`키 (cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                <NumberText value={profile.height} min={HEIGHT_MIN} max={HEIGHT_MAX} placeholder="예: 175"
+                  onChange={(v) => setProfileValue('height', v)} />
               </Field>
-              <Field label="몸무게 (kg)">
-                <input type="number" className={styles.input} placeholder="예: 68"
-                  value={profile.weight} onChange={(e) => setProfileValue('weight', e.target.value)} />
+              <Field label={`몸무게 (kg, ${WEIGHT_MIN}~${WEIGHT_MAX})`}>
+                <NumberText value={profile.weight} min={WEIGHT_MIN} max={WEIGHT_MAX} placeholder="예: 68"
+                  onChange={(v) => setProfileValue('weight', v)} />
               </Field>
             </div>
 
@@ -543,43 +561,27 @@ function Onboarding() {
               이상형은 선택 사항이에요. 입력하지 않으면 매칭 확률이 낮아질 수 있어요.
             </p>
 
-            {/* 나이: 선택 상자 (14~100세만 고를 수 있음) */}
+            {/* ✅ 나이: 글자 입력 (숫자만, 14~100으로 자동 보정) */}
             <div className={styles.row}>
               <Field label={`나이 (최소, ${IDEAL_AGE_MIN}세 이상)`}>
-                <select className={styles.input}
-                  value={ideal.ageMin} onChange={(e) => setIdealValue('ageMin', e.target.value)}>
-                  <option value="">선택 안 함</option>
-                  {AGE_OPTIONS.map((age) => (
-                    <option key={age} value={age}>{age}세</option>
-                  ))}
-                </select>
+                <NumberText value={ideal.ageMin} min={IDEAL_AGE_MIN} max={IDEAL_AGE_MAX} placeholder="예: 25"
+                  onChange={(v) => setIdealValue('ageMin', v)} />
               </Field>
-              <Field label="나이 (최대)">
-                <select className={styles.input}
-                  value={ideal.ageMax} onChange={(e) => setIdealValue('ageMax', e.target.value)}>
-                  <option value="">선택 안 함</option>
-                  {AGE_OPTIONS.filter((age) => !ideal.ageMin || age >= Number(ideal.ageMin)).map((age) => (
-                    <option key={age} value={age}>{age}세</option>
-                  ))}
-                </select>
+              <Field label={`나이 (최대, ${IDEAL_AGE_MAX}세 이하)`}>
+                <NumberText value={ideal.ageMax} min={IDEAL_AGE_MIN} max={IDEAL_AGE_MAX} placeholder="예: 32"
+                  onChange={(v) => setIdealValue('ageMax', v)} />
               </Field>
             </div>
 
-            {/* 키: 칸을 벗어나면 100~250 안으로 자동 보정 */}
+            {/* ✅ 키: 글자 입력 (숫자만, 100~250으로 자동 보정) */}
             <div className={styles.row}>
               <Field label="키 (최소 cm)">
-                <input type="number" className={styles.input} placeholder="예: 160"
-                  min={HEIGHT_MIN} max={HEIGHT_MAX}
-                  value={ideal.minHeight}
-                  onChange={(e) => setIdealValue('minHeight', e.target.value)}
-                  onBlur={(e) => setIdealValue('minHeight', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+                <NumberText value={ideal.minHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} placeholder="예: 160"
+                  onChange={(v) => setIdealValue('minHeight', v)} />
               </Field>
               <Field label="키 (최대 cm)">
-                <input type="number" className={styles.input} placeholder="예: 185"
-                  min={HEIGHT_MIN} max={HEIGHT_MAX}
-                  value={ideal.maxHeight}
-                  onChange={(e) => setIdealValue('maxHeight', e.target.value)}
-                  onBlur={(e) => setIdealValue('maxHeight', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+                <NumberText value={ideal.maxHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} placeholder="예: 185"
+                  onChange={(v) => setIdealValue('maxHeight', v)} />
               </Field>
             </div>
 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
@@ -97,7 +98,7 @@ function MatchCard({
   );
 }
 
-// 홈 화면: 매칭, 주변 회원, 친구 목록, 내 채팅방을 관리합니다.
+// 홈 화면
 function Home() {
   const { token, id } = useAuthStore();
   const navi = useNavigate();
@@ -183,11 +184,11 @@ function Home() {
     };
   }, [token]);
 
-  // 알림에서 친구 요청을 수락하면 홈 친구 목록을 즉시 갱신
-  // 친구 요청 수락 이벤트가 발생하면 친구 목록을 즉시 다시 조회합니다.
+  // 친구 요청 수락 후 친구 목록 갱신
   useEffect(() => {
     const refreshFriends = async () => {
       if (!token) return;
+
       try {
         const response = await Client.get('/api/chat/friends');
         setFriendList(Array.isArray(response.data) ? response.data : []);
@@ -197,7 +198,10 @@ function Home() {
     };
 
     window.addEventListener('silhouette-friends-updated', refreshFriends);
-    return () => window.removeEventListener('silhouette-friends-updated', refreshFriends);
+
+    return () => {
+      window.removeEventListener('silhouette-friends-updated', refreshFriends);
+    };
   }, [token]);
 
   // 친구 프로필 이미지 불러오기
@@ -259,7 +263,6 @@ function Home() {
     };
   }, [friendList, token]);
 
-
   // 실시간 접속 대기 인원 변동 시뮬레이션
   useEffect(() => {
     const interval = setInterval(() => {
@@ -278,6 +281,9 @@ function Home() {
 
   // 대기 중인지 확인
   const isIdealWaitingRef = useRef(false);
+
+  // 블라인드 매칭 대기 중인지 확인
+  const isBlindWaitingRef = useRef(false);
 
   // 이상형 매칭 성공
   const handleIdealMatched = useCallback((result) => {
@@ -359,7 +365,7 @@ function Home() {
   useEffect(() => {
     return () => {
       if (isIdealWaitingRef.current) {
-        cancelIdealMatch().catch(() => { });
+        cancelIdealMatch().catch(() => {});
       }
     };
   }, []);
@@ -392,7 +398,6 @@ function Home() {
   };
 
   // 블라인드 매칭 STOMP 연결
-  // 홈 화면 진입 시 친구 목록과 채팅방 목록을 함께 불러옵니다.
   useEffect(() => {
     if (!token) return;
 
@@ -416,21 +421,28 @@ function Home() {
         console.log('STOMP Connected to', brokerURL);
 
         if (id) {
+          // 블라인드 매칭 결과 수신
           client.subscribe(`/sub/user/${id}/match`, (message) => {
-            console.log('매칭 응답 수신:', message.body);
-
             try {
               const response = JSON.parse(message.body);
 
-              setIsBlindMatching(false);
-
-              if (response.chatRoomSeq) {
-                navi(`/chat/${response.chatRoomSeq}`);
+              if (response.status === 'MATCHED' && response.roomSeq) {
+                isBlindWaitingRef.current = false;
+                setIsBlindMatching(false);
+                navi(`/chatting/${response.roomSeq}`);
               }
             } catch (err) {
               console.error('응답 메시지 파싱 에러:', err);
             }
           });
+
+          // 웹소켓 재연결 시 대기 중이었다면 다시 매칭 요청
+          if (isBlindWaitingRef.current) {
+            client.publish({
+              destination: '/pub/match/join',
+              body: '{}'
+            });
+          }
         }
       },
       onStompError: (frame) => {
@@ -451,30 +463,29 @@ function Home() {
 
   // 블라인드 매칭 신청
   const handleBlindMatching = () => {
+    isBlindWaitingRef.current = true;
     setIsBlindMatching(true);
 
     if (stompClient && stompClient.connected) {
-      console.log('블라인드 매칭 요청 전송: id =', id);
-
       stompClient.publish({
         destination: '/pub/match/join',
-        body: JSON.stringify({ id: id })
+        body: '{}'
       });
     } else {
-      console.warn('STOMP 소켓이 아직 연결되지 않았거나 연결 중입니다.');
+      // 연결되면 onConnect에서 자동으로 매칭 요청
+      console.warn('STOMP 소켓이 아직 연결되지 않았습니다. 연결 후 자동으로 매칭을 요청합니다.');
     }
   };
 
   // 블라인드 매칭 취소
   const handleCancelBlindMatching = () => {
+    isBlindWaitingRef.current = false;
     setIsBlindMatching(false);
 
     if (stompClient && stompClient.connected) {
-      console.log('블라인드 매칭 취소 요청 전송: id =', id);
-
       stompClient.publish({
         destination: '/pub/match/cancel',
-        body: JSON.stringify({ id: id })
+        body: '{}'
       });
     }
   };
@@ -529,12 +540,12 @@ function Home() {
   };
 
   // 주변 회원에게 친구 요청 보내기
-  // 주변 회원에게 친구 요청을 보내고 결과를 사용자에게 알려줍니다.
   const handleSendFriendRequest = async (memberSeq) => {
     try {
       await Client.post('/api/chat/friends/request', {
         friend_member_seq: memberSeq
       });
+
       alert('친구 요청을 보냈습니다.');
     } catch (error) {
       alert(error.response?.data || '친구 요청을 보내지 못했습니다.');
@@ -592,7 +603,7 @@ function Home() {
     }, 350);
   };
 
-  // 홈 화면 UI를 렌더링합니다.
+  // 홈 화면 UI
   return (
     <div className={styles.container}>
       {/* 1. 상단: 실시간 매칭 모드 */}
