@@ -1459,3 +1459,116 @@
     height: 54px;
   }
 }
+
+
+/* 친구 및 채팅방 사이드바 */
+.chatFriendSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sidebarTabButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sidebarTabButton {
+  min-height: 54px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.sidebarTabButton:hover,
+.sidebarTabActive {
+  border-color: var(--accent-pink);
+  background: rgba(255, 77, 136, 0.13);
+  color: var(--text-main);
+}
+
+.sidebarListBox {
+  min-height: 260px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+
+.sidebarListTitle {
+  margin: 0 0 12px;
+  color: var(--text-main);
+  font-size: 15px;
+}
+
+.sidebarEmpty {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 22px 0;
+}
+
+.sidebarPerson {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--card-border);
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.sidebarAvatar,
+.sidebarAvatarFallback {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sidebarAvatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+}
+
+.sidebarRoom {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 11px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebarRoom:hover strong {
+  color: var(--accent-pink);
+}
+
+.sidebarRoom strong {
+  font-size: 13px;
+}
+
+.sidebarRoom span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

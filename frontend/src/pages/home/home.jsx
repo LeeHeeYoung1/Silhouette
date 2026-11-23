@@ -116,6 +116,9 @@ function Home() {
 
   // 주소지 기반 추천 목록
   const [locationProfiles, setLocationProfiles] = useState(INITIAL_LOCATION_PROFILES);
+  const [sidebarTab, setSidebarTab] = useState('friends');
+  const [friendList, setFriendList] = useState([]);
+  const [myRoomList, setMyRoomList] = useState([]);
 
   // AI 챗봇 상태
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -133,6 +136,26 @@ function Home() {
   useEffect(() => {
     if (!token) navi('/login');
   }, [token, navi]);
+
+  // 친구 목록과 내가 참여 중인 채팅방 목록
+  useEffect(() => {
+    if (!token) return;
+
+    const loadSidebarLists = async () => {
+      try {
+        const [friendsResponse, roomsResponse] = await Promise.all([
+          Client.get('/api/chat/friends'),
+          Client.get('/api/chat/rooms')
+        ]);
+        setFriendList(friendsResponse.data || []);
+        setMyRoomList(roomsResponse.data || []);
+      } catch (error) {
+        console.error('친구 또는 채팅방 목록을 불러오지 못했습니다.', error);
+      }
+    };
+
+    loadSidebarLists();
+  }, [token]);
 
   // 실시간 접속 대기 인원 변동 시뮬레이션
   useEffect(() => {
@@ -462,8 +485,63 @@ function Home() {
           </div>
         </section>
 
-        {/* 오른쪽 섹션: 이벤트 배너 & 커뮤니티 */}
+        {/* 오른쪽 섹션: 친구/채팅방 사이드바와 이벤트 배너 */}
         <aside className={styles.rightSection}>
+          <div className={styles.chatFriendSidebar}>
+            <div className={styles.sidebarTabButtons}>
+              <button
+                type="button"
+                className={`${styles.sidebarTabButton} ${sidebarTab === 'friends' ? styles.sidebarTabActive : ''}`}
+                onClick={() => setSidebarTab('friends')}
+              >
+                친구 목록
+              </button>
+              <button
+                type="button"
+                className={`${styles.sidebarTabButton} ${sidebarTab === 'rooms' ? styles.sidebarTabActive : ''}`}
+                onClick={() => setSidebarTab('rooms')}
+              >
+                채팅방
+              </button>
+            </div>
+
+            <div className={styles.sidebarListBox}>
+              {sidebarTab === 'friends' && (
+                <>
+                  <h3 className={styles.sidebarListTitle}>내 친구</h3>
+                  {friendList.length === 0 && <p className={styles.sidebarEmpty}>등록된 친구가 없습니다.</p>}
+                  {friendList.map((friend) => (
+                    <div className={styles.sidebarPerson} key={friend.member_seq}>
+                      {friend.profile_image ? (
+                        <img src={friend.profile_image} alt="" className={styles.sidebarAvatar} />
+                      ) : (
+                        <div className={styles.sidebarAvatarFallback}>👤</div>
+                      )}
+                      <span>{friend.nickname || friend.login_id}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {sidebarTab === 'rooms' && (
+                <>
+                  <h3 className={styles.sidebarListTitle}>내 채팅방</h3>
+                  {myRoomList.length === 0 && <p className={styles.sidebarEmpty}>참여 중인 채팅방이 없습니다.</p>}
+                  {myRoomList.map((room) => (
+                    <button
+                      type="button"
+                      className={styles.sidebarRoom}
+                      key={room.chat_room_seq}
+                      onClick={() => navi(`/chatting/${room.chat_room_seq}`)}
+                    >
+                      <strong>{room.room_name || room.partner_nick || '채팅방'}</strong>
+                      <span>{room.last_message || '대화를 시작해보세요.'}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
           <div
             className={styles.eventBannerCard}
             onClick={() => alert('🎉 얼굴 실물 인증을 완료하시면 무료 대화권 5장이 즉시 지급됩니다!')}
