@@ -1,21 +1,16 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
-import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch } from '../../api/matching';
+import {
+  startIdealMatch,
+  getIdealMatchStatus,
+  cancelIdealMatch,
+  getNearbyMembers
+} from '../../api/matching';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
-
-
-// 주소지 기반 위치 랜덤 리스팅 매칭 풀 데이터
-const INITIAL_LOCATION_PROFILES = [
-  { id: 101, name: '하은', age: 27, address: '서울 강남구 역삼동', distance: '0.8km', intro: '퇴근 후 가볍게 치맥 하거나 산책할 친구 찾아요 🍺' },
-  { id: 102, name: '도윤', age: 29, address: '서울 강남구 신사동', distance: '1.5km', intro: '새로 생긴 맛집 탐방과 드립 커피를 좋아합니다 ☕' },
-  { id: 103, name: '유진', age: 26, address: '서울 서초구 양재동', distance: '2.1km', intro: '주말마다 양재천에서 러닝해요. 밝고 건강한 분 환영해요 🏃‍♀️' },
-  { id: 104, name: '준서', age: 30, address: '서울 강남구 논현동', distance: '1.2km', intro: '서로의 일상을 편안하게 털어놓을 수 있는 따뜻한 인연을 기다려요' },
-  { id: 105, name: '채원', age: 24, address: '서울 강남구 대치동', distance: '2.8km', intro: '인디 음악 & 재즈 페스티벌 좋아하시는 분 계신가요? 🎶' },
-  { id: 106, name: '수현', age: 28, address: '서울 서초구 반포동', distance: '3.4km', intro: '반포 한강공원에서 야경 보며 맥주 한 캔 하는 여유를 즐겨요' }
-];
 
 // 커뮤니티 인기글 목데이터
 const MOCK_POPULAR_POSTS = [
@@ -33,7 +28,7 @@ const CHATBOT_QUICK_CHIPS = [
   '🎁 QR 안심 인증 혜택'
 ];
 
-// 공통 매칭 카드 컴포넌트 (중복 제거)
+// 공통 매칭 카드 컴포넌트
 function MatchCard({
   isIdeal,
   badgeText,
@@ -104,10 +99,11 @@ function MatchCard({
 }
 
 function Home() {
-
   const { token, id } = useAuthStore();
   const navi = useNavigate();
+
   const [stompClient, setStompClient] = useState(null);
+
   // 매칭 상태
   const [isBlindMatching, setIsBlindMatching] = useState(false);
   const [waitingBlindUsers, setWaitingBlindUsers] = useState(1004);
@@ -115,7 +111,11 @@ function Home() {
   const [waitingIdealUsers, setWaitingIdealUsers] = useState(556);
 
   // 주소지 기반 추천 목록
-  const [locationProfiles, setLocationProfiles] = useState(INITIAL_LOCATION_PROFILES);
+  const [locationProfiles, setLocationProfiles] = useState([]);
+  const [myRegion, setMyRegion] = useState(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
+
+  // 친구 목록 및 채팅방 사이드바
   const [sidebarTab, setSidebarTab] = useState('friends');
   const [friendList, setFriendList] = useState([]);
   const [myRoomList, setMyRoomList] = useState([]);
@@ -131,6 +131,7 @@ function Home() {
       time: '방금 전'
     }
   ]);
+
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -147,6 +148,7 @@ function Home() {
           Client.get('/api/chat/friends'),
           Client.get('/api/chat/rooms')
         ]);
+
         setFriendList(friendsResponse.data || []);
         setMyRoomList(roomsResponse.data || []);
       } catch (error) {
@@ -163,6 +165,7 @@ function Home() {
       setWaitingBlindUsers((prev) => prev + Math.floor(Math.random() * 5) - 2);
       setWaitingIdealUsers((prev) => prev + Math.floor(Math.random() * 3) - 1);
     }, 3500);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -172,12 +175,15 @@ function Home() {
     }
   }, [chatMessages, isChatOpen]);
 
+  // 대기 중인지 확인
+  const isIdealWaitingRef = useRef(false);
 
-  // 이상형 매칭 성공 처리 (채팅 화면이 생기면 결과 화면으로 바꿀 예정)
+  // 이상형 매칭 성공
   const handleIdealMatched = useCallback((result) => {
+    isIdealWaitingRef.current = false;
     setIsIdealMatching(false);
-    alert(`💖 매칭 성공!\n상대 회원: ${result.partner_Seq}번\n상호 점수: ${result.score}점\n채팅방: ${result.chat_Room_Seq}번`);
-  }, []);
+    navi(`/chatting/${result.chat_Room_Seq}`);
+  }, [navi]);
 
   // 이상형 매칭 신청
   const handleIdealStart = async () => {
@@ -185,12 +191,12 @@ function Home() {
       const { data } = await startIdealMatch();
 
       if (data.status === 'MATCHED') {
-        handleIdealMatched(data);      // 조건 맞는 상대가 이미 기다리고 있었음
+        handleIdealMatched(data);
       } else {
-        setIsIdealMatching(true);      // WAITING → 검색 중 화면
+        isIdealWaitingRef.current = true;
+        setIsIdealMatching(true);
       }
     } catch (error) {
-      // 서버가 보낸 메시지 (예: "프로필과 이상형을 먼저 입력해주세요.")
       const message = error.response?.data || '매칭 신청 중 오류가 발생했어요.';
       alert(message);
     }
@@ -200,18 +206,26 @@ function Home() {
   useEffect(() => {
     if (!isIdealMatching) return;
 
-    let stopped = false;   // 화면을 벗어난 뒤 늦게 도착한 응답 무시용
+    let stopped = false;
 
     const timer = setInterval(async () => {
       try {
         const { data } = await getIdealMatchStatus();
-        if (!stopped && data.status === 'MATCHED') {
+
+        if (stopped) return;
+
+        if (data.status === 'MATCHED') {
           stopped = true;
           clearInterval(timer);
           handleIdealMatched(data);
+        } else if (data.status === 'IDLE') {
+          stopped = true;
+          clearInterval(timer);
+          isIdealWaitingRef.current = false;
+          setIsIdealMatching(false);
         }
       } catch {
-        // 일시적인 오류는 무시하고 다음 주기에 다시 확인
+        // 일시적인 오류는 다음 주기에 다시 확인
       }
     }, 3000);
 
@@ -221,35 +235,70 @@ function Home() {
     };
   }, [isIdealMatching, handleIdealMatched]);
 
+  // 대기 중에 창을 닫거나 새로고침하면 대기 취소
+  useEffect(() => {
+    if (!isIdealMatching) return;
+
+    const cancelOnUnload = () => {
+      fetch(`${Client.defaults.baseURL}/matching/ideal/cancel`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('token')}`
+        },
+        keepalive: true
+      });
+    };
+
+    window.addEventListener('beforeunload', cancelOnUnload);
+
+    return () => window.removeEventListener('beforeunload', cancelOnUnload);
+  }, [isIdealMatching]);
+
+  // 대기 중에 다른 메뉴로 이동하면 대기 취소
+  useEffect(() => {
+    return () => {
+      if (isIdealWaitingRef.current) {
+        cancelIdealMatch().catch(() => {});
+      }
+    };
+  }, []);
+
   // 이상형 매칭 대기 취소
   const handleIdealCancel = async () => {
     try {
       await cancelIdealMatch();
+
+      isIdealWaitingRef.current = false;
       setIsIdealMatching(false);
     } catch (error) {
-      // 409: 취소를 누르는 순간 이미 매칭됨 → 매칭 결과를 보여줌
       if (error.response?.status === 409) {
         try {
           const { data } = await getIdealMatchStatus();
+
           if (data.status === 'MATCHED') {
             handleIdealMatched(data);
             return;
           }
         } catch {
-          // 아래 공통 처리로 넘어감
+          // 공통 처리로 넘어감
         }
       }
+
+      isIdealWaitingRef.current = false;
       setIsIdealMatching(false);
       alert(error.response?.data || '취소 중 오류가 발생했어요.');
     }
   };
 
+  // 블라인드 매칭 STOMP 연결
   useEffect(() => {
     if (!token) return;
 
-    // 접속 호스트 및 포트 자동 감지
     const wsHost = window.location.hostname || 'localhost';
-    const wsPort = window.location.port === '5173' ? ':80' : (window.location.port ? `:${window.location.port}` : '');
+    const wsPort = window.location.port === '5173'
+      ? ':80'
+      : (window.location.port ? `:${window.location.port}` : '');
+
     const brokerURL = `ws://${wsHost}${wsPort}/blind`;
 
     const client = new StompClient({
@@ -263,12 +312,16 @@ function Home() {
       },
       onConnect: () => {
         console.log('STOMP Connected to', brokerURL);
+
         if (id) {
           client.subscribe(`/sub/user/${id}/match`, (message) => {
             console.log('매칭 응답 수신:', message.body);
+
             try {
               const response = JSON.parse(message.body);
+
               setIsBlindMatching(false);
+
               if (response.chatRoomSeq) {
                 navi(`/chat/${response.chatRoomSeq}`);
               }
@@ -294,27 +347,29 @@ function Home() {
     };
   }, [token, id, navi]);
 
-  // 블라인드 매칭 시스템
+  // 블라인드 매칭 신청
   const handleBlindMatching = () => {
-    // 1. 매칭 중 탐색(레이더 UI) 화면으로 즉시 전환
     setIsBlindMatching(true);
 
     if (stompClient && stompClient.connected) {
       console.log('블라인드 매칭 요청 전송: id =', id);
+
       stompClient.publish({
         destination: '/pub/match/join',
         body: JSON.stringify({ id: id })
       });
     } else {
-      console.warn('STOMP 소켓이 아직 연결되지 않았거나 연결 중입니다. (stompClient.connected = false)');
+      console.warn('STOMP 소켓이 아직 연결되지 않았거나 연결 중입니다.');
     }
   };
 
+  // 블라인드 매칭 취소
   const handleCancelBlindMatching = () => {
     setIsBlindMatching(false);
 
     if (stompClient && stompClient.connected) {
       console.log('블라인드 매칭 취소 요청 전송: id =', id);
+
       stompClient.publish({
         destination: '/pub/match/cancel',
         body: JSON.stringify({ id: id })
@@ -322,17 +377,79 @@ function Home() {
     }
   };
 
-  const handleShuffleLocation = () => {
-    setLocationProfiles((prev) => [...prev].sort(() => Math.random() - 0.5));
+  // 내 주변 추천 불러오기
+  const fetchNearby = useCallback(async () => {
+    try {
+      const { data } = await getNearbyMembers();
+
+      return {
+        region: data.myRegion,
+        members: data.members ?? []
+      };
+    } catch (error) {
+      console.error('내 주변 추천 조회 실패:', error);
+
+      return {
+        region: null,
+        members: []
+      };
+    }
+  }, []);
+
+  // 첫 화면 진입 시 주변 회원 조회
+  useEffect(() => {
+    if (!token) return;
+
+    let ignore = false;
+
+    fetchNearby().then(({ region, members }) => {
+      if (ignore) return;
+
+      setMyRegion(region);
+      setLocationProfiles(members);
+      setIsLocationLoading(false);
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [token, fetchNearby]);
+
+  // 새로운 이웃 추천
+  const handleShuffleLocation = async () => {
+    setIsLocationLoading(true);
+
+    const { region, members } = await fetchNearby();
+
+    setMyRegion(region);
+    setLocationProfiles(members);
+    setIsLocationLoading(false);
   };
 
+  // AI 챗봇 메시지 전송
   const handleSendChatMessage = (textToSend) => {
     const text = typeof textToSend === 'string' ? textToSend : chatInput;
+
     if (!text.trim()) return;
 
-    const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    setChatMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: text.trim(), time }]);
-    if (typeof textToSend !== 'string') setChatInput('');
+    const time = new Date().toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: 'user',
+        text: text.trim(),
+        time
+      }
+    ]);
+
+    if (typeof textToSend !== 'string') {
+      setChatInput('');
+    }
 
     setTimeout(() => {
       let reply = `✨ 실루엣 AI: "${text.trim()}"에 대해 안내드립니다. 첫 만남에서는 서로의 안전과 존중을 최우선으로 고려해주세요.`;
@@ -348,14 +465,21 @@ function Home() {
         reply = '🎉 [실물 및 QR 인증 혜택]\nAI 얼굴 실물 인증을 완료하시면 신뢰도 배지가 부여되며, 실제 만남 시 QR 인증을 완료하면 무료 대화권 5장이 즉시 지급됩니다!';
       }
 
-      setChatMessages((prev) => [...prev, { id: Date.now() + 1, sender: 'ai', text: reply, time }]);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: reply,
+          time
+        }
+      ]);
     }, 350);
   };
 
-
   return (
     <div className={styles.container}>
-      {/* 1. 상단: 실시간 매칭 모드 (좌: 블라인드 / 우: 이상형) */}
+      {/* 1. 상단: 실시간 매칭 모드 */}
       <section className={styles.topSection}>
         <div className={styles.topHeader}>
           <div className={styles.topTitleGroup}>
@@ -367,6 +491,7 @@ function Home() {
               원하는 방식으로 인연을 찾아보세요. 조건 없는 블라인드 대화와 맞춤형 이상형 매칭을 지원합니다.
             </p>
           </div>
+
           <div className={styles.refreshInfo}>
             <span className={styles.pulseGreenDot}></span>
             <span>실시간 매칭 가동 중</span>
@@ -374,7 +499,7 @@ function Home() {
         </div>
 
         <div className={styles.matchSplitGrid}>
-          {/* 좌측: 블라인드 매칭 */}
+          {/* 블라인드 매칭 */}
           <MatchCard
             isIdeal={false}
             badgeText="🎭 블라인드 매칭"
@@ -400,7 +525,7 @@ function Home() {
             }
           />
 
-          {/* 우측: 이상형 매칭 */}
+          {/* 이상형 매칭 */}
           <MatchCard
             isIdeal={true}
             badgeText="💖 이상형 매칭"
@@ -409,8 +534,8 @@ function Home() {
             waitingLabel="이상형 매칭"
             waitingCount={waitingIdealUsers}
             isMatching={isIdealMatching}
-            onStart={() => setIsIdealMatching(true)}
-            onCancel={() => setIsIdealMatching(false)}
+            onStart={handleIdealStart}
+            onCancel={handleIdealCancel}
             btnSubtitle="IDEAL MATCH"
             guideContent={
               <div className={styles.idealKeywords}>
@@ -430,9 +555,9 @@ function Home() {
         </div>
       </section>
 
-      {/* 2. 메인 레이아웃 (주소지 기반 매칭 & 사이드바) */}
+      {/* 2. 메인 레이아웃 */}
       <div className={styles.mainLayout}>
-        {/* 왼쪽 섹션: 주소지 기반 위치 추천 */}
+        {/* 왼쪽: 주소지 기반 위치 추천 */}
         <section className={styles.leftSection}>
           <div className={styles.locationSection}>
             <div className={styles.sectionHeader}>
@@ -440,41 +565,67 @@ function Home() {
                 <h3 className={styles.sectionTitle}>
                   <span>📍 내 주변 가까운 매칭</span>
                 </h3>
+
                 <span className={styles.sectionSub}>
-                  회원님의 거주지(서울 강남구) 주변 실시간 위치 기반 랜덤 리스팅
+                  {myRegion
+                    ? `회원님의 거주지(${myRegion}) 기준 같은 동네 우선 추천 (최대 10명)`
+                    : '회원정보에 주소를 등록하면 가까운 이웃을 추천해드려요'}
                 </span>
               </div>
+
               <button
                 type="button"
                 className={styles.randomShuffleBtn}
                 onClick={handleShuffleLocation}
+                disabled={isLocationLoading}
                 title="다른 추천 프로필 보기"
               >
-                🔄 새로운 이웃 추천
+                {isLocationLoading ? '불러오는 중...' : '🔄 새로운 이웃 추천'}
               </button>
             </div>
 
+            {!isLocationLoading && locationProfiles.length === 0 && (
+              <p className={styles.locEmpty}>
+                {myRegion
+                  ? '아직 근처에 추천할 회원이 없어요. 잠시 후 다시 확인해보세요!'
+                  : '주소 정보가 없어 추천할 수 없어요.'}
+              </p>
+            )}
+
             <div className={styles.locationCardGrid}>
               {locationProfiles.map((item) => (
-                <div key={item.id} className={styles.locCard}>
+                <div key={item.memberSeq} className={styles.locCard}>
                   <div className={styles.locCardImage}>
                     <div className={styles.locAvatar}>👥</div>
-                    <span className={styles.distBadge}>{item.distance}</span>
+                    <span className={styles.distBadge}>
+                      {item.nearRank === 1 ? '같은 동네' : '같은 지역'}
+                    </span>
                   </div>
 
                   <div className={styles.locCardInfo}>
                     <div className={styles.locMeta}>
-                      <span>{item.name}</span>
+                      <span>{item.nickname}</span>
                       <span>·</span>
                       <span>{item.age}세</span>
+
+                      {item.mbti && (
+                        <>
+                          <span>·</span>
+                          <span>{item.mbti}</span>
+                        </>
+                      )}
                     </div>
-                    <span className={styles.locAddress}>{item.address}</span>
-                    <p className={styles.locIntro}>{item.intro}</p>
+
+                    <span className={styles.locAddress}>{item.region}</span>
+
+                    <p className={styles.locIntro}>
+                      {item.introduction || '아직 자기소개를 작성하지 않았어요.'}
+                    </p>
 
                     <button
                       type="button"
                       className={styles.locBtn}
-                      onClick={()=>{navi("/chattingRoomList")}}
+                      onClick={() => navi('/chattingRoomList')}
                     >
                       대화 신청
                     </button>
@@ -485,7 +636,7 @@ function Home() {
           </div>
         </section>
 
-        {/* 오른쪽 섹션: 친구/채팅방 사이드바와 이벤트 배너 */}
+        {/* 오른쪽: 친구/채팅방 사이드바와 이벤트 배너 */}
         <aside className={styles.rightSection}>
           <div className={styles.chatFriendSidebar}>
             <div className={styles.sidebarTabButtons}>
@@ -496,6 +647,7 @@ function Home() {
               >
                 친구 목록
               </button>
+
               <button
                 type="button"
                 className={`${styles.sidebarTabButton} ${sidebarTab === 'rooms' ? styles.sidebarTabActive : ''}`}
@@ -509,14 +661,23 @@ function Home() {
               {sidebarTab === 'friends' && (
                 <>
                   <h3 className={styles.sidebarListTitle}>내 친구</h3>
-                  {friendList.length === 0 && <p className={styles.sidebarEmpty}>등록된 친구가 없습니다.</p>}
+
+                  {friendList.length === 0 && (
+                    <p className={styles.sidebarEmpty}>등록된 친구가 없습니다.</p>
+                  )}
+
                   {friendList.map((friend) => (
                     <div className={styles.sidebarPerson} key={friend.member_seq}>
                       {friend.profile_image ? (
-                        <img src={friend.profile_image} alt="" className={styles.sidebarAvatar} />
+                        <img
+                          src={friend.profile_image}
+                          alt=""
+                          className={styles.sidebarAvatar}
+                        />
                       ) : (
                         <div className={styles.sidebarAvatarFallback}>👤</div>
                       )}
+
                       <span>{friend.nickname || friend.login_id}</span>
                     </div>
                   ))}
@@ -526,7 +687,11 @@ function Home() {
               {sidebarTab === 'rooms' && (
                 <>
                   <h3 className={styles.sidebarListTitle}>내 채팅방</h3>
-                  {myRoomList.length === 0 && <p className={styles.sidebarEmpty}>참여 중인 채팅방이 없습니다.</p>}
+
+                  {myRoomList.length === 0 && (
+                    <p className={styles.sidebarEmpty}>참여 중인 채팅방이 없습니다.</p>
+                  )}
+
                   {myRoomList.map((room) => (
                     <button
                       type="button"
@@ -542,16 +707,19 @@ function Home() {
               )}
             </div>
           </div>
+
           <div
             className={styles.eventBannerCard}
             onClick={() => alert('🎉 얼굴 실물 인증을 완료하시면 무료 대화권 5장이 즉시 지급됩니다!')}
           >
             <span className={styles.eventBannerBadge}>SPECIAL EVENT</span>
             <h4 className={styles.eventBannerTitle}>🎁 얼굴 실물 인증 이벤트</h4>
+
             <p className={styles.eventBannerDesc}>
               지금 바로 AI 실물 인증 완료하고,<br />
               <strong>무료 대화권 5장</strong> 즉시 받아보세요!
             </p>
+
             <div className={styles.eventBannerFooter}>
               <span>자세히 보기</span>
               <span>→</span>
@@ -562,10 +730,12 @@ function Home() {
             <h3 className={styles.sideBoxTitle}>
               <span>🔥 커뮤니티 인기글</span>
             </h3>
+
             <div className={styles.postList}>
               {MOCK_POPULAR_POSTS.map((post) => (
                 <div key={post.id} className={styles.postItem}>
                   <div className={styles.postItemTitle}>{post.title}</div>
+
                   <div className={styles.postItemMeta}>
                     <span>댓글 {post.comments}개</span>
                     <span>{post.time}</span>
@@ -577,14 +747,18 @@ function Home() {
         </aside>
       </div>
 
-      {/* 3. 오른쪽 하단 플로팅 AI 안전 도우미 챗봇 */}
+      {/* 3. 오른쪽 하단 AI 안전 도우미 챗봇 */}
       <div
         className={`${styles.chatbotFab} ${isChatOpen ? styles.chatbotFabActive : ''}`}
         onClick={() => setIsChatOpen(!isChatOpen)}
         title="AI 안전 도우미 챗봇 열기"
       >
         <span className={styles.chatbotFabIcon}>{isChatOpen ? '✕' : '🤖'}</span>
-        {!isChatOpen && <span className={styles.chatbotFabBadge}>AI 안전</span>}
+
+        {!isChatOpen && (
+          <span className={styles.chatbotFabBadge}>AI 안전</span>
+        )}
+
         <span className={styles.chatbotOnlineDot}></span>
       </div>
 
@@ -593,11 +767,13 @@ function Home() {
           <div className={styles.chatbotHeader}>
             <div className={styles.chatbotHeaderLeft}>
               <div className={styles.chatbotAvatar}>🤖</div>
+
               <div>
                 <h4 className={styles.chatbotTitle}>실루엣 AI 안전 도우미</h4>
                 <span className={styles.chatbotStatus}>🟢 실시간 안전 가이드 가동 중</span>
               </div>
             </div>
+
             <button
               type="button"
               className={styles.chatbotCloseBtn}
@@ -624,21 +800,21 @@ function Home() {
             {chatMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`${styles.chatBubbleRow} ${
-                  msg.sender === 'user' ? styles.userRow : styles.aiRow
-                }`}
+                className={`${styles.chatBubbleRow} ${msg.sender === 'user' ? styles.userRow : styles.aiRow}`}
               >
-                {msg.sender === 'ai' && <div className={styles.chatBotAvatarSmall}>🤖</div>}
+                {msg.sender === 'ai' && (
+                  <div className={styles.chatBotAvatarSmall}>🤖</div>
+                )}
+
                 <div
-                  className={`${styles.chatBubble} ${
-                    msg.sender === 'user' ? styles.userBubble : styles.aiBubble
-                  }`}
+                  className={`${styles.chatBubble} ${msg.sender === 'user' ? styles.userBubble : styles.aiBubble}`}
                 >
                   <p className={styles.chatBubbleText}>{msg.text}</p>
                   <span className={styles.chatTime}>{msg.time}</span>
                 </div>
               </div>
             ))}
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -657,6 +833,7 @@ function Home() {
               onChange={(e) => setChatInput(e.target.value)}
               autoFocus
             />
+
             <button type="submit" className={styles.chatbotSendBtn} title="전송">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={styles.sendIcon}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -668,6 +845,5 @@ function Home() {
     </div>
   );
 }
-
 
 export default Home;

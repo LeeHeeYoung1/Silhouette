@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
 import Client from '../../api/client';
+import { getIdealPartner } from '../../api/matching';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './chatting.module.css';
 
@@ -28,6 +29,9 @@ const Chatting = () => {
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  // 이상형 매칭 방이면 상대 프로필 (일반 채팅방이면 null → 사이드 패널 숨김)
+  const [idealPartner, setIdealPartner] = useState(null);
 
 
   // 파일 및 사진 여러 개 전송 대기 상태
@@ -101,6 +105,18 @@ const Chatting = () => {
     if (token && roomId) {
       fetchRoomName();
     }
+  }, [roomId, token]);
+
+  // 이상형 매칭 방인지 확인하고 상대 프로필 가져오기 (이상형 방이 아니면 404 → 패널 숨김)
+  useEffect(() => {
+    if (!token || !roomId) return;
+    let ignore = false;
+
+    getIdealPartner(roomId)
+      .then(({ data }) => { if (!ignore) setIdealPartner(data); })
+      .catch(() => { if (!ignore) setIdealPartner(null); });
+
+    return () => { ignore = true; };
   }, [roomId, token]);
 
   // 내 회원 번호 가져오기
@@ -795,7 +811,7 @@ const Chatting = () => {
   };
 
   return (
-    <div className={styles.silhouetteContainer}>
+    <div className={`${styles.silhouetteContainer} ${idealPartner ? styles.withPartnerPanel : ''}`}>
       <div className={styles.chatWrapper}>
 
         {/* 채팅방 헤더 */}
@@ -809,7 +825,7 @@ const Chatting = () => {
           </button>
 
           <h1 className={styles.title}>
-            {roomName || '채팅방'}
+            {idealPartner?.nickname || roomName || '채팅방'}
           </h1>
 
           <div className={styles.headerRight}>
@@ -1205,6 +1221,39 @@ const Chatting = () => {
         </form>
 
       </div>
+
+      {/* 이상형 매칭 방일 때만: 상대 프로필 사이드 패널 */}
+      {idealPartner && (
+        <aside className={styles.partnerPanel}>
+          <div className={styles.partnerBadge}>💖 이상형 매칭</div>
+
+          <div className={styles.partnerAvatar}>👤</div>
+          <h3 className={styles.partnerName}>{idealPartner.nickname}</h3>
+          <p className={styles.partnerMeta}>
+            {idealPartner.age}세
+            {idealPartner.mbti && ` · ${idealPartner.mbti}`}
+            {idealPartner.job && ` · ${idealPartner.job}`}
+          </p>
+
+          <div className={styles.partnerSection}>
+            <span className={styles.partnerLabel}>자기소개</span>
+            <p className={styles.partnerIntro}>
+              {idealPartner.introduction || '아직 자기소개가 없어요.'}
+            </p>
+          </div>
+
+          {idealPartner.hobby && (
+            <div className={styles.partnerSection}>
+              <span className={styles.partnerLabel}>취미</span>
+              <div className={styles.partnerTags}>
+                {idealPartner.hobby.split(',').filter(Boolean).map((hobby) => (
+                  <span key={hobby} className={styles.partnerTag}>{hobby}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </aside>
+      )}
     </div>
   );
 };

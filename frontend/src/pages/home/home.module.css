@@ -1,3 +1,4 @@
+
 /* home.module.css */
 
 .container {
@@ -28,10 +29,8 @@
    1. 상단: 실시간 매칭 섹션 (좌: 블라인드, 우: 이상형)
    ========================================================================== */
 .topSection {
-  background: 
-    /* 상단 중앙 설레는 로맨틱 캔들/블러셔 조명 */
+  background:
     radial-gradient(circle at 50% 28%, rgba(255, 120, 165, 0.3) 0%, rgba(210, 80, 150, 0.16) 38%, transparent 68%),
-    /* 시스루 커튼 세로 패브릭 주름 텍스처 (100% Pure CSS) */
     repeating-linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.025) 0px,
@@ -39,7 +38,6 @@
       rgba(0, 0, 0, 0.05) 18px,
       rgba(0, 0, 0, 0.05) 36px
     ),
-    /* 로맨틱 미드나잇 플럼 벨벳 베이스 */
     linear-gradient(135deg, #261329 0%, #1a0c1d 50%, #100612 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -233,7 +231,7 @@
   transition: color 0.3s ease;
 }
 
-/* 몽환적 배경 빛번짐 (사진 속 캔들라이트 & 로즈 실루엣) */
+/* 몽환적 배경 빛번짐 */
 .ambientLight1,
 .ambientLight2 {
   position: absolute;
@@ -1191,14 +1189,11 @@
 }
 
 /* ==========================================================================
-   4. 라이트 모드 테마 대응 (:global(body.theme-light))
-   (봄날 오후 첫 소개팅, 설레는 벚꽃빛 피치 카페 감성)
+   4. 라이트 모드 테마 대응
    ========================================================================== */
 :global(body.theme-light) .topSection {
-  background: 
-    /* 상단 중앙 따사로운 벚꽃빛 피치 햇살 조명 */
+  background:
     radial-gradient(circle at 50% 25%, rgba(255, 170, 195, 0.45) 0%, rgba(255, 205, 220, 0.28) 42%, transparent 70%),
-    /* 시스루 커튼 세로 패브릭 주름 텍스처 (100% Pure CSS) */
     repeating-linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.6) 0px,
@@ -1206,7 +1201,6 @@
       rgba(255, 230, 238, 0.4) 20px,
       rgba(255, 230, 238, 0.4) 40px
     ),
-    /* 소프트 벚꽃 피치 아이보리 베이스 */
     linear-gradient(135deg, #fffafb 0%, #fff1f4 50%, #fdebf2 100%);
   border-color: rgba(255, 185, 205, 0.5);
   box-shadow: 0 16px 45px rgba(255, 130, 160, 0.14);
@@ -1460,8 +1454,9 @@
   }
 }
 
-
-/* 친구 및 채팅방 사이드바 */
+/* ==========================================================================
+   7. 친구 및 채팅방 사이드바
+   ========================================================================== */
 .chatFriendSidebar {
   display: flex;
   flex-direction: column;
@@ -1571,4 +1566,12 @@
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 내 주변 추천이 비었을 때 */
+.locEmpty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
 }

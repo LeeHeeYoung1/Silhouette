@@ -3,29 +3,46 @@ package com.app.silhouette.post;
 import java.time.LocalDateTime;
 
 public class PostDTO {
-	private Long postSeq;
-	private String category;
-	private Long memberSeq;
-	private String loginId;          // 화면에서 받는 작성자 아이디 (DB 컬럼 아님)
-	private String title;
-	private String content;
-	private Integer viewCount;
-	private Integer recommendCount;
-	private Integer commentCount;
-	private String isDeleted;
-	private LocalDateTime createdAt;
-	private LocalDateTime updatedAt;
-	private LocalDateTime deletedAt;
-	private String writerName;
+
+	// ===================== POST 테이블 컬럼 (DB 컬럼명과 동일) =====================
+	private Long post_seq;                  // 글 번호 (값은 SEQ_POST.NEXTVAL)
+	private String board_type;              // ✅ 게시판 구분 (FREE: 자유, ANON: 익명)
+	private String category;                // 카테고리 (자유/연애고민/데이트후기, 익명게시판은 '익명')
+	private Long member_seq;                // 작성자 회원번호
+	private String title;                   // 제목
+	private String content;                 // 내용
+	private Integer view_count;             // 조회수
+	private Integer recommend_count;        // 추천수
+	private Integer comment_count;          // 댓글수
+	private String is_deleted;              // 삭제 여부 (Y/N)
+	private LocalDateTime created_at;       // 등록일시
+	private LocalDateTime updated_at;       // 수정일시
+	private LocalDateTime deleted_at;       // 삭제일시
+
+	// ===================== 화면용 (POST 테이블 컬럼 아님) =====================
+	private String login_id;                // 작성자 아이디 (MEMBER.LOGIN_ID, 익명 글은 null로 보냄)
+	private String writer_name;             // 작성자 표시 이름 (닉네임 또는 '익명')
+	private Boolean mine;                   // ✅ 보는 사람의 글인지 (서버가 계산)
 
 	public PostDTO() {}
 
+	// ===================== getter / setter (camelCase → mapper #{}, JSON 그대로) =====================
+
 	public Long getPostSeq() {
-		return postSeq;
+		return post_seq;
 	}
 
 	public void setPostSeq(Long postSeq) {
-		this.postSeq = postSeq;
+		this.post_seq = postSeq;
+	}
+
+	// ✅ 게시판 구분
+	public String getBoardType() {
+		return board_type;
+	}
+
+	public void setBoardType(String boardType) {
+		this.board_type = boardType;
 	}
 
 	public String getCategory() {
@@ -37,19 +54,11 @@ public class PostDTO {
 	}
 
 	public Long getMemberSeq() {
-		return memberSeq;
+		return member_seq;
 	}
 
 	public void setMemberSeq(Long memberSeq) {
-		this.memberSeq = memberSeq;
-	}
-
-	public String getLoginId() {
-		return loginId;
-	}
-
-	public void setLoginId(String loginId) {
-		this.loginId = loginId;
+		this.member_seq = memberSeq;
 	}
 
 	public String getTitle() {
@@ -69,70 +78,83 @@ public class PostDTO {
 	}
 
 	public Integer getViewCount() {
-		return viewCount;
+		return view_count;
 	}
 
 	public void setViewCount(Integer viewCount) {
-		this.viewCount = viewCount;
+		this.view_count = viewCount;
 	}
 
 	public Integer getRecommendCount() {
-		return recommendCount;
+		return recommend_count;
 	}
 
 	public void setRecommendCount(Integer recommendCount) {
-		this.recommendCount = recommendCount;
+		this.recommend_count = recommendCount;
 	}
 
 	public Integer getCommentCount() {
-		return commentCount;
+		return comment_count;
 	}
 
 	public void setCommentCount(Integer commentCount) {
-		this.commentCount = commentCount;
+		this.comment_count = commentCount;
 	}
 
 	public String getIsDeleted() {
-		return isDeleted;
+		return is_deleted;
 	}
 
 	public void setIsDeleted(String isDeleted) {
-		this.isDeleted = isDeleted;
+		this.is_deleted = isDeleted;
 	}
 
 	public LocalDateTime getCreatedAt() {
-		return createdAt;
+		return created_at;
 	}
 
 	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
+		this.created_at = createdAt;
 	}
 
 	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
+		return updated_at;
 	}
 
 	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
+		this.updated_at = updatedAt;
 	}
 
 	public LocalDateTime getDeletedAt() {
-		return deletedAt;
+		return deleted_at;
 	}
 
 	public void setDeletedAt(LocalDateTime deletedAt) {
-		this.deletedAt = deletedAt;
+		this.deleted_at = deletedAt;
+	}
+
+	public String getLoginId() {
+		return login_id;
+	}
+
+	public void setLoginId(String loginId) {
+		this.login_id = loginId;
 	}
 
 	public String getWriterName() {
-		return writerName;
+		return writer_name;
 	}
 
 	public void setWriterName(String writerName) {
-		this.writerName = writerName;
+		this.writer_name = writerName;
 	}
 
-	
+	// ✅ 내 글인지 (Boolean 대문자 → JSON에 "mine": true/false)
+	public Boolean getMine() {
+		return mine;
+	}
 
-	
+	public void setMine(Boolean mine) {
+		this.mine = mine;
+	}
 }
