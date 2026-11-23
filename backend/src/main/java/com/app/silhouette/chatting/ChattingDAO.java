@@ -73,12 +73,12 @@ public class ChattingDAO {
         return mybatis.selectOne("Chatting.isRoomMember", param);
     }
 
-    public List<ChattingMemberDTO> searchMembers(String keyword, Long mySeq) {
-        Map<String, Object> param = new HashMap<>();
-        param.put("keyword", keyword);
-        param.put("mySeq", mySeq);
-        return mybatis.selectList("Chatting.searchMembers", param);
+
+    public List<ChattingMemberDTO> selectRoomMembers(Long roomSeq) {
+        return mybatis.selectList("Chatting.selectRoomMembers", roomSeq);
     }
+
+
 
     public int createInvitation(ChattingInvitationDTO invitation) {
         return mybatis.insert("Chatting.createInvitation", invitation);
