@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import styles from './postlist.module.css';
 import Client from '../../api/client';
 import useAuthStore from '../../stores/useAuthStore';
+import FaqList from './faqlist';   // ✅ FAQ 목록 (따로 분리)
 /* =========================================================
    실루엣 게시판 목록 컴포넌트 (PostList) - 담당: 권형석
    - B001 자유게시판 리스트 (/post/free)
    - 익명게시판 리스트 (/post/anon)
    - B002 공지사항 리스트 (/post/notice) ✅ 서버 연동, 글쓰기는 관리자만
-   - FAQ 리스트 (/post/faq)  (서버 연동 전)
+   - FAQ 리스트 (/post/faq) ✅ faqlist.jsx로 분리, 작성·수정·삭제는 관리자만
    - Q&A 리스트 (/post/qna)  (서버 연동 전)
    - 검색: 제목+내용(기본) / 제목 / 내용 / 작성자(자유게시판만)
            띄어쓴 단어가 모두 들어간 글 (AND)
@@ -25,7 +26,7 @@ const FREE_CATEGORIES = ['전체', '자유', '연애고민', '데이트후기'];
 // 화면의 게시판 이름 → 서버에 보낼 BOARD_TYPE 값
 const BOARD_TYPE_MAP = { free: 'FREE', anon: 'ANON' };
 
-// ✅ "2026-11-23T15:30:12" → "2026-11-23 15:30"
+// "2026-11-23T15:30:12" → "2026-11-23 15:30"
 const formatDate = (value) => {
     if (!value) return '';
     if (Array.isArray(value)) {
@@ -43,8 +44,8 @@ function PostList({ boardType = 'free' }) {
     // 서버에서 글을 가져오는 게시판인지
     const isPostBoard = boardType === 'free' || boardType === 'anon';
     const isAnon = boardType === 'anon';
-    const isNotice = boardType === 'notice';           // ✅ 공지사항
-    const isListBoard = isPostBoard || isNotice;        // ✅ 표 형태 목록 + 검색 + 페이징
+    const isNotice = boardType === 'notice';           // 공지사항
+    const isListBoard = isPostBoard || isNotice;        // 표 형태 목록 + 검색 + 페이징
 
     const [posts, setposts] = useState([]);
     // 자유게시판 카테고리 탭
@@ -61,10 +62,7 @@ function PostList({ boardType = 'free' }) {
     // 실제로 적용된 검색 (검색 버튼 / Enter를 눌러야 바뀜)
     const [search, setSearch] = useState(DEFAULT_SEARCH);
 
-    // FAQ 아코디언 열림 상태
-    const [openFaqId, setOpenFaqId] = useState(null);
-
-    // ✅ 관리자인지 (공지·FAQ 글쓰기 버튼 표시용, 서버에서도 한 번 더 막음)
+    // 관리자인지 (공지 글쓰기 버튼 표시용, 서버에서도 한 번 더 막음)
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
@@ -89,10 +87,10 @@ function PostList({ boardType = 'free' }) {
 
     // 게시판·카테고리·페이지·검색이 바뀔 때마다 그 페이지 글만 가져오기
     useEffect(() => {
-        if (!isListBoard) return;
+        if (!isListBoard) return;   // FAQ · Q&A는 여기서 안 불러옴
         let cancelled = false;
 
-        // ✅ 공지는 /api/notices, 자유·익명은 /api/posts
+        // 공지는 /api/notices, 자유·익명은 /api/posts
         const url = isNotice ? '/api/notices' : '/api/posts';
         const params = { page: currentPage, size: PAGE_SIZE };
 
@@ -150,8 +148,7 @@ function PostList({ boardType = 'free' }) {
         setCurrentPage(1);
     };
 
-    const qnaList = [];
-    const faqList = [];
+    const qnaList = [];   // Q&A 서버 연동 전 (다음 단계에서 교체)
 
     // 새글 작성 이동
     const handleGoWrite = () => {
@@ -161,10 +158,10 @@ function PostList({ boardType = 'free' }) {
         else navigate('/post/free/write');
     };
 
-    // ✅ 글쓰기 버튼 표시: 공지는 관리자만, FAQ는 아직 숨김(서버 연동 전), 나머지는 누구나
-    const showWriteBtn = isNotice ? isAdmin : boardType !== 'faq';
+    // 글쓰기 버튼 표시: 공지는 관리자만, 나머지는 누구나
+    const showWriteBtn = isNotice ? isAdmin : true;
 
-    // ✅ 행 클릭 → 상세 (공지는 공지 상세)
+    // 행 클릭 → 상세 (공지는 공지 상세)
     const goDetail = (item) => {
         if (isNotice) navigate(`/post/notice/${item.noticeSeq}`);
         else navigate(`/post/detail/${item.postSeq}`);
@@ -174,6 +171,10 @@ function PostList({ boardType = 'free' }) {
     const showCategoryCol = isPostBoard && !isAnon;     // 자유게시판만 카테고리
     const showRecommendCol = isPostBoard;               // 공지는 추천 없음
     const columnCount = 4 + (showCategoryCol ? 1 : 0) + (showRecommendCol ? 1 : 0) + 1;
+
+    // ✅ FAQ는 전용 화면 (카테고리 탭 + 펼치는 목록 + 관리자 버튼)
+    //    모든 useState·useEffect 아래에 있어야 함 (React 규칙)
+    if (boardType === 'faq') return <FaqList />;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -196,7 +197,6 @@ function PostList({ boardType = 'free' }) {
                     <div style={{ fontSize: '0.92rem', color: 'var(--text-sub)' }}>
                         {isAnon && '🎭 익명 게시판입니다. 글 작성자와 댓글 작성자 모두 익명으로 표시됩니다.'}
                         {isNotice && '📢 실루엣 공식 공지사항 및 업데이트 소식 목록입니다.'}
-                        {boardType === 'faq' && '❓ 회원님들이 자주 문의하시는 질문과 답변입니다.'}
                         {boardType === 'qna' && '🔒 실루엣 고객센터 1:1 비밀 문의 내역입니다.'}
                     </div>
                 )}
@@ -280,7 +280,7 @@ function PostList({ boardType = 'free' }) {
                                                 onClick={() => goDetail(post)}
                                                 style={pinned ? { background: 'rgba(168, 85, 247, 0.08)' } : undefined}
                                             >
-                                                {/* ✅ 고정 공지는 번호 대신 📌 */}
+                                                {/* 고정 공지는 번호 대신 📌 */}
                                                 <td style={{ textAlign: 'center' }}>
                                                     {pinned ? '📌' : displayNo(index)}
                                                 </td>
@@ -363,40 +363,7 @@ function PostList({ boardType = 'free' }) {
                 </>
             )}
 
-            {/* 2. FAQ 아코디언 (서버 연동 전) */}
-            {boardType === 'faq' && (
-                <div className={styles.faqList}>
-                    {faqList.length > 0 ? (
-                        faqList.map((faq) => {
-                            const isOpen = openFaqId === faq.faqSeq;
-                            return (
-                                <div key={faq.faqSeq} className={styles.faqItem}>
-                                    <div
-                                        className={styles.faqQuestion}
-                                        onClick={() => setOpenFaqId(isOpen ? null : faq.faqSeq)}
-                                    >
-                                        <div>
-                                            <span className={styles.faqQMark}>Q.</span>
-                                            <span>{faq.question}</span>
-                                        </div>
-                                        <i className={`fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`} style={{ color: 'var(--text-dim)' }}></i>
-                                    </div>
-                                    {isOpen && (
-                                        <div className={styles.faqAnswer}>{faq.answer}</div>
-                                    )}
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div className={styles.emptyState}>
-                            <i className="fa-regular fa-folder-open"></i>
-                            <span>등록된 FAQ가 없습니다.</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* 3. Q&A 리스트 (서버 연동 전) */}
+            {/* 2. Q&A 리스트 (서버 연동 전 - 다음 단계에서 교체) */}
             {boardType === 'qna' && (
                 <div className={styles.tableContainer}>
                     <table className={styles.postTable}>

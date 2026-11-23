@@ -16,6 +16,7 @@ public class AuthMemberController {
 	public AuthMemberController(AuthMemberService authMemberService) {
 		this.authMemberService = authMemberService;
 	}
+	
 
 	// 내 권한: GET /api/members/me/role → { "admin": true/false }
 	@GetMapping("/me/role")
