@@ -14,10 +14,10 @@ public class MBTITestResultDAO {
 	}
 	
 	public int insertMBTITestResult(MBTITestResultDTO mBTITestResultDto) {
-		return mybatis.insert(NAMESPACE + "insertMbtiTestResult", mBTITestResultDto);
+		return mybatis.insert(NAMESPACE + ".insertMbtiTestResult", mBTITestResultDto);
 	}
 	
 	public MBTITestResultDTO selectLatestResultByMember(Long memberSeq) {
-        return mybatis.selectOne(NAMESPACE + "selectLatestResultByMember", memberSeq);
+        return mybatis.selectOne(NAMESPACE + ".selectLatestResultByMember", memberSeq);
     }
 }

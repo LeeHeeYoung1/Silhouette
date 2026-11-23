@@ -119,11 +119,13 @@
     </select>
 
     <!-- 블라인드 채팅 완료 이력 확인 -->
-    <select id="countCompletedBlindChat" parameterType="long" resultType="int">
-        SELECT COUNT(*)
-        FROM CHAT_ROOM
-        WHERE (MEMBER1_SEQ = #{memberSeq} OR MEMBER2_SEQ = #{memberSeq})
-          AND STATUS = 'COMPLETED'
-    </select>
+<select id="countCompletedBlindChat" parameterType="long" resultType="int">
+    SELECT COUNT(*)
+    FROM BLIND_CHAT_ROOM bcr
+    JOIN BLIND_MATCHING bm
+      ON bcr.BLIND_MATCHING_SEQ = bm.BLIND_MATCHING_SEQ
+    WHERE (bm.MEMBER_SEQ_1 = #{memberSeq} OR bm.MEMBER_SEQ_2 = #{memberSeq})
+      AND bcr.STATUS = 'COMPLETED'
+</select>
 
 </mapper>

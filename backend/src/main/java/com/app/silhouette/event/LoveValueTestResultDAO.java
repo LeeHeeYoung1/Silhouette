@@ -14,11 +14,11 @@ public class LoveValueTestResultDAO {
 	}
 	
 	public int insertLoveValueTestResult(LoveValueTestResultDTO loveValueTestResultDto) {
-		return mybatis.insert(NAMESPACE + "insertLoveValueTestResult", loveValueTestResultDto);
+		return mybatis.insert(NAMESPACE + ".insertLoveValueTestResult", loveValueTestResultDto);
 	}
 	
 	public LoveValueTestResultDTO selectLatestResultByMember(Long memberSeq) {
-		return mybatis.selectOne(NAMESPACE + "selectLatestResultByMember", memberSeq);
+		return mybatis.selectOne(NAMESPACE + ".selectLatestResultByMember", memberSeq);
 	}
 	
 	
