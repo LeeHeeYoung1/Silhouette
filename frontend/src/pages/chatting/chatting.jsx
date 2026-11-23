@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
@@ -19,6 +18,8 @@ const Chatting = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [members, setMembers] = useState([]);
+  const [roomMembers, setRoomMembers] = useState([]);
+  const [roomMemberImageUrls, setRoomMemberImageUrls] = useState({});
   const [inviteMessage, setInviteMessage] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isOwner, setIsOwner] = useState(false);
@@ -612,6 +613,74 @@ const Chatting = () => {
     setShowUploadMenu(false);
   };
 
+  // 채팅방 참여 회원 프로필 목록
+  useEffect(() => {
+    const loadRoomMembers = async () => {
+      try {
+        const response = await Client.get(`/api/chat/room/${roomId}/members`);
+        setRoomMembers(response.data || []);
+      } catch (error) {
+        console.error('참여 회원 목록을 불러오지 못했습니다.', error);
+        setRoomMembers([]);
+      }
+    };
+
+    if (token && roomId) loadRoomMembers();
+  }, [roomId, token]);
+
+  // 프로필 이미지 불러오기
+  // img src로 직접 요청하면 JWT가 전달되지 않으므로 Axios로 받아옵니다.
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls = [];
+
+    const loadProfileImages = async () => {
+      const imageEntries = await Promise.all(
+        roomMembers.map(async (member) => {
+          const memberSeqValue = Number(member.member_seq);
+          const imagePath = member.profile_image;
+
+          if (!imagePath) {
+            return [memberSeqValue, null];
+          }
+
+          // GCS 서명 URL 등 외부 이미지 주소는 그대로 사용합니다.
+          if (/^https?:\/\//i.test(imagePath)) {
+            return [memberSeqValue, imagePath];
+          }
+
+          try {
+            const response = await Client.get(imagePath, {
+              responseType: 'blob'
+            });
+
+            const imageUrl = URL.createObjectURL(response.data);
+            objectUrls.push(imageUrl);
+
+            return [memberSeqValue, imageUrl];
+          } catch (error) {
+            console.error(
+              `${member.nickname || member.login_id} 프로필 이미지 로드 실패:`,
+              error
+            );
+            return [memberSeqValue, null];
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setRoomMemberImageUrls(Object.fromEntries(imageEntries));
+      }
+    };
+
+    loadProfileImages();
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((imageUrl) => URL.revokeObjectURL(imageUrl));
+    };
+  }, [roomMembers]);
+
   // 회원 검색
   const searchMembers = async () => {
     if (!keyword.trim()) {
@@ -628,7 +697,11 @@ const Chatting = () => {
       });
 
       setMembers(response.data);
-      setInviteMessage('');
+      if (!response.data || response.data.length === 0) {
+        setInviteMessage('내 친구목록에 없는 닉네임입니다.');
+      } else {
+        setInviteMessage('');
+      }
     } catch (error) {
       console.error('회원 검색 실패:', error);
       setInviteMessage('회원 검색에 실패했습니다.');
@@ -852,16 +925,22 @@ const Chatting = () => {
             <div className={styles.roomMembers}>
               <h3>참여 중인 회원</h3>
 
-              <div className={styles.memberProfilePlaceholder}>
-                <div className={styles.profileAvatarPlaceholder}>
-                  <span>👤</span>
+              {roomMembers.map((member) => (
+                <div className={styles.roomMemberItem} key={member.member_seq}>
+                  {roomMemberImageUrls[Number(member.member_seq)] ? (
+                    <img src={roomMemberImageUrls[Number(member.member_seq)]} alt="" className={styles.roomMemberAvatar} />
+                  ) : (
+                    <div className={styles.roomMemberAvatarFallback}>👤</div>
+                  )}
+                  <strong className={styles.roomMemberNickname}>
+                    {member.nickname || member.login_id}
+                    {Number(member.member_seq) === Number(memberSeq) && ' (나)'}
+                  </strong>
+                  {member.participant_role === 'OWNER' && (
+                    <span className={styles.ownerBadge}>방장</span>
+                  )}
                 </div>
-
-                <div className={styles.profileInfoPlaceholder}>
-                  <strong>회원 프로필 영역</strong>
-                  <span>프로필 정보가 여기에 표시됩니다.</span>
-                </div>
-              </div>
+              ))}
             </div>
 
           </div>
@@ -886,11 +965,21 @@ const Chatting = () => {
                   : styles.otherMessage
                   }`}
               >
-                {!msg.isMine && (
-                  <span className={styles.sender}>
-                    상대방
-                  </span>
-                )}
+                {!msg.isMine && (() => {
+                  const sender = roomMembers.find(
+                    (member) => Number(member.member_seq) === Number(msg.sender_seq)
+                  );
+                  return (
+                    <div className={styles.senderProfile}>
+                      {roomMemberImageUrls[Number(sender?.member_seq)] ? (
+                        <img src={roomMemberImageUrls[Number(sender.member_seq)]} alt="" className={styles.senderAvatar} />
+                      ) : (
+                        <div className={styles.senderAvatarFallback}>👤</div>
+                      )}
+                      <span>{sender?.nickname || sender?.login_id || '상대방'}</span>
+                    </div>
+                  );
+                })()}
 
                 <div className={styles.messageLine}>
                   {msg.isMine && showTime && (

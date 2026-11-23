@@ -14,6 +14,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.app.silhouette.friend.MemberFriendService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,17 +25,33 @@ public class ChattingService {
 
     private final ChattingDAO chattingDAO;
     private final Storage storage;
+    private final MemberFriendService memberFriendService;
 
     @Value("${gcp.bucket}")
     private String bucketName;
 
-    public ChattingService(ChattingDAO chattingDAO, Storage storage) {
+    public ChattingService(ChattingDAO chattingDAO, Storage storage,
+            MemberFriendService memberFriendService) {
         this.chattingDAO = chattingDAO;
         this.storage = storage;
+        this.memberFriendService = memberFriendService;
     }
 
     // 채팅방 생성: 생성자 참여 후 선택한 회원들에게 초대 발송
     public ChattingRoomDTO createRoom(ChattingRoomDTO room, Long memberSeq, List<Long> inviteeSeqs) {
+        // 채팅방을 만들기 전에 초대 대상이 모두 내 수락된 친구인지 먼저 확인
+        if (inviteeSeqs != null) {
+            for (Long inviteeSeq : inviteeSeqs) {
+                if (inviteeSeq == null || inviteeSeq.equals(memberSeq)) {
+                    throw new IllegalArgumentException("초대할 회원을 다시 확인해 주세요.");
+                }
+
+                if (!memberFriendService.isAcceptedFriend(memberSeq, inviteeSeq)) {
+                    throw new IllegalArgumentException("친구로 등록된 회원만 채팅방에 초대할 수 있습니다.");
+                }
+            }
+        }
+
         room.setCreated_by(memberSeq);
         room.setRoom_status("Y");
         chattingDAO.createChatRoom(room);
@@ -61,6 +78,14 @@ public class ChattingService {
         }
 
         return room;
+    }
+
+
+    public List<ChattingMemberDTO> getRoomMembers(Long roomSeq, Long memberSeq) {
+        if (!isRoomMember(roomSeq, memberSeq)) {
+            throw new IllegalArgumentException("이 채팅방에 참여하고 있지 않습니다.");
+        }
+        return chattingDAO.selectRoomMembers(roomSeq);
     }
 
     public List<ChattingRoomListDTO> getRoomList(Long memberSeq) {
@@ -276,13 +301,13 @@ public class ChattingService {
         return blob.signUrl(15, TimeUnit.MINUTES).toString();
     }
 
-    public List<ChattingMemberDTO> searchMembers(String keyword, Long mySeq) {
-        return chattingDAO.searchMembers(keyword, mySeq);
-    }
 
     public void inviteMember(Long roomSeq, Long inviterSeq, Long inviteeSeq) {
         if (inviterSeq.equals(inviteeSeq)) {
             throw new IllegalArgumentException("자기 자신은 초대할 수 없습니다.");
+        }
+        if (!memberFriendService.isAcceptedFriend(inviterSeq, inviteeSeq)) {
+            throw new IllegalArgumentException("내 친구목록에 없는 회원입니다.");
         }
         if (chattingDAO.isRoomMember(roomSeq, inviterSeq) == 0) {
             throw new IllegalArgumentException("채팅방 참여자만 초대할 수 있습니다.");
