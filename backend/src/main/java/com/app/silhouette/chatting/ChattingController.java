@@ -318,7 +318,19 @@ public class ChattingController {
         }
 
         try {
+            ChattingInvitationDTO invitation = chattingDAO.selectInvitation(invitationSeq);
+
             chattingService.respondInvitation(invitationSeq, memberSeq, accept);
+
+            // 초대를 수락하면 기존 채팅방 참여자에게 참여자 목록 갱신을 알립니다.
+            if (accept && invitation != null && invitation.getChat_room_seq() != null) {
+            	Object payload = Map.of("type", "ROOM_MEMBERS_UPDATED");
+
+            	messagingTemplate.convertAndSend(
+            	        "/sub/chat/" + invitation.getChat_room_seq(),
+            	        payload
+            	);
+            }
 
             return ResponseEntity.ok(accept ? "초대를 수락했습니다." : "초대를 거절했습니다.");
 
