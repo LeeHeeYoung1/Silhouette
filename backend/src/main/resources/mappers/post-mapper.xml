@@ -9,114 +9,178 @@
 		SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{loginId}
 	</select>
 
-	<!-- 게시글 등록 -->
+	<!-- 게시글 등록 (✅ BOARD_TYPE 추가) -->
 	<insert id="insertPost" parameterType="com.app.silhouette.post.PostDTO">
 		<selectKey keyProperty="postSeq" resultType="long" order="BEFORE">
 			SELECT SEQ_POST.NEXTVAL FROM DUAL
 		</selectKey>
-		INSERT INTO POST (	
-			POST_SEQ, CATEGORY, MEMBER_SEQ, TITLE, CONTENT,
+		INSERT INTO POST (
+			POST_SEQ, BOARD_TYPE, CATEGORY, MEMBER_SEQ, TITLE, CONTENT,
 			VIEW_COUNT, RECOMMEND_COUNT, COMMENT_COUNT, IS_DELETED,
 			CREATED_AT, UPDATED_AT
 		) VALUES (
-			#{postSeq}, #{category}, #{memberSeq}, #{title}, #{content},
+			#{postSeq}, #{boardType}, #{category}, #{memberSeq}, #{title}, #{content},
 			0, 0, 0, 'N',
 			SYSTIMESTAMP, SYSTIMESTAMP
 		)
 	</insert>
 
-
+	<!-- 첨부파일 등록 -->
 	<insert id="insertPostFile" parameterType="com.app.silhouette.post.PostFileDTO">
-	INSERT INTO POST_FILE (
-		POST_FILE_SEQ, POST_SEQ, ORIGINAL_NAME, STORED_NAME,
-		FILE_PATH, FILE_SIZE, FILE_TYPE, SORT_ORDER, CREATED_AT
-	) VALUES (
-		SEQ_POST_FILE.NEXTVAL, #{postSeq}, #{originalName}, #{storedName},
-		#{filePath}, #{fileSize}, #{fileType}, #{sortOrder}, SYSTIMESTAMP
-	)
+		INSERT INTO POST_FILE (
+			POST_FILE_SEQ, POST_SEQ, ORIGINAL_NAME, STORED_NAME,
+			FILE_PATH, FILE_SIZE, FILE_TYPE, SORT_ORDER, CREATED_AT
+		) VALUES (
+			SEQ_POST_FILE.NEXTVAL, #{postSeq}, #{originalName}, #{storedName},
+			#{filePath}, #{fileSize}, #{fileType}, #{sortOrder}, SYSTIMESTAMP
+		)
 	</insert>
-	
-	<select id="selectPostList" parameterType="map" resultType="com.app.silhouette.post.PostDTO">
-	select p.post_seq, p.category, p.title, p.view_count, p.recommend_count, p.comment_count, p.created_at,
-	       case when p.category = '익명' then '익명' else m.nickname end as writer_name
-	from post p
-	join member m on p.member_seq = m.member_seq
-	where p.is_deleted = 'N'
-	<if test="category != null and category != ''">
-	  and p.category = #{category}
-	</if>
-	order by p.post_seq desc
+
+	<!-- ===================== 목록 (페이징) ===================== -->
+
+	<!-- 목록 조건: count와 목록이 같은 조건을 쓰도록 한 곳에 (검색도 나중에 여기 추가) -->
+	<sql id="postListWhere">
+		where p.is_deleted = 'N'
+		  and p.board_type = #{boardType}          <!-- ✅ 게시판 구분 (FREE / ANON) -->
+		<if test="category != null and category != ''">
+		  and p.category = #{category}
+		</if>
+	</sql>
+
+	<!-- 조건에 맞는 전체 글 수 (페이지 수 계산용) -->
+	<select id="countPostList" parameterType="map" resultType="int">
+		select count(*)
+		  from post p
+		  join member m on p.member_seq = m.member_seq
+		<include refid="postListWhere"/>
 	</select>
+
+	<!-- 해당 페이지 글만 (startRow ~ endRow번째, 최신순) -->
+	<select id="selectPostList" parameterType="map" resultType="com.app.silhouette.post.PostDTO">
+		select post_seq, board_type, category, title, view_count, recommend_count, comment_count, created_at, writer_name
+		  from (
+			select rownum as rnum, t.*
+			  from (
+				select p.post_seq, p.board_type, p.category, p.title, p.view_count, p.recommend_count,
+				       p.comment_count, p.created_at,
+				       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name   <!-- ✅ -->
+				  from post p
+				  join member m on p.member_seq = m.member_seq
+				<include refid="postListWhere"/>
+				 order by p.post_seq desc
+			  ) t
+			 where rownum &lt;= #{endRow}
+		  )
+		 where rnum &gt;= #{startRow}
+	</select>
+
+	<!-- ===================== 상세 ===================== -->
 
 	<!-- 조회수 +1 -->
 	<update id="updateViewCount" parameterType="long">
 		update post
-		set view_count = view_count + 1
-		where post_seq = #{postSeq}
-		  and is_deleted = 'N'
+		   set view_count = view_count + 1
+		 where post_seq = #{postSeq}
+		   and is_deleted = 'N'
 	</update>
 
-	<!-- 게시글 상세 -->
+	<!-- 게시글 상세 (✅ board_type 추가, 익명이면 작성자 '익명')
+	     익명 글의 login_id, member_seq는 Service에서 지우고 화면에 보냄 -->
 	<select id="selectPost" parameterType="long" resultType="com.app.silhouette.post.PostDTO">
-    select p.post_seq,
-           p.category,
-           p.member_seq,
-           m.login_id,
-           p.title,
-           p.content,
-           p.view_count,
-           p.recommend_count,
-           p.comment_count,
-           p.created_at,
-           p.updated_at,
-           case when p.category = '익명' then '익명' else m.nickname end as writer_name
-      from post p
-      join member m on p.member_seq = m.member_seq
-     where p.post_seq = #{postSeq}
-       and p.is_deleted = 'N'
-</select>
-	
+		select p.post_seq,
+		       p.board_type,
+		       p.category,
+		       p.member_seq,
+		       m.login_id,
+		       p.title,
+		       p.content,
+		       p.view_count,
+		       p.recommend_count,
+		       p.comment_count,
+		       p.created_at,
+		       p.updated_at,
+		       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name
+		  from post p
+		  join member m on p.member_seq = m.member_seq
+		 where p.post_seq = #{postSeq}
+		   and p.is_deleted = 'N'
+	</select>
+
+	<!-- 첨부파일 목록 -->
 	<select id="selectPostFiles" parameterType="long" resultType="com.app.silhouette.post.PostFileDTO">
-		select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at 
-		from post_file where post_seq= #{postSeq}
-		order by sort_order
+		select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at
+		  from post_file
+		 where post_seq = #{postSeq}
+		 order by sort_order
 	</select>
-	
+
+	<!-- 첨부파일 하나 (다운로드) -->
 	<select id="selectPostDownload" parameterType="Long" resultType="com.app.silhouette.post.PostFileDTO">
-	select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at
-	from post_file where post_file_seq = #{postFileSeq}
+		select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at
+		  from post_file
+		 where post_file_seq = #{postFileSeq}
 	</select>
-	
+
+	<!-- ===================== 수정 ===================== -->
+
+	<!-- 수정 화면용: 기존 글 + 작성자 회원번호 (조회수 안 올림, ✅ board_type 추가) -->
+	<select id="selectPostForEdit" parameterType="long" resultType="com.app.silhouette.post.PostDTO">
+		select p.post_seq, p.board_type, p.category, p.member_seq, m.login_id, p.title, p.content
+		  from post p
+		  join member m on p.member_seq = m.member_seq
+		 where p.post_seq = #{postSeq}
+		   and p.is_deleted = 'N'
+	</select>
+
+	<!-- 게시글 수정 (본인 글 + 삭제 안 된 글만, 결과 0이면 수정 안 됨)
+	     BOARD_TYPE은 수정 안 함 → 게시판을 옮길 수 없음 -->
+	<update id="updatePost" parameterType="com.app.silhouette.post.PostDTO">
+		update post
+		   set category   = #{category},
+		       title      = #{title},
+		       content    = #{content},
+		       updated_at = systimestamp
+		 where post_seq   = #{postSeq}
+		   and member_seq = #{memberSeq}
+		   and is_deleted = 'N'
+	</update>
+
+	<!-- ===================== 삭제 ===================== -->
+
+	<!-- 게시글 삭제 (소프트 삭제: 본인 글만) -->
 	<update id="deletePost" parameterType="map">
-	update post set is_deleted= 'Y',
-	deleted_at=systimestamp
-	where post_seq = #{postSeq}
-		and member_seq = #{memberSeq}
-		and is_deleted= 'N'
-		</update>
-		
-		<select id="countRecommend" parameterType="map" resultType="int">
-    		select count(*) from post_recommend
-    		 where post_seq = #{postSeq} and member_seq = #{memberSeq}
-		</select>
+		update post
+		   set is_deleted = 'Y',
+		       deleted_at = systimestamp
+		 where post_seq = #{postSeq}
+		   and member_seq = #{memberSeq}
+		   and is_deleted = 'N'
+	</update>
 
-		<insert id="insertRecommend" parameterType="map">
-    		insert into post_recommend (post_recommend_seq, post_seq, member_seq, created_at)
-   			 values (seq_post_recommend.nextval, #{postSeq}, #{memberSeq}, systimestamp)
-		</insert>
+	<!-- ===================== 추천 ===================== -->
 
-		<delete id="deleteRecommend" parameterType="map">
-   			 delete from post_recommend
-   			  where post_seq = #{postSeq} and member_seq = #{memberSeq}
-		</delete>
+	<select id="countRecommend" parameterType="map" resultType="int">
+		select count(*) from post_recommend
+		 where post_seq = #{postSeq} and member_seq = #{memberSeq}
+	</select>
 
-		<update id="updateRecommendCount" parameterType="map">
-   			 update post set recommend_count = recommend_count + #{amount}
-   			  where post_seq = #{postSeq}
-		</update>
+	<insert id="insertRecommend" parameterType="map">
+		insert into post_recommend (post_recommend_seq, post_seq, member_seq, created_at)
+		values (seq_post_recommend.nextval, #{postSeq}, #{memberSeq}, systimestamp)
+	</insert>
 
-		<select id="selectRecommendCount" parameterType="long" resultType="int">
-    		select recommend_count from post
-    		 where post_seq = #{postSeq} and is_deleted = 'N'
-		</select>
+	<delete id="deleteRecommend" parameterType="map">
+		delete from post_recommend
+		 where post_seq = #{postSeq} and member_seq = #{memberSeq}
+	</delete>
+
+	<update id="updateRecommendCount" parameterType="map">
+		update post set recommend_count = recommend_count + #{amount}
+		 where post_seq = #{postSeq}
+	</update>
+
+	<select id="selectRecommendCount" parameterType="long" resultType="int">
+		select recommend_count from post
+		 where post_seq = #{postSeq} and is_deleted = 'N'
+	</select>
 </mapper>

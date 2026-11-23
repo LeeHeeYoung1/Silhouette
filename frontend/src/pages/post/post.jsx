@@ -4,9 +4,13 @@ import styles from './post.module.css';
 /* =========================================================
    실루엣 게시판 메인 레이아웃 (Post) - 담당: 권형석
    - B001 자유 게시판 라우팅 (/post/free)
+   - 익명 게시판 라우팅 (/post/anon)
    - B002 공지 게시판 라우팅 (/post/notice, /post/faq, /post/qna)
    - 하위 콘텐츠는 Outlet을 통해 렌더링
    ========================================================= */
+
+// 탭 공통 클래스 (지금 주소면 활성 스타일)
+const tabClass = ({ isActive }) => `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`;
 
 function Post() {
     const navigate = useNavigate();
@@ -26,36 +30,20 @@ function Post() {
 
                 {/* 메인 탭 네비게이션 (주소 이동 NavLink) */}
                 <nav className={styles.tabNav}>
-                    <NavLink
-                        to="/post/free"
-                        className={({ isActive }) =>
-                            `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`
-                        }
-                    >
+                    <NavLink to="/post/free" className={tabClass}>
                         💬 자유 게시판 (B001)
                     </NavLink>
-                    <NavLink
-                        to="/post/notice"
-                        className={({ isActive }) =>
-                            `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`
-                        }
-                    >
+                    {/* ✅ 익명 게시판 */}
+                    <NavLink to="/post/anon" className={tabClass}>
+                        🎭 익명 게시판
+                    </NavLink>
+                    <NavLink to="/post/notice" className={tabClass}>
                         📢 공지사항 (B002)
                     </NavLink>
-                    <NavLink
-                        to="/post/faq"
-                        className={({ isActive }) =>
-                            `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`
-                        }
-                    >
+                    <NavLink to="/post/faq" className={tabClass}>
                         ❓ 자주 묻는 질문 (FAQ)
                     </NavLink>
-                    <NavLink
-                        to="/post/qna"
-                        className={({ isActive }) =>
-                            `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`
-                        }
-                    >
+                    <NavLink to="/post/qna" className={tabClass}>
                         🔒 1:1 Q&A 문의 (B002, A004)
                     </NavLink>
                 </nav>

@@ -5,57 +5,109 @@ import Client from '../../api/client';
 /* =========================================================
    실루엣 게시판 목록 컴포넌트 (PostList) - 담당: 권형석
    - B001 자유게시판 리스트 (/post/free)
+   - 익명게시판 리스트 (/post/anon)
    - B002 공지사항 리스트 (/post/notice)
    - FAQ 리스트 (/post/faq)
    - Q&A 리스트 (/post/qna)
    ========================================================= */
 
+const PAGE_SIZE = 10;      // 한 페이지에 보여줄 글 수
+const PAGE_GROUP = 10;     // 페이지 번호를 한 번에 몇 개 보여줄지 (1~10, 11~20 ...)
+
+// 자유게시판 카테고리 탭 ('익명'은 익명게시판으로 분리돼서 빠짐)
+const FREE_CATEGORIES = ['전체', '자유', '연애고민', '데이트후기'];
+
+// 화면의 게시판 이름 → 서버에 보낼 BOARD_TYPE 값
+const BOARD_TYPE_MAP = { free: 'FREE', anon: 'ANON' };
+
 function PostList({ boardType = 'free' }) {
     const navigate = useNavigate();
 
-   
-  
-    
-    
-    const [posts, setposts]= useState([]);
- // 자유게시판 카테고리 탭
+    // 서버에서 글을 가져오는 게시판인지 (자유, 익명)
+    const isPostBoard = boardType === 'free' || boardType === 'anon';
+    const isAnon = boardType === 'anon';
+
+    const [posts, setposts] = useState([]);
+    // 자유게시판 카테고리 탭
     const [subCategory, setSubCategory] = useState('전체');
 
+    // 페이징 상태
+    const [currentPage, setCurrentPage] = useState(1);   // 지금 보는 페이지
+    const [totalPages, setTotalPages] = useState(1);     // 전체 페이지 수 (서버가 알려줌)
+    const [totalCount, setTotalCount] = useState(0);     // 전체 글 수 (서버가 알려줌)
 
-    useEffect(()=>{
-        if(boardType !== 'free') return;
-
-        Client.get('api/posts', {
-            params: subCategory === '전체' ? {} : {category: subCategory} 
-        })
-        .then((res)=> setposts(res.data)).catch((err)=> console.error(err));
-    }, [boardType, subCategory]);
-
-     // 페이징
-    const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = 1;
-
-
-    const qnaList = [];
-    const faqList = [];
-
-   
-
-    // 검색 입력값
+    // 검색 입력값 (검색은 다음 단계에서 연결)
     const [searchType, setSearchType] = useState('title');
     const [searchKeyword, setSearchKeyword] = useState('');
 
     // FAQ 아코디언 열림 상태
     const [openFaqId, setOpenFaqId] = useState(null);
 
-  
+    // 게시판 탭을 바꾸면 (자유 ↔ 익명) 페이지·카테고리·검색 초기화
+    useEffect(() => {
+        setposts([]);
+        setSubCategory('전체');
+        setCurrentPage(1);
+        setSearchType('title');
+        setSearchKeyword('');
+    }, [boardType]);
+
+    // 게시판·카테고리·페이지가 바뀔 때마다 그 페이지 글만 가져오기
+    useEffect(() => {
+        if (!isPostBoard) return;
+        let cancelled = false;   // 탭을 빨리 바꾸면 늦게 온 이전 응답은 무시
+
+        const params = {
+            boardType: BOARD_TYPE_MAP[boardType],   // FREE 또는 ANON
+            page: currentPage,
+            size: PAGE_SIZE,
+        };
+        // 카테고리 필터는 자유게시판에서만
+        if (!isAnon && subCategory !== '전체') params.category = subCategory;
+
+        Client.get('/api/posts', { params })
+            .then((res) => {
+                if (cancelled) return;
+                setposts(res.data.list ?? []);
+                setTotalCount(res.data.totalCount ?? 0);
+                setTotalPages(Math.max(1, res.data.totalPages ?? 1));
+            })
+            .catch((err) => console.error(err));
+
+        return () => { cancelled = true; };
+    }, [boardType, isPostBoard, isAnon, subCategory, currentPage]);
+
+    // ✅ 화면에 보여줄 글 번호 (게시판마다 1부터, 최신 글이 가장 큰 번호)
+    //    예) 전체 23개, 1페이지 첫 줄 → 23 / 2페이지 첫 줄 → 13
+    const displayNo = (index) => totalCount - (currentPage - 1) * PAGE_SIZE - index;
+
+    // 페이지 번호 묶음 (PAGE_GROUP=10 → 1~10, 11~20 ...)
+    const startPage = Math.floor((currentPage - 1) / PAGE_GROUP) * PAGE_GROUP + 1;
+    const endPage = Math.min(startPage + PAGE_GROUP - 1, totalPages);
+    const pageNumbers = [];
+    for (let n = startPage; n <= endPage; n++) pageNumbers.push(n);
+
+    // 페이지 이동 (범위 밖이나 같은 페이지는 무시, 맨 위로 스크롤)
+    const goPage = (num) => {
+        if (num < 1 || num > totalPages || num === currentPage) return;
+        setCurrentPage(num);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const qnaList = [];
+    const faqList = [];
 
     // 새글 작성 이동
     const handleGoWrite = () => {
         if (boardType === 'notice') navigate('/post/notice/write');
         else if (boardType === 'qna') navigate('/post/qna/write');
+        else if (isAnon) navigate('/post/anon/write');
         else navigate('/post/free/write');
     };
+
+    // 목록 표에 카테고리 칸을 보여줄지 (익명게시판은 전부 '익명'이라 숨김)
+    const showCategoryCol = !isAnon;
+    const columnCount = showCategoryCol ? 7 : 6;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -63,19 +115,20 @@ function PostList({ boardType = 'free' }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 {boardType === 'free' ? (
                     <div className={styles.subCategoryBar}>
-                        {['전체', '자유', '연애고민', '데이트후기', '익명'].map((cat) => (
+                        {FREE_CATEGORIES.map((cat) => (
                             <button
                                 key={cat}
                                 type="button"
                                 className={`${styles.categoryChip} ${subCategory === cat ? styles.categoryChipActive : ''}`}
                                 onClick={() => { setSubCategory(cat); setCurrentPage(1); }}
                             >
-                                {cat === '익명' ? '🎭 익명' : cat}
+                                {cat}
                             </button>
                         ))}
                     </div>
                 ) : (
                     <div style={{ fontSize: '0.92rem', color: 'var(--text-sub)' }}>
+                        {isAnon && '🎭 익명 게시판입니다. 글 작성자와 댓글 작성자 모두 익명으로 표시됩니다.'}
                         {boardType === 'notice' && '📢 실루엣 공식 공지사항 및 업데이트 소식 목록입니다.'}
                         {boardType === 'faq' && '❓ 회원님들이 자주 문의하시는 질문과 답변입니다.'}
                         {boardType === 'qna' && '🔒 실루엣 고객센터 1:1 비밀 문의 내역입니다.'}
@@ -87,13 +140,14 @@ function PostList({ boardType = 'free' }) {
                         <i className="fa-solid fa-pen-nib"></i>
                         {boardType === 'notice' ? '공지사항 새글 작성'
                             : boardType === 'qna' ? '1:1 문의 작성'
+                            : isAnon ? '익명으로 글쓰기'
                             : '새글 작성하기'}
                     </button>
                 )}
             </div>
 
-            {/* 검색 바 (자유게시판, 공지사항) */}
-            {(boardType === 'free' || boardType === 'notice') && (
+            {/* 검색 바 (자유게시판, 익명게시판, 공지사항) */}
+            {(isPostBoard || boardType === 'notice') && (
                 <div className={styles.searchSection}>
                     <div className={styles.searchInputs}>
                         <select
@@ -103,7 +157,8 @@ function PostList({ boardType = 'free' }) {
                         >
                             <option value="title">제목</option>
                             <option value="content">내용</option>
-                            <option value="author">작성자</option>
+                            {/* 익명게시판은 작성자 검색 불가 (누가 썼는지 알아낼 수 있어서) */}
+                            {!isAnon && <option value="author">작성자</option>}
                         </select>
                         <input
                             type="text"
@@ -117,20 +172,20 @@ function PostList({ boardType = 'free' }) {
                         </button>
                     </div>
                     <div className={styles.totalCount}>
-                        총 <strong>{posts.length}</strong>개의 게시글
+                        총 <strong>{totalCount}</strong>개의 게시글
                     </div>
                 </div>
             )}
 
-            {/* 1. 자유게시판 / 공지사항 리스트 */}
-            {(boardType === 'free' || boardType === 'notice') && (
+            {/* 1. 자유게시판 / 익명게시판 / 공지사항 리스트 */}
+            {(isPostBoard || boardType === 'notice') && (
                 <>
                     <div className={styles.tableContainer}>
                         <table className={styles.postTable}>
                             <thead>
                                 <tr>
                                     <th style={{ width: '80px', textAlign: 'center' }}>번호</th>
-                                    <th style={{ width: '100px' }}>카테고리</th>
+                                    {showCategoryCol && <th style={{ width: '100px' }}>카테고리</th>}
                                     <th>제목</th>
                                     <th style={{ width: '130px' }}>작성자</th>
                                     <th style={{ width: '140px' }}>작성일시</th>
@@ -140,16 +195,20 @@ function PostList({ boardType = 'free' }) {
                             </thead>
                             <tbody>
                                 {posts.length > 0 ? (
-                                    posts.map((post) => (
+                                    // ✅ index(줄 순서)를 같이 받아서 화면 번호 계산
+                                    posts.map((post, index) => (
                                         <tr
                                             key={post.postSeq}
                                             className={styles.postRow}
                                             onClick={() => navigate(`/post/detail/${post.postSeq}`)}
                                         >
-                                            <td style={{ textAlign: 'center' }}>{post.postSeq}</td>
-                                            <td>
-                                                <span className={styles.categoryBadge}>{post.category}</span>
-                                            </td>
+                                            {/* ✅ DB 번호(postSeq) 대신 게시판별 번호 */}
+                                            <td style={{ textAlign: 'center' }}>{displayNo(index)}</td>
+                                            {showCategoryCol && (
+                                                <td>
+                                                    <span className={styles.categoryBadge}>{post.category}</span>
+                                                </td>
+                                            )}
                                             <td>
                                                 <div className={styles.postTitle}>
                                                     <span>{post.title}</span>
@@ -158,7 +217,8 @@ function PostList({ boardType = 'free' }) {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td>{post.writerName}</td>
+                                            {/* 익명게시판은 서버 값과 상관없이 무조건 '익명' */}
+                                            <td>{isAnon ? '🎭 익명' : post.writerName}</td>
                                             <td style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{post.createdAt}</td>
                                             <td style={{ textAlign: 'center' }}>{post.viewCount}</td>
                                             <td style={{ textAlign: 'center', color: '#f472b6', fontWeight: 600 }}>{post.recommendCount}</td>
@@ -166,7 +226,7 @@ function PostList({ boardType = 'free' }) {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7}>
+                                        <td colSpan={columnCount}>
                                             <div className={styles.emptyState}>
                                                 <i className="fa-regular fa-folder-open"></i>
                                                 <span>등록된 게시글이 없습니다.</span>
@@ -178,34 +238,34 @@ function PostList({ boardType = 'free' }) {
                         </table>
                     </div>
 
-                    {/* 페이징 */}
+                    {/* 페이지 네비게이트: 처음 / 이전 / 번호 10개 / 다음 / 끝 */}
                     {totalPages > 1 && (
                         <div className={styles.pagination}>
-                            <button
-                                type="button"
-                                className={styles.pageBtn}
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            >
+                            <button type="button" className={styles.pageBtn}
+                                disabled={currentPage === 1} onClick={() => goPage(1)}>
+                                처음
+                            </button>
+                            <button type="button" className={styles.pageBtn}
+                                disabled={currentPage === 1} onClick={() => goPage(currentPage - 1)}>
                                 이전
                             </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                            {pageNumbers.map((num) => (
                                 <button
                                     key={num}
                                     type="button"
                                     className={`${styles.pageBtn} ${currentPage === num ? styles.pageBtnActive : ''}`}
-                                    onClick={() => setCurrentPage(num)}
+                                    onClick={() => goPage(num)}
                                 >
                                     {num}
                                 </button>
                             ))}
-                            <button
-                                type="button"
-                                className={styles.pageBtn}
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            >
+                            <button type="button" className={styles.pageBtn}
+                                disabled={currentPage === totalPages} onClick={() => goPage(currentPage + 1)}>
                                 다음
+                            </button>
+                            <button type="button" className={styles.pageBtn}
+                                disabled={currentPage === totalPages} onClick={() => goPage(totalPages)}>
+                                끝
                             </button>
                         </div>
                     )}
