@@ -152,8 +152,8 @@ public class IdealMatchingService {
 
         IdealPartnerProfileDTO partner = dao.selectPartnerProfile(chatRoomSeq, me);
         if (partner == null) {
-            // 이상형 매칭 방이 아니거나 내가 참여한 방이 아님
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "이상형 매칭 채팅방이 아니에요.");
+            // 매칭(이상형/블라인드 GO) 방이 아니거나 내가 참여한 방이 아님
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "매칭으로 연결된 채팅방이 아니에요.");
         }
         return partner;
     }

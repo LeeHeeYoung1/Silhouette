@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../api/client';
 import styles from './foodTest.module.css';
@@ -226,6 +226,39 @@ const FoodTest = () => {
   const [resultInfo, setResultInfo] = useState(null);
   const [resultTags, setResultTags] = useState([]);
 
+  // DB에서 불러온 이전 음식 성향 결과 저장 상태
+  const [savedResult, setSavedResult] = useState(null);
+
+  // 1. 페이지 로딩 시 최근 저장된 음식 취향 결과 불러오기 (GET)
+  useEffect(() => {
+    const fetchLatestResult = async () => {
+      try {
+        const seqRes = await Client.get('/api/chat/member-seq');
+        const myMemberSeq = Number(seqRes.data);
+
+        const res = await Client.get(`/api/event/food-test/latest?memberSeq=${myMemberSeq}`);
+        if (res.data && res.data.resultType) {
+          setSavedResult(res.data);
+        }
+      } catch (error) {
+        console.log('이전 음식 취향 결과 조회 실패 또는 첫 테스트:', error);
+      }
+    };
+
+    fetchLatestResult();
+  }, []);
+
+  // 이전 결과 바로보기 버튼 클릭
+  const handleViewSavedResult = () => {
+    if (!savedResult) return;
+    const info = RESULT_TYPES[savedResult.resultType] || RESULT_TYPES.romantic;
+    setResultInfo(info);
+    if (savedResult.tags) {
+      setResultTags(savedResult.tags.split(','));
+    }
+    setStage('result');
+  };
+
   // 테스트 시작 버튼 클릭
   const handleStart = () => {
     setAnswers([]);
@@ -345,8 +378,49 @@ const FoodTest = () => {
               첫 만남 찰떡 케미 해시태그를 확인해보세요.
             </p>
 
+            {/* 이전에 검사한 결과가 있을 경우 보여주는 미니 카드 */}
+            {savedResult && (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '16px',
+                  padding: '16px 20px',
+                  marginBottom: '10px',
+                  width: '100%',
+                  maxWidth: '380px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontSize: '12px', color: 'var(--accent-pink)', fontWeight: 600 }}>
+                  ✨ 최근 나의 음식 취향 진단 결과
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {savedResult.resultEmoji} {savedResult.resultTitle}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleViewSavedResult}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#60a5fa',
+                    fontSize: '13px',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    marginTop: '2px',
+                  }}
+                >
+                  내 지난 결과 바로보기 →
+                </button>
+              </div>
+            )}
+
             <button type="button" className={styles.primaryBtn} onClick={handleStart}>
-              테스트 시작하기 👉
+              {savedResult ? '음식 성향 다시 고르기 🔄' : '테스트 시작하기 👉'}
             </button>
             <button type="button" className={styles.secondaryBtn} onClick={() => navi('/event')}>
               이벤트 목록으로 돌아가기

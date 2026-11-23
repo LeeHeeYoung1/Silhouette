@@ -197,3 +197,293 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===== 헤더 오른쪽 / 타이머 ===== */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timerBadge {
+  font-variant-numeric: tabular-nums;
+}
+
+.timerUrgent {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* chatWrapper 위에 띄우는 GO/STOP · 결과 안내 */
+.chatWrapper {
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+.voteCard {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.voteTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1e293b;
+}
+
+.voteDesc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.voteBar {
+  width: 100%;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.voteBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #ec4899 100%);
+  border-radius: 999px;
+  transition: width 0.25s linear;
+}
+
+.voteTime {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6366f1;
+  font-variant-numeric: tabular-nums;
+}
+
+.voteButtons {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.goBtn,
+.stopBtn,
+.homeBtn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.goBtn,
+.homeBtn {
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+}
+
+.stopBtn {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.goBtn:hover:not(:disabled),
+.stopBtn:hover:not(:disabled),
+.homeBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.goBtn:disabled,
+.stopBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.homeBtn {
+  flex: none;
+  width: 100%;
+}
+
+.voteWaiting {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6366f1;
+}
+
+.voteNotice {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.endingText {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #1e293b;
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+
+  .chatHeader {
+    padding: 14px 16px;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .onlineBadge span:last-child {
+    display: none;
+  }
+
+  .sendBtn {
+    white-space: nowrap;
+    padding: 0 16px;
+  }
+}
+
+/* ===== 고스트채팅 (AI 답장 추천) ===== */
+.bubbleLine {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.ghostBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ghostBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.ghostBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ghostPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color, rgba(220, 220, 230, 0.5));
+  background: rgba(238, 242, 255, 0.85);
+}
+
+.ghostHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.ghostClose {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ghostList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ghostChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ghostChip:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.ghostTone {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.12);
+  border-radius: 999px;
+}
+
+.ghostInfo,
+.ghostError,
+.ghostNotice {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.ghostInfo {
+  color: #6366f1;
+}
+
+.ghostError {
+  color: #ef4444;
+}
+
+.ghostNotice {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}

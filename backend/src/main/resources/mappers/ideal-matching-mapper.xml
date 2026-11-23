@@ -248,11 +248,13 @@
 
     <!-- ===================================================== -->
     <!-- 채팅창 사이드: 상대 프로필                                -->
-    <!-- 이상형 매칭 방(ROOM_TYPE='IDEAL')의 참여자만 조회 가능       -->
+    <!-- 이상형 매칭 방(IDEAL), 블라인드에서 둘 다 GO한 방(BLIND)의   -->
+    <!-- 참여자만 조회 가능                                        -->
     <!-- ===================================================== -->
     <select id="selectPartnerProfile" resultType="com.app.silhouette.matching.IdealPartnerProfileDTO">
     <![CDATA[
-        SELECT NVL(p.NICKNAME, m.NICKNAME)                       AS nickname,
+        SELECT r.ROOM_TYPE                                       AS roomType,
+               NVL(p.NICKNAME, m.NICKNAME)                       AS nickname,
                TRUNC(MONTHS_BETWEEN(SYSDATE, m.BIRTH_DATE) / 12)  AS age,
                p.MBTI                                            AS mbti,
                p.JOB                                             AS job,
@@ -266,7 +268,7 @@
         JOIN MEMBER m              ON m.MEMBER_SEQ = partner.MEMBER_SEQ
         LEFT JOIN MEMBER_PROFILE p ON p.MEMBER_SEQ = partner.MEMBER_SEQ
         WHERE r.CHAT_ROOM_SEQ = #{chatRoomSeq}
-          AND r.ROOM_TYPE = 'IDEAL'
+          AND r.ROOM_TYPE IN ('IDEAL', 'BLIND')
           AND ROWNUM = 1
     ]]>
     </select>

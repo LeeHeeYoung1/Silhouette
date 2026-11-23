@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="LoveValueTestResult">
+
+	<insert id="insertLoveValueTestResult" parameterType="com.app.silhouette.event.LoveValueTestResultDTO">
+        INSERT INTO LOVE_VALUE_TEST_RESULT (
+            LOVE_VALUE_TEST_RESULT_SEQ, MEMBER_SEQ, RESULT_TYPE, RESULT_TITLE, RESULT_EMOJI,
+            TAGS, IDEAL_MATCH_DESC, ANSWERS, CREATED_AT ) VALUES (
+            SEQ_LOVE_VALUE_TEST_RESULT.NEXTVAL, #{memberSeq}, #{resultType}, #{resultTitle},
+            #{resultEmoji}, #{tags}, #{idealMatchDesc}, #{answers}, SYSDATE )
+    </insert>
+
+    <select id="selectLatestResultByMember" parameterType="long" resultType="com.app.silhouette.event.LoveValueTestResultDTO">
+        SELECT * FROM ( SELECT
+                LOVE_VALUE_TEST_RESULT_SEQ AS loveValueTestResultSeq,
+                MEMBER_SEQ                 AS memberSeq,
+                RESULT_TYPE                AS resultType,
+                RESULT_TITLE               AS resultTitle,
+                RESULT_EMOJI               AS resultEmoji,
+                TAGS                       AS tags,
+                IDEAL_MATCH_DESC           AS idealMatchDesc,
+                ANSWERS                    AS answers,
+                CREATED_AT                 AS createdAt
+            FROM LOVE_VALUE_TEST_RESULT
+            WHERE MEMBER_SEQ = #{memberSeq}
+            ORDER BY LOVE_VALUE_TEST_RESULT_SEQ DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
+
+</mapper>

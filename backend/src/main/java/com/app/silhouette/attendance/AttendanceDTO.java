@@ -14,7 +14,7 @@ public class AttendanceDTO {
     private Integer rewardTicket;
 
     // 프론트 화면 응답용
-    private List weekDays;
+    private List<?> weekDays;
 	private int currentStreak;
     private boolean todayAttended;
     private String todayRewardTitle;
@@ -25,7 +25,7 @@ public class AttendanceDTO {
     public AttendanceDTO () {}
     
     public AttendanceDTO(Long attendanceSeq, Long memberSeq, LocalDate attendDate, Integer continuousDays,
-			String rewardYn, Integer rewardMileage, Integer rewardTicket, List weekDays, int currentStreak,
+			String rewardYn, Integer rewardMileage, Integer rewardTicket, List<?> weekDays, int currentStreak,
 			boolean todayAttended, String todayRewardTitle, String todayRewardSub, int currentMileage,
 			int currentTicket) {
 		super();
@@ -86,10 +86,10 @@ public class AttendanceDTO {
 	public void setRewardTicket(Integer rewardTicket) {
 		this.rewardTicket = rewardTicket;
 	}
-	public List getWeekDays() {
+	public List<?> getWeekDays() {
 		return weekDays;
 	}
-	public void setWeekDays(List weekDays) {
+	public void setWeekDays(List<?> weekDays) {
 		this.weekDays = weekDays;
 	}
 	public int getCurrentStreak() {

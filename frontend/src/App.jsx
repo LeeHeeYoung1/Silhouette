@@ -18,6 +18,10 @@ import Event from './pages/event/event';
 import Profile from './pages/profile/profile';
 import FoodTest from './pages/event/foodTest';
 
+import LoveValueTest from './pages/event/loveValueTest';
+import MBTITest from './pages/event/MBTITest';
+
+
 import Onboarding from './pages/onboarding/onboarding';
 import BlindChatting from './pages/blindChatting/blindChatting';
 
@@ -31,7 +35,14 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/event" element={<Event />} />
         <Route path="/event/food-test" element={<FoodTest />} />
+
         <Route path="/profile" element={<Profile />} />
+
+        <Route path="/event/love-value-test" element={<LoveValueTest />} />
+        <Route path="/event/mbti-test" element={<MBTITest />} />
+        {/* <Route path="/profile" element={<Profile />} /> */}
+        
+
 
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>

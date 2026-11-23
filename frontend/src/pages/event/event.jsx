@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
+import Client from '../../api/client';
 import { getMyMemberSeq, getWeeklyAttendance, checkInAttendance } from '../../api/attendance';
+import DailyRouletteModal from './DailyRouletteModal';
+import ProfileQuestModal from './ProfileQuestModal';
 import styles from './event.module.css';
 
 const Event = () => {
   const { token } = useAuthStore();
   const navi = useNavigate();
 
-  // 활성 카테고리 탭 (all, attend, aiTest, styleTest, special)
+  // 활성 카테고리 탭 (all, attend, styleTest, special)
   const [activeTab, setActiveTab] = useState('all');
 
   // 출석체크 상태 (서버 응답 AttendanceDTO 그대로 보관)
@@ -16,10 +19,10 @@ const Event = () => {
   const [attendance, setAttendance] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
-  // 모달/알림창 (테스트 클릭 시 바로가기 피드백)
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  // 특별 혜택 모달 제어
+  const [isRouletteOpen, setIsRouletteOpen] = useState(false);
+  const [isQuestOpen, setIsQuestOpen] = useState(false);
 
   // 비로그인 시 로그인 페이지로
   useEffect(() => {
@@ -62,13 +65,68 @@ const Event = () => {
     setIsChecking(true);
     try {
       const { data } = await checkInAttendance(memberSeq);
-      setAttendance(data); // 서버가 갱신된 주간 현황을 그대로 돌려줌
+      setAttendance(data);
       alert(`출석 완료! 🎉\n${data.todayRewardTitle ?? ''}`);
     } catch (error) {
       const message = error.response?.data?.message || '출석체크 중 오류가 발생했어요.';
       alert(message);
     } finally {
       setIsChecking(false);
+    }
+  };
+
+  // 첫 블라인드 채팅 보너스 수령 및 매칭 이동 (백엔드 POST /api/event/first-chat-reward 연동)
+  const handleFirstBlindChat = async () => {
+    if (!memberSeq) {
+      navi('/chattingRoomList');
+      return;
+    }
+
+    try {
+      // 1. 첫 블라인드 채팅 완주 보너스 수령 요청
+      const res = await Client.post('/api/event/first-chat-reward', { memberSeq });
+
+      // 보상 수령 성공 시 알림 & 상단 마일리지 실시간 동기화
+      alert(res.data?.message || '첫 블라인드 채팅 완주 보너스 50M이 지급되었습니다! 🎉');
+      getWeeklyAttendance(memberSeq)
+        .then(({ data }) => setAttendance(data))
+        .catch(() => {});
+    } catch (error) {
+      const msg = error.response?.data?.message;
+      if (msg === 'NO_CHAT_HISTORY') {
+        // 아직 완주 이력이 없는 경우
+        alert('블라인드 대화를 마치고 서로 호감을 선택하면 축하 마일리지 50M이 지급됩니다! 매칭 화면으로 이동합니다 💬');
+      } else if (msg) {
+        // 이미 보상을 수령한 경우
+        alert(`${msg}\n블라인드 채팅 화면으로 이동합니다 💬`);
+      }
+      navi('/chattingRoomList');
+    }
+  };
+
+  // 이벤트 카드 버튼 클릭 시 바로가기 또는 모달 열기
+  const handleEventAction = (item) => {
+    switch (item.id) {
+      case 'food-balance':
+        navi('/event/food-test');
+        break;
+      case 'ideal-type-check':
+        navi('/event/love-value-test');
+        break;
+      case 'dating-mbti':
+        navi('/event/mbti-test');
+        break;
+      case 'first-blind-chat':
+        handleFirstBlindChat();
+        break;
+      case 'daily-roulette':
+        setIsRouletteOpen(true);
+        break;
+      case 'profile-complete':
+        setIsQuestOpen(true);
+        break;
+      default:
+        break;
     }
   };
 
@@ -79,9 +137,7 @@ const Event = () => {
   const ticketCount = attendance?.currentTicket ?? 0;
   const weekDays = attendance?.weekDays ?? [];
 
-  
-
-  // 나의 연애 성향 & 밸런스 테스트 (음식, 이상형, 연애스타일)
+  // 나의 연애 성향 & 밸런스 테스트 (음식, 가치관, MBTI)
   const styleTestEvents = [
     {
       id: 'food-balance',
@@ -118,40 +174,40 @@ const Event = () => {
     },
   ];
 
-  // 소개팅 어플 스페셜 프로모션 이벤트
+  // 소개팅 어플 스페셜 프로모션 이벤트 (실제 기능 연동형)
   const specialEvents = [
     {
-      id: 'blind-vote',
+      id: 'first-blind-chat',
       category: 'special',
-      icon: '👑',
+      icon: '💬',
       badge: '진행중',
       statusClass: styles.statusHot,
-      title: '이번 주의 설레는 실루엣 블라인드 투표',
-      desc: '베일에 싸인 실루엣 중 가장 호감 가는 실루엣에 투표하세요! 투표자 전원에게 블라인드 매칭 1회권 지급.',
-      tags: ['#실루엣투표', '#이용권100%지급', '#주간투표'],
-      btnText: '투표하고 이용권받기',
+      title: '첫 블라인드 채팅 완주 보너스',
+      desc: '블라인드 랜덤 매칭 후 시간제한 대화를 마치고 서로 호감을 선택하면 축하 마일리지 50M을 즉시 지급합니다.',
+      tags: ['#블라인드채팅', '#50M즉시지급', '#첫인연응원'],
+      btnText: '블라인드 매칭 시작',
     },
     {
-      id: 'coffee-voucher',
+      id: 'daily-roulette',
       category: 'special',
-      icon: '☕',
-      badge: '매주 추첨',
+      icon: '🎰',
+      badge: '매일 1회',
       statusClass: styles.statusActive,
-      title: '첫 만남 응원! 스타벅스 데이트권 추첨',
-      desc: '블라인드 매칭 성사 후 첫 대화를 나눈 커플 중 매주 100쌍에게 달콤한 스타벅스 아메리카노 2잔 쿠폰을 드립니다.',
-      tags: ['#첫만남선물', '#데이트지원', '#스타벅스커플권'],
-      btnText: '이벤트 응모하기',
+      title: '오늘의 연애운 & 럭키 마일리지 룰렛',
+      desc: '출석체크만으론 아쉽다면? 하루 한 번 행운의 룰렛을 돌리고 오늘의 연애운과 최대 100M 보너스를 받아가세요!',
+      tags: ['#최대100M', '#오늘의연애운', '#꽝없는룰렛'],
+      btnText: '행운 룰렛 돌리기',
     },
     {
-      id: 'invite-friends',
+      id: 'profile-complete',
       category: 'special',
-      icon: '🎁',
+      icon: '✨',
       badge: '상시 혜택',
       statusClass: styles.statusNew,
-      title: '친구 초대하고 더블 하트 받기',
-      desc: '친구에게 내 초대 코드를 공유하고 친구가 가입하면 둘 다 무료 대화 하트 10개와 이상형 매칭권을 받습니다.',
-      tags: ['#하트10개', '#무제한초대', '#친구와함께'],
-      btnText: '초대 코드 복사',
+      title: '성향 테스트 올클리어 & 프로필 완성 보상',
+      desc: '음식·가치관·MBTI 3가지 테스트와 프로필 정보를 모두 완성하면 무료 매칭 이용권 1장을 즉시 지급합니다.',
+      tags: ['#이용권1장지급', '#3종테스트완주', '#매칭률UP'],
+      btnText: '내 프로필 확인하기',
     },
   ];
 
@@ -177,7 +233,7 @@ const Event = () => {
             <span className={styles.titleHighlight}>실루엣 이벤트 & 혜택 센터</span>
           </h1>
           <p className={styles.heroDesc}>
-            매일 출석체크로 하트를 모으고, AI 매력도 분석 및 취향 밸런스 테스트로 나만의 특별한 인연을 찾아보세요.
+            매일 출석체크로 하트를 모으고, 연애 성향 및 취향 밸런스 테스트로 나만의 특별한 인연을 찾아보세요.
           </p>
         </div>
 
@@ -225,7 +281,7 @@ const Event = () => {
           className={`${styles.tabBtn} ${activeTab === 'special' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('special')}
         >
-          🎁 데이트 & 스페셜
+          🎁 특별 혜택 & 프로모션
         </button>
       </nav>
 
@@ -252,48 +308,41 @@ const Event = () => {
 
               {/* 주간 7일 스탬프 */}
               <div className={styles.weekStampRow}>
-                {weekDays.map((item, idx) => {
-                  const attended = item.attended ?? item.done;
-                  const isToday = item.today ?? item.isToday;
-                  const dayName = item.dayOfWeek ?? item.day;
-                  const dateText = item.dateLabel ?? item.date;
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`
-                        ${styles.weekStampItem}
-                        ${attended ? styles.stampDone : ''}
-                        ${isToday ? styles.stampTodayActive : ''}
-                      `}
-                      style={{ position: 'relative' }}
-                    >
-                      {item.bonusBadge && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '-8px',
-                            right: '-4px',
-                            background: 'linear-gradient(135deg, #f43f5e, #fb7185)',
-                            color: '#fff',
-                            fontSize: '9px',
-                            fontWeight: 700,
-                            padding: '1px 5px',
-                            borderRadius: '8px',
-                            boxShadow: '0 2px 6px rgba(244, 63, 94, 0.4)',
-                          }}
-                        >
-                          {item.bonusBadge}
-                        </span>
-                      )}
-                      <span className={styles.weekDayText}>{dayName}</span>
-                      <span className={styles.stampIcon}>
-                        {attended ? '💖' : isToday ? '✨' : '·'}
+                {weekDays.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`
+                      ${styles.weekStampItem}
+                      ${item.attended ? styles.stampDone : ''}
+                      ${item.today ? styles.stampTodayActive : ''}
+                    `}
+                    style={{ position: 'relative' }}
+                  >
+                    {item.bonusBadge && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '-8px',
+                          right: '-4px',
+                          background: 'linear-gradient(135deg, #f43f5e, #fb7185)',
+                          color: '#fff',
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 6px rgba(244, 63, 94, 0.4)',
+                        }}
+                      >
+                        {item.bonusBadge}
                       </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{dateText}</span>
-                    </div>
-                  );
-                })}
+                    )}
+                    <span className={styles.weekDayText}>{item.dayOfWeek}</span>
+                    <span className={styles.stampIcon}>
+                      {item.attended ? '💖' : item.today ? '✨' : '·'}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.dateLabel}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -324,7 +373,7 @@ const Event = () => {
         </section>
       )}
 
-      {/* 4. AI 매력 & 성향 & 스페셜 이벤트 카드 목록 */}
+      {/* 4. 연애 성향 & 스페셜 이벤트 카드 목록 */}
       {filteredEvents.length > 0 && (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionHeader}>
@@ -333,8 +382,6 @@ const Event = () => {
                 <span>
                   {activeTab === 'all'
                     ? '🎉 참여 가능한 인기 이벤트'
-                    : activeTab === 'aiTest'
-                    ? '🤖 AI 기반 매력 & 분석 테스트'
                     : activeTab === 'styleTest'
                     ? '💘 나의 연애 성향 & 밸런스 테스트'
                     : '🎁 특별 혜택 & 프로모션'}
@@ -369,7 +416,7 @@ const Event = () => {
                 <button
                   type="button"
                   className={styles.cardActionBtn}
-                  onClick={() => setSelectedEvent(item)}
+                  onClick={() => handleEventAction(item)}
                 >
                   <span>{item.btnText}</span>
                   <span>→</span>
@@ -380,80 +427,31 @@ const Event = () => {
         </section>
       )}
 
-      {/* 5. 간단한 이벤트 상세 바로가기 안내 토스트/모달 알림 */}
-      {selectedEvent && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => setSelectedEvent(null)}
-        >
-          <div
-            style={{
-              background: 'var(--card-bg)',
-              border: '1px solid var(--card-border)',
-              borderRadius: '24px',
-              padding: '32px',
-              maxWidth: '440px',
-              width: '100%',
-              boxShadow: 'var(--glass-reflect), 0 20px 50px rgba(0,0,0,0.5)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: '42px' }}>{selectedEvent.icon}</div>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-              {selectedEvent.title}
-            </h3>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-sub)', lineHeight: 1.6 }}>
-              {selectedEvent.desc}
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              {selectedEvent.tags.map((tag, i) => (
-                <span key={i} className={styles.rewardTag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button
-                type="button"
-                className={styles.checkInBtn}
-                style={{ flex: 1 }}
-                onClick={() => {
-                  if (selectedEvent.id === 'food-balance') {
-                    navi('/event/food-test');
-                    setSelectedEvent(null);
-                  } else {
-                    alert(`[${selectedEvent.title}] 기능으로 연결됩니다! 💖`);
-                    setSelectedEvent(null);
-                  }
-                }}
-              >
-                지금 참여하기 ✨
-              </button>
-              <button
-                type="button"
-                className={styles.tabBtn}
-                onClick={() => setSelectedEvent(null)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 5. 행운의 룰렛 모달 */}
+      <DailyRouletteModal
+        isOpen={isRouletteOpen}
+        onClose={() => setIsRouletteOpen(false)}
+        onRewardClaimed={() => {
+          if (memberSeq) {
+            getWeeklyAttendance(memberSeq)
+              .then(({ data }) => setAttendance(data))
+              .catch(() => {});
+          }
+        }}
+      />
+
+      {/* 6. 프로필 완성 퀘스트 모달 */}
+      <ProfileQuestModal
+        isOpen={isQuestOpen}
+        onClose={() => setIsQuestOpen(false)}
+        onRewardClaimed={() => {
+          if (memberSeq) {
+            getWeeklyAttendance(memberSeq)
+              .then(({ data }) => setAttendance(data))
+              .catch(() => {});
+          }
+        }}
+      />
     </div>
   );
 };
