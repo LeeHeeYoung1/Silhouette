@@ -31,7 +31,7 @@ public class PostController {
 	}
 
 	// 게시글 등록 (+ 첨부파일): POST /api/posts  (multipart/form-data)
-	// ✅ boardType: FREE(자유) / ANON(익명), 안 보내면 FREE
+	// boardType: FREE(자유) / ANON(익명), 안 보내면 FREE
 	@PostMapping
 	public ResponseEntity<?> insertPost(
 			@RequestParam(value = "boardType", defaultValue = "FREE") String boardType,
@@ -55,18 +55,22 @@ public class PostController {
 		return ResponseEntity.ok(postSeq);
 	}
 
-	// 게시글 목록 (페이징): GET /api/posts?boardType=FREE&category=자유&page=1&size=10
+	// ✅ 게시글 목록 (페이징 + 검색)
+	// GET /api/posts?boardType=FREE&category=자유&searchType=titleContent&keyword=카페 후기&page=1&size=10
+	// searchType: titleContent(제목+내용, 기본) / title / content / author(자유게시판만)
 	@GetMapping
 	public Map<String, Object> selectPostList(
-			@RequestParam(value = "boardType", defaultValue = "FREE") String boardType,   // ✅
+			@RequestParam(value = "boardType", defaultValue = "FREE") String boardType,
 			@RequestParam(value = "category", required = false) String category,
+			@RequestParam(value = "searchType", required = false) String searchType,
+			@RequestParam(value = "keyword", required = false) String keyword,
 			@RequestParam(value = "page", defaultValue = "1") int page,
 			@RequestParam(value = "size", defaultValue = "10") int size) {
-		return postService.selectPostPage(boardType, category, page, size);
+		return postService.selectPostPage(boardType, category, searchType, keyword, page, size);
 	}
 
 	// 게시글 상세 (조회수 +1): GET /api/posts/37?loginId=
-	// ✅ loginId로 '내 글인지(mine)' 계산 (로그인 안 했으면 안 보내도 됨)
+	// loginId로 '내 글인지(mine)' 계산 (로그인 안 했으면 안 보내도 됨)
 	@GetMapping("/{postSeq}")
 	public ResponseEntity<?> selectPost(
 			@PathVariable("postSeq") Long postSeq,

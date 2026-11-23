@@ -9,7 +9,7 @@
 		SELECT MEMBER_SEQ FROM MEMBER WHERE LOGIN_ID = #{loginId}
 	</select>
 
-	<!-- 게시글 등록 (✅ BOARD_TYPE 추가) -->
+	<!-- 게시글 등록 (BOARD_TYPE 포함) -->
 	<insert id="insertPost" parameterType="com.app.silhouette.post.PostDTO">
 		<selectKey keyProperty="postSeq" resultType="long" order="BEFORE">
 			SELECT SEQ_POST.NEXTVAL FROM DUAL
@@ -36,14 +36,34 @@
 		)
 	</insert>
 
-	<!-- ===================== 목록 (페이징) ===================== -->
+	<!-- ===================== 목록 (페이징 + 검색) ===================== -->
 
-	<!-- 목록 조건: count와 목록이 같은 조건을 쓰도록 한 곳에 (검색도 나중에 여기 추가) -->
+	<!-- 목록 조건: 게시판 + 카테고리 + 검색 (count와 목록이 같이 사용) -->
 	<sql id="postListWhere">
 		where p.is_deleted = 'N'
-		  and p.board_type = #{boardType}          <!-- ✅ 게시판 구분 (FREE / ANON) -->
+		  and p.board_type = #{boardType}
 		<if test="category != null and category != ''">
 		  and p.category = #{category}
+		</if>
+		<!-- ✅ 검색: 띄어쓴 단어가 모두 들어 있어야 함 (AND), 대소문자 무시 -->
+		<if test="keywords != null and keywords.size() > 0">
+			<foreach collection="keywords" item="kw">
+				<choose>
+					<when test="searchType == 'title'">
+		  and upper(p.title) like '%' || upper(#{kw}) || '%' escape '\'
+					</when>
+					<when test="searchType == 'content'">
+		  and upper(p.content) like '%' || upper(#{kw}) || '%' escape '\'
+					</when>
+					<when test="searchType == 'author'">
+		  and upper(m.nickname) like '%' || upper(#{kw}) || '%' escape '\'
+					</when>
+					<otherwise>
+		  and (upper(p.title) like '%' || upper(#{kw}) || '%' escape '\'
+		       or upper(p.content) like '%' || upper(#{kw}) || '%' escape '\')
+					</otherwise>
+				</choose>
+			</foreach>
 		</if>
 	</sql>
 
@@ -63,7 +83,7 @@
 			  from (
 				select p.post_seq, p.board_type, p.category, p.title, p.view_count, p.recommend_count,
 				       p.comment_count, p.created_at,
-				       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name   <!-- ✅ -->
+				       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name
 				  from post p
 				  join member m on p.member_seq = m.member_seq
 				<include refid="postListWhere"/>
@@ -84,8 +104,7 @@
 		   and is_deleted = 'N'
 	</update>
 
-	<!-- 게시글 상세 (✅ board_type 추가, 익명이면 작성자 '익명')
-	     익명 글의 login_id, member_seq는 Service에서 지우고 화면에 보냄 -->
+	<!-- 게시글 상세 (익명 글의 login_id, member_seq는 Service에서 지우고 화면에 보냄) -->
 	<select id="selectPost" parameterType="long" resultType="com.app.silhouette.post.PostDTO">
 		select p.post_seq,
 		       p.board_type,
@@ -123,7 +142,7 @@
 
 	<!-- ===================== 수정 ===================== -->
 
-	<!-- 수정 화면용: 기존 글 + 작성자 회원번호 (조회수 안 올림, ✅ board_type 추가) -->
+	<!-- 수정 화면용: 기존 글 + 작성자 회원번호 (조회수 안 올림) -->
 	<select id="selectPostForEdit" parameterType="long" resultType="com.app.silhouette.post.PostDTO">
 		select p.post_seq, p.board_type, p.category, p.member_seq, m.login_id, p.title, p.content
 		  from post p
@@ -132,8 +151,7 @@
 		   and p.is_deleted = 'N'
 	</select>
 
-	<!-- 게시글 수정 (본인 글 + 삭제 안 된 글만, 결과 0이면 수정 안 됨)
-	     BOARD_TYPE은 수정 안 함 → 게시판을 옮길 수 없음 -->
+	<!-- 게시글 수정 (본인 글 + 삭제 안 된 글만, BOARD_TYPE은 못 바꿈) -->
 	<update id="updatePost" parameterType="com.app.silhouette.post.PostDTO">
 		update post
 		   set category   = #{category},

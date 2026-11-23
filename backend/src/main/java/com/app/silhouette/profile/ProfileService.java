@@ -190,36 +190,22 @@ public class ProfileService {
 	}
 
 	// ===================== 프로필 사진: 교체 (프로필 화면) =====================
+	// ===================== 프로필 사진: 교체 (프로필 화면) =====================
+	// 사진이 1장뿐이라 "몇 번째 사진 찾기" 없이
+	// 기존 사진(옛날 4장, SORT_ORDER가 NULL인 사진 포함)을 전부 지우고 새 1장으로 바꿈
+	// → 사진이 없던 계정도 그대로 등록됨, 새 사진은 profile_image/ 폴더로
 	@Transactional
 	public ProfileImageDTO replaceProfileImage(String loginId, int sortOrder, MultipartFile file) throws IOException {
-		ProfileDTO basic = selectMemberBasic(loginId);   // 회원 확인 (401)
-		Long memberSeq = basic.getMemberSeq();
-
-		// ✅ 사진은 1장이라 1번만 가능
-		if (sortOrder < 1 || sortOrder > PHOTO_COUNT) {
+		if (sortOrder != PHOTO_COUNT) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사진 번호는 1만 가능합니다.");
 		}
-		checkImage(file);
-
-		// 바꿀 칸의 기존 사진 찾기
-		ProfileImageDTO old = null;
-		for (ProfileImageDTO img : profileDAO.selectProfileImages(memberSeq)) {
-			if (img.getSortOrder() != null && img.getSortOrder() == sortOrder) {
-				old = img;
-			}
-		}
-		if (old == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "교체할 사진이 없습니다. 먼저 사진을 등록해 주세요.");
+		if (profileDAO.countProfile(loginId) == 0) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "온보딩을 먼저 완료해 주세요.");
 		}
 
-		// 새 사진 업로드 → DB 교체 → 예전 파일 정리
-		ProfileImageDTO newImage = uploadToGcs(file, memberSeq, sortOrder);
-		profileDAO.updateProfileImage(newImage);
-		deleteFromGcs(old.getStoredName());
-
-		return profileDAO.selectProfileImageOne(old.getProfileImageSeq());
+		List<ProfileImageDTO> saved = saveProfileImages(loginId, List.of(file));
+		return saved.isEmpty() ? null : saved.get(0);
 	}
-
 	// ===================== 프로필 사진: 조회 =====================
 
 	// 내 사진 목록

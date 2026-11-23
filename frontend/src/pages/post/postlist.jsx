@@ -9,10 +9,14 @@ import Client from '../../api/client';
    - B002 공지사항 리스트 (/post/notice)
    - FAQ 리스트 (/post/faq)
    - Q&A 리스트 (/post/qna)
+   - 검색: 제목+내용(기본) / 제목 / 내용 / 작성자(자유게시판만)
+           띄어쓴 단어가 모두 들어간 글 (AND)
    ========================================================= */
 
 const PAGE_SIZE = 10;      // 한 페이지에 보여줄 글 수
 const PAGE_GROUP = 10;     // 페이지 번호를 한 번에 몇 개 보여줄지 (1~10, 11~20 ...)
+const MAX_KEYWORD = 50;    // ✅ 검색어 최대 글자 (서버와 같음)
+const DEFAULT_SEARCH = { type: 'titleContent', keyword: '' };   // ✅ 검색 기본값
 
 // 자유게시판 카테고리 탭 ('익명'은 익명게시판으로 분리돼서 빠짐)
 const FREE_CATEGORIES = ['전체', '자유', '연애고민', '데이트후기'];
@@ -36,9 +40,11 @@ function PostList({ boardType = 'free' }) {
     const [totalPages, setTotalPages] = useState(1);     // 전체 페이지 수 (서버가 알려줌)
     const [totalCount, setTotalCount] = useState(0);     // 전체 글 수 (서버가 알려줌)
 
-    // 검색 입력값 (검색은 다음 단계에서 연결)
-    const [searchType, setSearchType] = useState('title');
+    // ✅ 검색 입력칸 (타자 치는 중인 값)
+    const [searchType, setSearchType] = useState(DEFAULT_SEARCH.type);
     const [searchKeyword, setSearchKeyword] = useState('');
+    // ✅ 실제로 적용된 검색 (검색 버튼 / Enter를 눌러야 바뀜 → 타자 칠 때마다 요청 안 보냄)
+    const [search, setSearch] = useState(DEFAULT_SEARCH);
 
     // FAQ 아코디언 열림 상태
     const [openFaqId, setOpenFaqId] = useState(null);
@@ -48,11 +54,12 @@ function PostList({ boardType = 'free' }) {
         setposts([]);
         setSubCategory('전체');
         setCurrentPage(1);
-        setSearchType('title');
+        setSearchType(DEFAULT_SEARCH.type);
         setSearchKeyword('');
+        setSearch(DEFAULT_SEARCH);   // ✅
     }, [boardType]);
 
-    // 게시판·카테고리·페이지가 바뀔 때마다 그 페이지 글만 가져오기
+    // 게시판·카테고리·페이지·검색이 바뀔 때마다 그 페이지 글만 가져오기
     useEffect(() => {
         if (!isPostBoard) return;
         let cancelled = false;   // 탭을 빨리 바꾸면 늦게 온 이전 응답은 무시
@@ -64,6 +71,11 @@ function PostList({ boardType = 'free' }) {
         };
         // 카테고리 필터는 자유게시판에서만
         if (!isAnon && subCategory !== '전체') params.category = subCategory;
+        // ✅ 검색어가 있을 때만 보냄
+        if (search.keyword) {
+            params.searchType = search.type;
+            params.keyword = search.keyword;
+        }
 
         Client.get('/api/posts', { params })
             .then((res) => {
@@ -72,13 +84,16 @@ function PostList({ boardType = 'free' }) {
                 setTotalCount(res.data.totalCount ?? 0);
                 setTotalPages(Math.max(1, res.data.totalPages ?? 1));
             })
-            .catch((err) => console.error(err));
+            .catch((err) => {
+                if (cancelled) return;
+                console.error(err);
+                if (err.response?.status === 400) alert('검색 조건을 다시 확인해 주세요.');
+            });
 
         return () => { cancelled = true; };
-    }, [boardType, isPostBoard, isAnon, subCategory, currentPage]);
+    }, [boardType, isPostBoard, isAnon, subCategory, currentPage, search]);
 
-    // ✅ 화면에 보여줄 글 번호 (게시판마다 1부터, 최신 글이 가장 큰 번호)
-    //    예) 전체 23개, 1페이지 첫 줄 → 23 / 2페이지 첫 줄 → 13
+    // 화면에 보여줄 글 번호 (게시판마다 1부터, 최신 글이 가장 큰 번호)
     const displayNo = (index) => totalCount - (currentPage - 1) * PAGE_SIZE - index;
 
     // 페이지 번호 묶음 (PAGE_GROUP=10 → 1~10, 11~20 ...)
@@ -92,6 +107,20 @@ function PostList({ boardType = 'free' }) {
         if (num < 1 || num > totalPages || num === currentPage) return;
         setCurrentPage(num);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // ✅ 검색 실행 (빈칸이면 전체 목록)
+    const handleSearch = () => {
+        setSearch({ type: searchType, keyword: searchKeyword.trim() });
+        setCurrentPage(1);
+    };
+
+    // ✅ 검색 초기화
+    const clearSearch = () => {
+        setSearchType(DEFAULT_SEARCH.type);
+        setSearchKeyword('');
+        setSearch(DEFAULT_SEARCH);
+        setCurrentPage(1);
     };
 
     const qnaList = [];
@@ -146,7 +175,7 @@ function PostList({ boardType = 'free' }) {
                 )}
             </div>
 
-            {/* 검색 바 (자유게시판, 익명게시판, 공지사항) */}
+            {/* ✅ 검색 바 (자유게시판, 익명게시판, 공지사항) */}
             {(isPostBoard || boardType === 'notice') && (
                 <div className={styles.searchSection}>
                     <div className={styles.searchInputs}>
@@ -155,6 +184,7 @@ function PostList({ boardType = 'free' }) {
                             value={searchType}
                             onChange={(e) => setSearchType(e.target.value)}
                         >
+                            <option value="titleContent">제목+내용</option>
                             <option value="title">제목</option>
                             <option value="content">내용</option>
                             {/* 익명게시판은 작성자 검색 불가 (누가 썼는지 알아낼 수 있어서) */}
@@ -163,16 +193,25 @@ function PostList({ boardType = 'free' }) {
                         <input
                             type="text"
                             className={styles.searchInput}
-                            placeholder="검색어를 입력해 주세요..."
+                            placeholder="검색어를 입력해 주세요 (띄어쓰기로 여러 단어 검색)"
                             value={searchKeyword}
+                            maxLength={MAX_KEYWORD}
                             onChange={(e) => setSearchKeyword(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSearch()}
                         />
-                        <button type="button" className={styles.searchBtn} onClick={() => setCurrentPage(1)}>
+                        <button type="button" className={styles.searchBtn} onClick={handleSearch}>
                             <i className="fa-solid fa-magnifying-glass"></i> 검색
                         </button>
+                        {search.keyword && (
+                            <button type="button" className={styles.searchBtn} onClick={clearSearch}>
+                                초기화
+                            </button>
+                        )}
                     </div>
                     <div className={styles.totalCount}>
-                        총 <strong>{totalCount}</strong>개의 게시글
+                        {search.keyword
+                            ? <>"<strong>{search.keyword}</strong>" 검색 결과 <strong>{totalCount}</strong>개</>
+                            : <>총 <strong>{totalCount}</strong>개의 게시글</>}
                     </div>
                 </div>
             )}
@@ -195,14 +234,12 @@ function PostList({ boardType = 'free' }) {
                             </thead>
                             <tbody>
                                 {posts.length > 0 ? (
-                                    // ✅ index(줄 순서)를 같이 받아서 화면 번호 계산
                                     posts.map((post, index) => (
                                         <tr
                                             key={post.postSeq}
                                             className={styles.postRow}
                                             onClick={() => navigate(`/post/detail/${post.postSeq}`)}
                                         >
-                                            {/* ✅ DB 번호(postSeq) 대신 게시판별 번호 */}
                                             <td style={{ textAlign: 'center' }}>{displayNo(index)}</td>
                                             {showCategoryCol && (
                                                 <td>
@@ -217,7 +254,6 @@ function PostList({ boardType = 'free' }) {
                                                     )}
                                                 </div>
                                             </td>
-                                            {/* 익명게시판은 서버 값과 상관없이 무조건 '익명' */}
                                             <td>{isAnon ? '🎭 익명' : post.writerName}</td>
                                             <td style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{post.createdAt}</td>
                                             <td style={{ textAlign: 'center' }}>{post.viewCount}</td>
@@ -229,7 +265,12 @@ function PostList({ boardType = 'free' }) {
                                         <td colSpan={columnCount}>
                                             <div className={styles.emptyState}>
                                                 <i className="fa-regular fa-folder-open"></i>
-                                                <span>등록된 게시글이 없습니다.</span>
+                                                {/* ✅ 검색 중이면 검색 결과 없음 문구 */}
+                                                <span>
+                                                    {search.keyword
+                                                        ? `"${search.keyword}" 검색 결과가 없습니다.`
+                                                        : '등록된 게시글이 없습니다.'}
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>

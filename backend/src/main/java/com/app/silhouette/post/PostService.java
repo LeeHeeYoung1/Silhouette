@@ -1,5 +1,6 @@
 package com.app.silhouette.post;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,13 +27,18 @@ public class PostService {
 	private static final int MAX_TITLE = 100;          // 제목 최대 글자 (화면과 같음)
 	private static final int MAX_CONTENT = 3000;       // 본문 최대 글자 (화면과 같음)
 
-	// ✅ 게시판 구분 (DB BOARD_TYPE 값)
+	// 게시판 구분 (DB BOARD_TYPE 값)
 	private static final String BOARD_FREE = "FREE";
 	private static final String BOARD_ANON = "ANON";
-	// ✅ 자유게시판 카테고리 ('익명'은 익명게시판으로 분리돼서 빠짐)
+	// 자유게시판 카테고리 ('익명'은 익명게시판으로 분리돼서 빠짐)
 	private static final List<String> FREE_CATEGORIES = List.of("자유", "연애고민", "데이트후기");
-	// ✅ 익명게시판 글의 카테고리 (항상 고정)
+	// 익명게시판 글의 카테고리 (항상 고정)
 	private static final String ANON_CATEGORY = "익명";
+
+	// ✅ 검색 (titleContent = 제목+내용, 기본값)
+	private static final List<String> SEARCH_TYPES = List.of("titleContent", "title", "content", "author");
+	private static final int MAX_KEYWORD = 50;   // 검색어 최대 글자
+	private static final int MAX_WORDS = 5;      // 단어 최대 개수
 
 	private final PostDAO postDAO;
 	private final Storage storage;     // GCSConfig에서 만든 Bean
@@ -56,7 +62,7 @@ public class PostService {
 			return null;
 		}
 
-		// ② ✅ 게시판 · 카테고리 · 제목 · 내용 검사 (화면을 우회해도 안전하게)
+		// ② 게시판 · 카테고리 · 제목 · 내용 검사
 		String boardType = checkBoardType(dto.getBoardType());
 		dto.setBoardType(boardType);
 		checkPostInput(dto, boardType);
@@ -101,19 +107,42 @@ public class PostService {
 		return fileDto;
 	}
 
-	// ===================== 목록 (페이징) =====================
+	// ===================== 목록 (페이징 + 검색) =====================
 
-	// 해당 게시판 · 페이지 글 + 전체 글 수 + 전체 페이지 수
-	public Map<String, Object> selectPostPage(String boardType, String category, int page, int size) {
+	// ✅ 해당 게시판 · 페이지 글 + 전체 글 수 + 전체 페이지 수 (검색 포함)
+	public Map<String, Object> selectPostPage(String boardType, String category,
+			String searchType, String keyword, int page, int size) {
 		if (size < 1 || size > MAX_PAGE_SIZE) size = DEFAULT_PAGE_SIZE;
 		if (page < 1) page = 1;
 
-		String type = checkBoardType(boardType);   // ✅ FREE / ANON
+		String type = checkBoardType(boardType);   // FREE / ANON
+
+		// 검색어 정리 (앞뒤 공백 제거, 최대 50자)
+		String kw = keyword == null ? "" : keyword.trim();
+		if (kw.length() > MAX_KEYWORD) kw = kw.substring(0, MAX_KEYWORD);
+
+		// 검색 종류 (모르는 값이면 제목+내용)
+		String st = (searchType != null && SEARCH_TYPES.contains(searchType)) ? searchType : "titleContent";
+
+		// 익명게시판은 작성자 검색 금지 (누가 썼는지 알아낼 수 있어서)
+		if (BOARD_ANON.equals(type) && "author".equals(st) && !kw.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "익명게시판은 작성자 검색을 할 수 없습니다.");
+		}
+
+		// 띄어쓰기로 단어 나누기 → 중복 제거 → 최대 5개 → 특수문자 처리
+		List<String> keywords = kw.isEmpty() ? List.of()
+				: Arrays.stream(kw.split("\\s+"))
+						.filter(w -> !w.isBlank())
+						.distinct()
+						.limit(MAX_WORDS)
+						.map(this::escapeLike)
+						.toList();
 
 		Map<String, Object> params = new HashMap<>();
 		params.put("boardType", type);
-		// ✅ 카테고리 필터는 자유게시판에서만 (익명게시판은 '익명' 하나뿐)
-		params.put("category", BOARD_ANON.equals(type) ? null : category);
+		params.put("category", BOARD_ANON.equals(type) ? null : category);   // 카테고리는 자유게시판만
+		params.put("searchType", st);
+		params.put("keywords", keywords.isEmpty() ? null : keywords);
 
 		int totalCount = postDAO.countPostList(params);
 		int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / size));
@@ -131,9 +160,14 @@ public class PostService {
 				"page", page);
 	}
 
+	// ✅ LIKE 특수문자(%, _, \)를 글자 그대로 검색되게 바꿈 (mapper의 escape '\'와 짝)
+	private String escapeLike(String s) {
+		return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+	}
+
 	// ===================== 상세 =====================
 
-	// ✅ 게시글 상세 (조회수 +1, 내 글인지 계산, 익명 글은 작성자 정보 지움)
+	// 게시글 상세 (조회수 +1, 내 글인지 계산, 익명 글은 작성자 정보 지움)
 	@Transactional
 	public PostDTO selectPost(Long postSeq, String loginId) {
 		postDAO.updateViewCount(postSeq);
@@ -148,7 +182,7 @@ public class PostService {
 				: postDAO.selectMemberSeqByLoginId(loginId);
 		post.setMine(viewerSeq != null && viewerSeq.equals(post.getMemberSeq()));
 
-		// ✅ 익명 글은 아이디 · 회원번호를 화면에 안 보냄 (F12 Network에서도 안 보이게)
+		// 익명 글은 아이디 · 회원번호를 화면에 안 보냄 (F12 Network에서도 안 보이게)
 		if (BOARD_ANON.equals(post.getBoardType())) {
 			post.setLoginId(null);
 			post.setMemberSeq(null);
@@ -202,7 +236,7 @@ public class PostService {
 		Long memberSeq = getLoginMemberSeq(dto.getLoginId());
 		PostDTO saved = getMyPost(postSeq, memberSeq);
 
-		// 2) ✅ 원래 게시판 기준으로 입력값 검사 (익명 글이면 카테고리 '익명' 고정)
+		// 2) 원래 게시판 기준으로 입력값 검사 (익명 글이면 카테고리 '익명' 고정)
 		checkPostInput(dto, saved.getBoardType());
 
 		// 3) 서버가 정하는 값 채우고 수정
@@ -226,9 +260,9 @@ public class PostService {
 		return post;
 	}
 
-	// ===================== ✅ 입력값 검사 (등록 · 수정 공용) =====================
+	// ===================== 입력값 검사 (등록 · 수정 공용) =====================
 
-	// ✅ 게시판 구분 확인 (없으면 FREE, FREE/ANON 말고는 400)
+	// 게시판 구분 확인 (없으면 FREE, FREE/ANON 말고는 400)
 	private String checkBoardType(String boardType) {
 		if (boardType == null || boardType.isBlank()) {
 			return BOARD_FREE;
@@ -240,7 +274,7 @@ public class PostService {
 		return type;
 	}
 
-	// ✅ 카테고리 · 제목 · 내용 검사 후 정리된 값을 dto에 다시 넣음
+	// 카테고리 · 제목 · 내용 검사 후 정리된 값을 dto에 다시 넣음
 	private void checkPostInput(PostDTO dto, String boardType) {
 		// 카테고리: 익명게시판은 무조건 '익명', 자유게시판은 3개 중 하나
 		if (BOARD_ANON.equals(boardType)) {
