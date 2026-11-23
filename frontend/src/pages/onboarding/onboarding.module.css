@@ -329,3 +329,14 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ===== ✅ 선택 상자 목록 (다크 테마에서 안 보이는 문제) ===== */
+select.input {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+select.input option {
+    background-color: #23232f;
+    color: #e8e8f0;
+}

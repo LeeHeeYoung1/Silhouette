@@ -14,7 +14,7 @@ import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
-// import Profile from './pages/profile/profile';
+import Profile from './pages/profile/profile';          // ✅ 주석 해제: 내 프로필
 import Onboarding from './pages/onboarding/onboarding';
 
 import BlindChatting from './pages/blindChatting/blindChatting';
@@ -28,7 +28,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/event" element={<Event />} />
-        {/* <Route path="/profile" element={<Profile />} /> */}
+        <Route path="/profile" element={<Profile />} />  {/* ✅ 주석 해제: 내 프로필 (보기 · 수정) */}
 
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
@@ -36,7 +36,7 @@ function App() {
 
           {/* 목록 */}
           <Route path="free" element={<PostList boardType="free" />} />
-          <Route path="anon" element={<PostList boardType="anon" />} />          
+          <Route path="anon" element={<PostList boardType="anon" />} />
           <Route path="notice" element={<PostList boardType="notice" />} />
           <Route path="faq" element={<PostList boardType="faq" />} />
           <Route path="qna" element={<PostList boardType="qna" />} />
@@ -44,8 +44,8 @@ function App() {
           {/* 작성 / 수정 */}
           <Route path="free/write" element={<PostWrite writeType="free" />} />
           <Route path="free/edit/:id" element={<PostWrite writeType="free" />} />
-          <Route path="anon/write" element={<PostWrite writeType="anon" />} />     
-          <Route path="anon/edit/:id" element={<PostWrite writeType="anon" />} />  
+          <Route path="anon/write" element={<PostWrite writeType="anon" />} />
+          <Route path="anon/edit/:id" element={<PostWrite writeType="anon" />} />
           <Route path="notice/write" element={<PostWrite writeType="notice" />} />
           <Route path="qna/write" element={<PostWrite writeType="qna" />} />
           <Route path="write/:type" element={<PostWrite />} />

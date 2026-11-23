@@ -13,13 +13,12 @@ import {
 
 const MAX_INTRO = 300;
 const MAX_MEMO = 150;
-const PHOTO_COUNT = 4;
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024;   // 한 장 10MB
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;   // ✅ 프로필 사진 1장, 최대 10MB
 const HEIGHT_MIN = 100;                     // 키 최소 (내 키, 이상형 키 공통)
 const HEIGHT_MAX = 250;                     // 키 최대
 const IDEAL_AGE_MIN = 14;                   // 이상형 나이 최소
 const IDEAL_AGE_MAX = 100;                  // 이상형 나이 최대
-// ✅ 1. 이상형 나이 선택지: 14, 15, ... 100
+// 이상형 나이 선택지: 14, 15, ... 100
 const AGE_OPTIONS = Array.from({ length: IDEAL_AGE_MAX - IDEAL_AGE_MIN + 1 }, (_, i) => IDEAL_AGE_MIN + i);
 const TOTAL_STEPS = 6;
 const STEP_TITLES = [
@@ -32,7 +31,7 @@ const isMaleGender = (g) => g === 'MALE' || g === 'M';
 const isFemaleGender = (g) => g === 'FEMALE' || g === 'F';
 const genderLabel = (g) => (isMaleGender(g) ? '남성' : isFemaleGender(g) ? '여성' : g ?? '-');
 const joinList = (arr) => (arr.length ? arr.join(', ') : null);   // ['등산','독서'] → '등산, 독서'
-// ✅ 2. 범위 밖 숫자를 min~max 안으로 맞춤 (빈칸은 그대로)
+// 범위 밖 숫자를 min~max 안으로 맞춤 (빈칸은 그대로)
 const clamp = (v, min, max) => {
   if (v === '' || v == null) return '';
   const n = Number(v);
@@ -99,13 +98,12 @@ function Onboarding() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // ===== 사진 4장 =====
-  const [photos, setPhotos] = useState([null, null, null, null]);     // 실제 파일
-  const [previews, setPreviews] = useState([null, null, null, null]); // 미리보기 주소
-  const fileInputRef = useRef(null);   // 숨겨진 파일 선택창
-  const slotRef = useRef(0);           // 지금 고르는 칸 번호
-  const previewsRef = useRef(previews);
-  previewsRef.current = previews;
+  // ===== ✅ 프로필 사진 1장 =====
+  const [photo, setPhoto] = useState(null);       // 실제 파일
+  const [preview, setPreview] = useState(null);   // 미리보기 주소
+  const fileInputRef = useRef(null);              // 숨겨진 파일 선택창
+  const previewRef = useRef(null);                // 화면을 떠날 때 정리용
+  previewRef.current = preview;
 
   // 나의 정보 (MEMBER_PROFILE)
   const [profile, setProfile] = useState({
@@ -158,13 +156,12 @@ function Onboarding() {
   // 화면을 떠날 때 미리보기 주소 정리 (메모리 누수 방지)
   useEffect(() => {
     return () => {
-      previewsRef.current.forEach((url) => url && URL.revokeObjectURL(url));
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     };
   }, []);
 
-  // ===== 사진 고르기 / 지우기 =====
-  const openPicker = (index) => {
-    slotRef.current = index;
+  // ===== ✅ 사진 고르기 / 지우기 =====
+  const openPicker = () => {
     fileInputRef.current.value = '';   // 같은 파일 다시 골라도 반응하게
     fileInputRef.current.click();
   };
@@ -177,36 +174,19 @@ function Onboarding() {
       return;
     }
     if (file.size > MAX_PHOTO_SIZE) {
-      setError('사진은 한 장에 10MB까지 올릴 수 있어요.');
+      setError('사진은 10MB까지 올릴 수 있어요.');
       return;
     }
-    const index = slotRef.current;
     setError('');
-    setPhotos((prev) => {
-      const next = [...prev];
-      next[index] = file;
-      return next;
-    });
-    setPreviews((prev) => {
-      const next = [...prev];
-      if (next[index]) URL.revokeObjectURL(next[index]);
-      next[index] = URL.createObjectURL(file);
-      return next;
-    });
+    if (preview) URL.revokeObjectURL(preview);   // 이전 미리보기 정리
+    setPhoto(file);
+    setPreview(URL.createObjectURL(file));
   };
 
-  const removePhoto = (index) => {
-    setPhotos((prev) => {
-      const next = [...prev];
-      next[index] = null;
-      return next;
-    });
-    setPreviews((prev) => {
-      const next = [...prev];
-      if (next[index]) URL.revokeObjectURL(next[index]);
-      next[index] = null;
-      return next;
-    });
+  const removePhoto = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setPhoto(null);
+    setPreview(null);
   };
 
   // ===== 값 바꾸기 =====
@@ -248,7 +228,7 @@ function Onboarding() {
   // ===== 단계별 검사 (문제 있으면 메시지, 없으면 '') =====
   const validateStep = (s) => {
     if (s === 1) {
-      if (photos.filter(Boolean).length !== PHOTO_COUNT) return '프로필 사진 4장을 모두 올려 주세요.';
+      if (!photo) return '프로필 사진을 올려 주세요.';   // ✅ 1장 필수
     }
     if (s === 2) {
       if (!profile.mbti) return 'MBTI를 선택해 주세요.';
@@ -314,14 +294,14 @@ function Onboarding() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ===== 저장: ① 사진 4장 → ② 프로필 + 이상형 =====
+  // ===== 저장: ① 프로필 사진 1장 → ② 프로필 + 이상형 =====
   const submit = async (skipIdeal) => {
     if (!skipIdeal) {
       const msg = validateStep(6);
       if (msg) { setError(msg); return; }
     }
-    if (photos.filter(Boolean).length !== PHOTO_COUNT) {
-      setError('프로필 사진 4장을 모두 올려 주세요.');
+    if (!photo) {   // ✅ 사진 1장 필수
+      setError('프로필 사진을 올려 주세요.');
       setStep(1);
       return;
     }
@@ -364,10 +344,10 @@ function Onboarding() {
     setError('');
 
     try {
-      // ① 사진 4장 업로드 (순서대로 1~4번, 1번이 대표)
+      // ① ✅ 프로필 사진 1장 업로드
       const formData = new FormData();
       formData.append('loginId', loginId);
-      photos.forEach((file) => formData.append('files', file));
+      formData.append('files', photo);
       await Client.post('/api/profile/images', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -426,32 +406,29 @@ function Onboarding() {
           </div>
         </div>
 
-        {/* ===== 1단계: 프로필 사진 4장 ===== */}
+        {/* ===== 1단계: ✅ 프로필 사진 1장 (필수) ===== */}
         {step === 1 && (
           <Field
-            label="프로필 사진 4장"
-            hint="첫 번째 사진이 대표 사진이 돼요. 4장을 모두 올려야 다음으로 넘어갈 수 있어요."
+            label="프로필 사진 (필수)"
+            hint="매칭 화면에 보이는 사진이에요. 얼굴이 잘 보이는 사진 1장을 올려 주세요."
           >
             <div className={styles.photoGrid}>
-              {previews.map((url, i) => (
-                <div key={i} className={styles.photoSlot} onClick={() => openPicker(i)}>
-                  {url ? (
-                    <>
-                      <img src={url} alt={`프로필 사진 ${i + 1}`} className={styles.photoImg} />
-                      <button
-                        type="button"
-                        className={styles.photoRemove}
-                        onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
-                      >
-                        ✕
-                      </button>
-                    </>
-                  ) : (
-                    <span className={styles.photoPlus}>＋</span>
-                  )}
-                  {i === 0 && <span className={styles.photoBadge}>대표</span>}
-                </div>
-              ))}
+              <div className={styles.photoSlot} onClick={openPicker}>
+                {preview ? (
+                  <>
+                    <img src={preview} alt="프로필 사진" className={styles.photoImg} />
+                    <button
+                      type="button"
+                      className={styles.photoRemove}
+                      onClick={(e) => { e.stopPropagation(); removePhoto(); }}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <span className={styles.photoPlus}>＋</span>
+                )}
+              </div>
             </div>
             <input
               ref={fileInputRef}
@@ -460,7 +437,7 @@ function Onboarding() {
               hidden
               onChange={handlePhotoChange}
             />
-            <p className={styles.counter}>{photos.filter(Boolean).length} / {PHOTO_COUNT}</p>
+            <p className={styles.counter}>{photo ? '사진 선택 완료 ✓' : '사진을 눌러서 올려 주세요'}</p>
           </Field>
         )}
 
@@ -487,7 +464,7 @@ function Onboarding() {
                   min={HEIGHT_MIN} max={HEIGHT_MAX}
                   value={profile.height}
                   onChange={(e) => setProfileValue('height', e.target.value)}
-                  onBlur={(e) => setProfileValue('height', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} /> {/* ✅ 3 */}
+                  onBlur={(e) => setProfileValue('height', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
               </Field>
               <Field label="몸무게 (kg)">
                 <input type="number" className={styles.input} placeholder="예: 68"
@@ -566,7 +543,7 @@ function Onboarding() {
               이상형은 선택 사항이에요. 입력하지 않으면 매칭 확률이 낮아질 수 있어요.
             </p>
 
-            {/* ✅ 4. 나이: 입력칸 → 선택 상자 (14~100세만 고를 수 있음) */}
+            {/* 나이: 선택 상자 (14~100세만 고를 수 있음) */}
             <div className={styles.row}>
               <Field label={`나이 (최소, ${IDEAL_AGE_MIN}세 이상)`}>
                 <select className={styles.input}
@@ -588,7 +565,7 @@ function Onboarding() {
               </Field>
             </div>
 
-            {/* ✅ 5. 키: 칸을 벗어나면 100~250 안으로 자동 보정 */}
+            {/* 키: 칸을 벗어나면 100~250 안으로 자동 보정 */}
             <div className={styles.row}>
               <Field label="키 (최소 cm)">
                 <input type="number" className={styles.input} placeholder="예: 160"

@@ -31,6 +31,16 @@ public class ProfileDAO {
 		return mybatis.insert("Profile.insertProfile", dto);
 	}
 
+	// ✅ 나의 정보 조회 (프로필 화면, 없으면 null)
+	public ProfileDTO selectProfileByMember(Long memberSeq) {
+		return mybatis.selectOne("Profile.selectProfileByMember", memberSeq);
+	}
+
+	// ✅ 나의 정보 수정 (프로필 화면)
+	public int updateProfile(ProfileDTO dto) {
+		return mybatis.update("Profile.updateProfile", dto);
+	}
+
 	// ===================== 이상형 =====================
 
 	public int countIdealType(String loginId) {
@@ -45,9 +55,19 @@ public class ProfileDAO {
 		return mybatis.update("Profile.updateIdealType", dto);
 	}
 
-	// ===================== 프로필 사진 (회원당 4장) =====================
+	// ✅ 이상형 조회 (프로필 화면, 없으면 null)
+	public IdealTypeDTO selectIdealType(String loginId) {
+		return mybatis.selectOne("Profile.selectIdealType", loginId);
+	}
 
-	// 내 사진 4장 (순서대로)
+	// ✅ 이상형 삭제 (수정에서 전부 비웠을 때)
+	public int deleteIdealType(String loginId) {
+		return mybatis.delete("Profile.deleteIdealType", loginId);
+	}
+
+	// ===================== 프로필 사진 (회원당 1장) =====================
+
+	// 내 사진 목록 (순서대로)
 	public List<ProfileImageDTO> selectProfileImages(Long memberSeq) {
 		return mybatis.selectList("Profile.selectProfileImages", memberSeq);
 	}

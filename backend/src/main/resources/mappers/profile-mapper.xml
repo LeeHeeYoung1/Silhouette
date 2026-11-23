@@ -37,9 +37,51 @@
 		)
 	</insert>
 
-	<!-- 이상형이 이미 있는지 (아이디로 연결) -->
+	<!-- ✅ 나의 정보 조회 (프로필 화면, 없으면 null) -->
+	<select id="selectProfileByMember" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
+		select member_profile_seq, member_seq, nickname, mbti, job, height, weight,
+		       introduction, love_type, hobby, favorite, dislike, drinking, smoking,
+		       religion, food_preference, face_type, skin_type, military_status, created_at
+		  from member_profile
+		 where member_seq = #{memberSeq}
+	</select>
+
+	<!-- ✅ 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) -->
+	<update id="updateProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
+		update member_profile
+		   set mbti            = #{mbti},
+		       job             = #{job},
+		       height          = #{height},
+		       weight          = #{weight},
+		       introduction    = #{introduction},
+		       love_type       = #{loveType},
+		       hobby           = #{hobby},
+		       favorite        = #{favorite},
+		       dislike         = #{dislike},
+		       drinking        = #{drinking},
+		       smoking         = #{smoking},
+		       religion        = #{religion},
+		       food_preference = #{foodPreference},
+		       face_type       = #{faceType},
+		       skin_type       = #{skinType},
+		       military_status = #{militaryStatus, jdbcType=VARCHAR}
+		 where member_seq = #{memberSeq}
+	</update>
+
+	<!-- ===================== 이상형 (아이디로 연결) ===================== -->
+
+	<!-- 이상형이 이미 있는지 -->
 	<select id="countIdealType" parameterType="string" resultType="int">
 		select count(*) from ideal_type where login_id = #{loginId}
+	</select>
+
+	<!-- ✅ 이상형 조회 (프로필 화면, 없으면 null) -->
+	<select id="selectIdealType" parameterType="string" resultType="com.app.silhouette.profile.IdealTypeDTO">
+		select ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
+		       body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
+		       created_at, updated_at
+		  from ideal_type
+		 where login_id = #{loginId}
 	</select>
 
 	<!-- 이상형 저장 -->
@@ -76,9 +118,14 @@
 		 where login_id = #{loginId}
 	</update>
 
-	<!-- ===================== 프로필 사진 (회원당 4장) ===================== -->
+	<!-- ✅ 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
+	<delete id="deleteIdealType" parameterType="string">
+		delete from ideal_type where login_id = #{loginId}
+	</delete>
 
-	<!-- 내 사진 4장 (순서대로) -->
+	<!-- ===================== 프로필 사진 (회원당 1장) ===================== -->
+
+	<!-- 내 사진 목록 (순서대로) -->
 	<select id="selectProfileImages" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
 		select profile_image_seq, member_seq, original_name, stored_name,
 		       file_url, review_status, sort_order
@@ -95,7 +142,7 @@
 		 where profile_image_seq = #{profileImageSeq}
 	</select>
 
-	<!-- 내 사진 전부 삭제 (온보딩에서 4장 새로 등록하기 전) -->
+	<!-- 내 사진 전부 삭제 (온보딩에서 새로 등록하기 전) -->
 	<delete id="deleteProfileImages" parameterType="long">
 		delete from profile_image where member_seq = #{memberSeq}
 	</delete>
@@ -114,7 +161,7 @@
 		)
 	</insert>
 
-	<!-- 사진 한 장 교체 (프로필에서 특정 순서의 사진만 바꿀 때) -->
+	<!-- 사진 교체 (프로필 화면: 같은 번호, 파일만 바뀜) -->
 	<update id="updateProfileImage" parameterType="com.app.silhouette.profile.ProfileImageDTO">
 		update profile_image
 		   set original_name = #{originalName},

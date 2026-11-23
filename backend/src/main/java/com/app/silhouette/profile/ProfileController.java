@@ -48,9 +48,24 @@ public class ProfileController {
 		return Map.of("completed", true);
 	}
 
-	// ===================== 프로필 사진 =====================
+	// ✅ 내 프로필 전체 조회 (프로필 화면): GET /api/profile/me?loginId=...
+	//    { basic, profile, ideal, images } / 온보딩 안 했으면 404
+	@GetMapping("/me")
+	public Map<String, Object> selectMyProfile(
+			@RequestParam(value = "loginId", required = false) String loginId) {
+		return profileService.selectMyProfile(loginId);
+	}
 
-	// 4장 한 번에 등록 (온보딩): POST /api/profile/images  (files 4개)
+	// ✅ 내 프로필 수정 (프로필 화면): PUT /api/profile  { loginId, profile, ideal }
+	@PutMapping
+	public Map<String, Object> updateProfile(@RequestBody OnboardingDTO dto) {
+		profileService.updateProfile(dto);
+		return Map.of("updated", true);
+	}
+
+	// ===================== 프로필 사진 (1장) =====================
+
+	// 사진 1장 등록 (온보딩): POST /api/profile/images  (files 1개)
 	@PostMapping("/images")
 	public List<ProfileImageDTO> uploadImages(
 			@RequestParam("loginId") String loginId,
@@ -58,7 +73,7 @@ public class ProfileController {
 		return profileService.saveProfileImages(loginId, files);
 	}
 
-	// 한 장 교체 (프로필): PUT /api/profile/images/2  (file 1개)
+	// 사진 교체 (프로필 화면): PUT /api/profile/images/1  (file 1개)
 	@PutMapping("/images/{sortOrder}")
 	public ProfileImageDTO replaceImage(
 			@PathVariable("sortOrder") int sortOrder,
@@ -67,7 +82,7 @@ public class ProfileController {
 		return profileService.replaceProfileImage(loginId, sortOrder, file);
 	}
 
-	// 내 사진 4장 목록: GET /api/profile/images?loginId=...
+	// 내 사진 목록: GET /api/profile/images?loginId=...
 	@GetMapping("/images")
 	public List<ProfileImageDTO> selectImages(
 			@RequestParam(value = "loginId", required = false) String loginId) {
