@@ -1,0 +1,101 @@
+/* 신고 버튼 + 신고 창 - 다크 테마, 색 직접 지정 */
+.reportBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid #5b3a3a;
+    background: transparent;
+    color: #f87171;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.reportBtn:hover { background: rgba(248, 113, 113, 0.1); }
+.small { padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; }
+.done { border-color: #3a3a46; color: #8a8a99; cursor: default; }
+.done:hover { background: transparent; }
+
+/* 화면 전체를 덮는 어두운 배경 */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.modal {
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #33333f;
+    background: #1b1b22;
+    color: #f3f3f7;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.title { margin: 0 0 6px; font-size: 1.15rem; font-weight: 800; }
+.desc { margin: 0 0 16px; font-size: 0.85rem; color: #a9a9b8; }
+
+.reasons { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.reason {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid #33333f;
+    background: #24242d;
+    font-size: 0.92rem;
+    cursor: pointer;
+}
+.reason:hover { border-color: #f87171; }
+.reason input { width: 16px; height: 16px; accent-color: #f87171; }
+.reasonActive { border-color: #f87171; background: #2c1f22; }
+
+.textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid #33333f;
+    background: #24242d;
+    color: #f3f3f7;
+    font-size: 0.9rem;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+}
+.textarea::placeholder { color: #7d7d8c; }
+.textarea:focus { border-color: #f87171; }
+
+.counter { margin: 6px 0 0; text-align: right; font-size: 0.78rem; color: #a9a9b8; }
+
+.error {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #3a2323;
+    color: #ffb4b4;
+    font-size: 0.85rem;
+}
+
+.buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.cancelBtn, .submitBtn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.cancelBtn { border: 1px solid #33333f; background: transparent; color: #a9a9b8; }
+.submitBtn { border: none; background: #f87171; color: #1b1b22; }
+.cancelBtn:disabled, .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }

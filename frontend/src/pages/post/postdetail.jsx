@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import styles from './postdetail.module.css';
 import Client from '../../api/client';
 import useAuthStore from '../../stores/useAuthStore';
+import ReportButton from './reportbutton';   // 🚨 신고 버튼 (게시글 · 댓글 공통)
 
 /* =========================================================
    실루엣 게시글 상세 컴포넌트 (PostDetail) - 담당: 권형석
@@ -12,6 +13,7 @@ import useAuthStore from '../../stores/useAuthStore';
    - 댓글 / 대댓글 등록 · 수정 · 삭제
    - 본인 글 수정 · 삭제
    - 익명게시판 글: 글 작성자 · 댓글 작성자 모두 '익명' 표시
+   - 🚨 게시글 · 댓글 신고 (남의 글·댓글에만, 익명 게시판 포함)
    ========================================================= */
 
 const MAX_COMMENT = 1000;
@@ -50,24 +52,24 @@ function PostDetail() {
     const [editText, setEditText] = useState('');            // 수정 입력
     const [submitting, setSubmitting] = useState(false);     // 중복 클릭 방지
 
-    // ✅ 익명게시판 글인지 (CATEGORY가 아니라 BOARD_TYPE으로 판단)
+    // 익명게시판 글인지 (CATEGORY가 아니라 BOARD_TYPE으로 판단)
     const isAnonPost = post?.boardType === 'ANON';
 
-    // ✅ 이 글이 속한 게시판 주소 (목록 · 수정 이동용)
+    // 이 글이 속한 게시판 주소 (목록 · 수정 이동용)
     const boardPath = isAnonPost ? '/post/anon' : '/post/free';
 
-    // ✅ 내 글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교 (서버 수정 전 호환)
+    // 내 글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교 (서버 수정 전 호환)
     const isMine = !!loginId && (post?.mine ?? post?.loginId === loginId);
 
-    // ✅ 내 댓글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교
+    // 내 댓글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교
     const isMyComment = (c) =>
         !!loginId && c.isDeleted !== 'Y' && (c.mine ?? c.loginId === loginId);
 
-    // ✅ 글쓴이가 단 댓글인지: 서버가 writer를 주면 그 값, 아니면 아이디 비교
+    // 글쓴이가 단 댓글인지: 서버가 writer를 주면 그 값, 아니면 아이디 비교
     const isWriterComment = (c) =>
         c.writer ?? (!!post?.loginId && c.loginId === post.loginId);
 
-    // ✅ 화면에 보일 이름 (익명게시판이면 무조건 '익명')
+    // 화면에 보일 이름 (익명게시판이면 무조건 '익명')
     const postWriterName = isAnonPost ? ANON_NAME : post?.writerName;
     const commentWriterName = (c) => (isAnonPost ? ANON_NAME : c.writerName);
 
@@ -77,7 +79,7 @@ function PostDetail() {
     /* ===================== 데이터 불러오기 ===================== */
 
     // 처음 들어올 때와 댓글 등록/수정/삭제 후에 다시 불러오기 위해 함수로 분리
-    // ✅ loginId를 같이 보내야 서버가 '내 댓글'(mine)을 계산할 수 있음
+    // loginId를 같이 보내야 서버가 '내 댓글'(mine)을 계산할 수 있음
     const loadComments = () => {
         Client.get(`/api/posts/${id}/comments`, { params: { loginId } })
             .then((res) => setComments(res.data))
@@ -85,7 +87,7 @@ function PostDetail() {
     };
 
     useEffect(() => {
-        // ✅ loginId를 같이 보내야 서버가 '내 글'(mine)을 계산할 수 있음
+        // loginId를 같이 보내야 서버가 '내 글'(mine)을 계산할 수 있음
         Client.get(`/api/posts/${id}`, { params: { loginId } })
             .then((res) => setPost(res.data))
             .catch((err) => {
@@ -257,7 +259,7 @@ function PostDetail() {
 
     /* ===================== 게시글 수정 / 삭제 / 추천 / 다운로드 ===================== */
 
-    // ✅ 게시글 수정 화면으로 이동 (익명 글이면 익명게시판 수정 화면)
+    // 게시글 수정 화면으로 이동 (익명 글이면 익명게시판 수정 화면)
     const handleEditPost = () => {
         if (!requireLogin('로그인한 회원만 수정할 수 있습니다.')) return;
         navigate(`${boardPath}/edit/${id}`);
@@ -269,7 +271,7 @@ function PostDetail() {
         try {
             await Client.delete(`/api/posts/${id}`, { params: { loginId } });
             alert('게시글이 삭제되었습니다.');
-            navigate(boardPath);   // ✅ 원래 게시판 목록으로
+            navigate(boardPath);   // 원래 게시판 목록으로
         } catch (err) {
             console.error(err);
             alert('게시글을 삭제할 수 없습니다.');
@@ -329,11 +331,11 @@ function PostDetail() {
                     <div className={styles.commentAuthorBar}>
                         <div className={styles.commentAuthorGroup}>
                             <span className={styles.commentAuthor}>
-                                {/* ✅ 익명게시판이면 '익명' */}
+                                {/* 익명게시판이면 '익명' */}
                                 {isReply && '↳ '}{commentWriterName(comment)}
                             </span>
                             {mine && <span className={styles.myBadge}>내 댓글</span>}
-                            {/* ✅ 글쓴이 댓글 표시 (익명게시판에서도 '작성자'인지는 보여줌) */}
+                            {/* 글쓴이 댓글 표시 (익명게시판에서도 '작성자'인지는 보여줌) */}
                             {isWriterComment(comment) && (
                                 <span className={styles.myBadge}>작성자</span>
                             )}
@@ -404,6 +406,14 @@ function PostDetail() {
                                 </button>
                             </>
                         )}
+                        {/* 🚨 남의 댓글 · 답글 신고 (익명 게시판 포함) */}
+                        {!mine && (
+                            <ReportButton
+                                targetType="COMMENT"
+                                targetSeq={comment.postCommentSeq}
+                                small
+                            />
+                        )}
                     </div>
                 )}
             </div>
@@ -432,7 +442,7 @@ function PostDetail() {
             {/* 헤더 */}
             <div className={styles.detailHeader}>
                 <div>
-                    {/* ✅ 익명게시판이면 '🎭 익명 게시판' 배지 */}
+                    {/* 익명게시판이면 '🎭 익명 게시판' 배지 */}
                     <span className={styles.categoryBadge}>
                         {isAnonPost ? '🎭 익명 게시판' : post.category}
                     </span>
@@ -451,7 +461,7 @@ function PostDetail() {
                     </div>
                 </div>
 
-                {/* ✅ 원래 게시판 목록으로 */}
+                {/* 원래 게시판 목록으로 */}
                 <Link to={boardPath} className={styles.backToListBtn}>
                     <i className="fa-solid fa-arrow-left"></i> 목록으로
                 </Link>
@@ -501,8 +511,8 @@ function PostDetail() {
                     <i className="fa-solid fa-list"></i> 목록으로 이동
                 </Link>
 
-                {/* 본인 글: 수정 + 삭제 */}
-                {isMine && (
+                {/* 본인 글: 수정 + 삭제 / 남의 글: 🚨 신고 */}
+                {isMine ? (
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button type="button" className={styles.backToListBtn} onClick={handleEditPost}>
                             <i className="fa-solid fa-pen"></i> 게시글 수정
@@ -511,6 +521,8 @@ function PostDetail() {
                             <i className="fa-solid fa-trash-can"></i> 게시글 삭제
                         </button>
                     </div>
+                ) : (
+                    <ReportButton targetType="POST" targetSeq={post.postSeq ?? Number(id)} />
                 )}
             </div>
 
@@ -519,7 +531,7 @@ function PostDetail() {
                 <div className={styles.commentTitle}>
                     <i className="fa-regular fa-comment-dots"></i>
                     <span>댓글 {post.commentCount || 0}</span>
-                    {/* ✅ 익명 안내 */}
+                    {/* 익명 안내 */}
                     {isAnonPost && (
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginLeft: 8 }}>
                             🎭 이 게시판의 댓글은 모두 익명으로 표시됩니다
