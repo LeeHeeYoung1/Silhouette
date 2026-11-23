@@ -39,12 +39,11 @@ public class IdealMatchingController {
         return ResponseEntity.ok("매칭 대기를 취소했어요.");
     }
 
-    // 매칭 종료 (채팅방 나가기)
-    @PostMapping("/end/{chatRoomSeq}")
-    public ResponseEntity<String> end(@RequestAttribute("id") String loginId,
+    // 이상형 매칭 채팅방의 상대 프로필 (채팅창 사이드 표시용, 이상형 방이 아니면 404)
+    @GetMapping("/room/{chatRoomSeq}/partner")
+    public ResponseEntity<IdealPartnerProfileDTO> partner(@RequestAttribute("id") String loginId,
             @PathVariable int chatRoomSeq) {
-        service.end(loginId, chatRoomSeq);
-        return ResponseEntity.ok("매칭을 종료했어요.");
+        return ResponseEntity.ok(service.partnerProfile(loginId, chatRoomSeq));
     }
 
     // Service에서 던진 에러를 "상태 코드 + 메시지"로 응답

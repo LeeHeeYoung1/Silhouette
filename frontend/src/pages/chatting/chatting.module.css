@@ -751,3 +751,119 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===== 이상형 매칭 방: 상대 프로필 사이드 패널 ===== */
+.withPartnerPanel {
+  gap: 16px;
+  align-items: stretch;
+}
+
+.withPartnerPanel .chatWrapper {
+  align-self: center;
+}
+
+.partnerPanel {
+  flex-shrink: 0;
+  align-self: center;
+  width: 260px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  background: #111;
+  border: 1px solid #292929;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.partnerBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f0a0b8;
+  background: rgba(240, 160, 184, 0.12);
+  border: 1px solid rgba(240, 160, 184, 0.35);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.partnerAvatar {
+  width: 72px;
+  height: 72px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  background: #1c1c1c;
+  border: 1px solid #2f2f2f;
+  border-radius: 50%;
+}
+
+.partnerName {
+  margin: 4px 0 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.partnerMeta {
+  margin: 0;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.partnerSection {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #252525;
+}
+
+.partnerLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+}
+
+.partnerIntro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ccc;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.partnerTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.partnerTag {
+  font-size: 12px;
+  color: #ccc;
+  background: #1c1c1c;
+  border: 1px solid #2f2f2f;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* 좁은 화면: 패널을 채팅창 아래로 */
+@media (max-width: 900px) {
+  .withPartnerPanel {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .partnerPanel {
+    width: 100%;
+    max-width: 900px;
+    max-height: none;
+  }
+}
