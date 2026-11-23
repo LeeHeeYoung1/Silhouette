@@ -11,6 +11,7 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
+import com.app.silhouette.blind.BlindDAO;
 import com.app.silhouette.chatting.ChattingDAO;
 import com.app.silhouette.commons.JwtUtil;
 import com.app.silhouette.live.LiveDAO;
@@ -24,11 +25,13 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private final JwtUtil jwt;
     private final ChattingDAO chattingDAO;
     private final LiveDAO liveDAO;
+    private final BlindDAO blindDAO;
 
-    public JwtChannelInterceptor(JwtUtil jwt, ChattingDAO chattingDAO, LiveDAO liveDAO) {
+    public JwtChannelInterceptor(JwtUtil jwt, ChattingDAO chattingDAO, LiveDAO liveDAO, BlindDAO blindDAO) {
         this.jwt = jwt;
         this.chattingDAO = chattingDAO;
         this.liveDAO = liveDAO;
+        this.blindDAO = blindDAO;
     }
 
     @Override
@@ -82,6 +85,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 return canSubscribeLive(accessor, destination) ? message : null;
             }
 
+            // 블라인드 매칭 결과 구독: 본인 주소만 (/sub/user/{로그인아이디}/match)
+            if (destination != null && destination.startsWith("/sub/user/")) {
+                return isOwnUserDestination(accessor, destination) ? message : null;
+            }
+
+            // 블라인드 채팅방 구독: 그 방의 두 참여자만
+            if (destination != null && destination.startsWith("/sub/blind/chat/")) {
+                return canSubscribeBlind(accessor, destination) ? message : null;
+            }
+
             // 채팅방 구독이 아닌 경우 기존 기능 유지
             if (destination == null || !destination.startsWith("/sub/chat/")) {
                 return message;
@@ -115,6 +128,36 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         return message;
+    }
+
+    private String sessionUserId(StompHeaderAccessor accessor) {
+        Map<String, Object> attributes = accessor.getSessionAttributes();
+        return attributes == null ? null : (String) attributes.get("userId");
+    }
+
+    // /sub/user/{userId}/... 의 userId가 연결한 본인인지
+    private boolean isOwnUserDestination(StompHeaderAccessor accessor, String destination) {
+        String userId = sessionUserId(accessor);
+        if (userId == null) {
+            return false;
+        }
+        String rest = destination.substring("/sub/user/".length());
+        int slash = rest.indexOf('/');
+        String target = slash < 0 ? rest : rest.substring(0, slash);
+        return userId.equals(target);
+    }
+
+    private boolean canSubscribeBlind(StompHeaderAccessor accessor, String destination) {
+        String userId = sessionUserId(accessor);
+        if (userId == null) {
+            return false;
+        }
+        try {
+            long roomSeq = Long.parseLong(destination.substring("/sub/blind/chat/".length()));
+            return blindDAO.isRoomMember(roomSeq, userId);
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private boolean canSubscribeLive(StompHeaderAccessor accessor, String destination) {
