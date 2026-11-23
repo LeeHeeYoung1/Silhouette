@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
@@ -98,6 +97,7 @@ function MatchCard({
   );
 }
 
+// 홈 화면: 매칭, 주변 회원, 친구 목록, 내 채팅방을 관리합니다.
 function Home() {
   const { token, id } = useAuthStore();
   const navi = useNavigate();
@@ -119,6 +119,7 @@ function Home() {
   const [sidebarTab, setSidebarTab] = useState('friends');
   const [friendList, setFriendList] = useState([]);
   const [myRoomList, setMyRoomList] = useState([]);
+  const [friendImageUrls, setFriendImageUrls] = useState({});
 
   // AI 챗봇 상태
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -140,24 +141,124 @@ function Home() {
 
   // 친구 목록과 내가 참여 중인 채팅방 목록
   useEffect(() => {
-    if (!token) return;
+    let cancelled = false;
 
     const loadSidebarLists = async () => {
-      try {
-        const [friendsResponse, roomsResponse] = await Promise.all([
-          Client.get('/api/chat/friends'),
-          Client.get('/api/chat/rooms')
-        ]);
+      if (!token) {
+        setFriendList([]);
+        setMyRoomList([]);
+        return;
+      }
 
-        setFriendList(friendsResponse.data || []);
-        setMyRoomList(roomsResponse.data || []);
-      } catch (error) {
-        console.error('친구 또는 채팅방 목록을 불러오지 못했습니다.', error);
+      const [friendsResult, roomsResult] = await Promise.allSettled([
+        Client.get('/api/chat/friends'),
+        Client.get('/api/chat/rooms')
+      ]);
+
+      if (cancelled) return;
+
+      if (friendsResult.status === 'fulfilled') {
+        setFriendList(Array.isArray(friendsResult.value.data)
+          ? friendsResult.value.data
+          : []);
+      } else {
+        console.error('친구 목록을 불러오지 못했습니다.', friendsResult.reason);
+        setFriendList([]);
+      }
+
+      if (roomsResult.status === 'fulfilled') {
+        setMyRoomList(Array.isArray(roomsResult.value.data)
+          ? roomsResult.value.data
+          : []);
+      } else {
+        console.error('채팅방 목록을 불러오지 못했습니다.', roomsResult.reason);
+        setMyRoomList([]);
       }
     };
 
     loadSidebarLists();
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
+
+  // 알림에서 친구 요청을 수락하면 홈 친구 목록을 즉시 갱신
+  // 친구 요청 수락 이벤트가 발생하면 친구 목록을 즉시 다시 조회합니다.
+  useEffect(() => {
+    const refreshFriends = async () => {
+      if (!token) return;
+      try {
+        const response = await Client.get('/api/chat/friends');
+        setFriendList(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error('친구 목록 갱신 실패:', error);
+      }
+    };
+
+    window.addEventListener('silhouette-friends-updated', refreshFriends);
+    return () => window.removeEventListener('silhouette-friends-updated', refreshFriends);
+  }, [token]);
+
+  // 친구 프로필 이미지 불러오기
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls = [];
+
+    const loadFriendImages = async () => {
+      if (!token) return;
+
+      const imageEntries = await Promise.all(
+        friendList.map(async (friend) => {
+          const memberSeq = Number(friend.member_seq);
+          const imagePath = friend.profile_image;
+
+          if (!imagePath) {
+            return [memberSeq, null];
+          }
+
+          // GCS 등 외부 이미지 주소는 그대로 사용
+          if (/^https?:\/\//i.test(imagePath)) {
+            return [memberSeq, imagePath];
+          }
+
+          try {
+            const response = await Client.get(imagePath, {
+              responseType: 'blob',
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+
+            const imageUrl = URL.createObjectURL(response.data);
+            objectUrls.push(imageUrl);
+
+            return [memberSeq, imageUrl];
+          } catch (error) {
+            console.error(
+              `${friend.nickname || friend.login_id} 프로필 이미지 로드 실패:`,
+              error.response?.status,
+              error
+            );
+
+            return [memberSeq, null];
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setFriendImageUrls(Object.fromEntries(imageEntries));
+      }
+    };
+
+    loadFriendImages();
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [friendList, token]);
+
 
   // 실시간 접속 대기 인원 변동 시뮬레이션
   useEffect(() => {
@@ -258,7 +359,7 @@ function Home() {
   useEffect(() => {
     return () => {
       if (isIdealWaitingRef.current) {
-        cancelIdealMatch().catch(() => {});
+        cancelIdealMatch().catch(() => { });
       }
     };
   }, []);
@@ -291,6 +392,7 @@ function Home() {
   };
 
   // 블라인드 매칭 STOMP 연결
+  // 홈 화면 진입 시 친구 목록과 채팅방 목록을 함께 불러옵니다.
   useEffect(() => {
     if (!token) return;
 
@@ -426,6 +528,19 @@ function Home() {
     setIsLocationLoading(false);
   };
 
+  // 주변 회원에게 친구 요청 보내기
+  // 주변 회원에게 친구 요청을 보내고 결과를 사용자에게 알려줍니다.
+  const handleSendFriendRequest = async (memberSeq) => {
+    try {
+      await Client.post('/api/chat/friends/request', {
+        friend_member_seq: memberSeq
+      });
+      alert('친구 요청을 보냈습니다.');
+    } catch (error) {
+      alert(error.response?.data || '친구 요청을 보내지 못했습니다.');
+    }
+  };
+
   // AI 챗봇 메시지 전송
   const handleSendChatMessage = (textToSend) => {
     const text = typeof textToSend === 'string' ? textToSend : chatInput;
@@ -477,6 +592,7 @@ function Home() {
     }, 350);
   };
 
+  // 홈 화면 UI를 렌더링합니다.
   return (
     <div className={styles.container}>
       {/* 1. 상단: 실시간 매칭 모드 */}
@@ -625,9 +741,9 @@ function Home() {
                     <button
                       type="button"
                       className={styles.locBtn}
-                      onClick={() => navi('/chattingRoomList')}
+                      onClick={() => handleSendFriendRequest(item.memberSeq)}
                     >
-                      대화 신청
+                      친구 요청
                     </button>
                   </div>
                 </div>
@@ -668,9 +784,9 @@ function Home() {
 
                   {friendList.map((friend) => (
                     <div className={styles.sidebarPerson} key={friend.member_seq}>
-                      {friend.profile_image ? (
+                      {friendImageUrls[Number(friend.member_seq)] ? (
                         <img
-                          src={friend.profile_image}
+                          src={friendImageUrls[Number(friend.member_seq)]}
                           alt=""
                           className={styles.sidebarAvatar}
                         />
