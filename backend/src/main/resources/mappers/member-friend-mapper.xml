@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MemberFriend">
+
+    <!-- 내 친구 목록: 양방향 관계와 중복 프로필 행을 회원 번호 기준으로 한 번만 조회 -->
+    <select id="selectFriendList"
+        parameterType="long"
+        resultType="com.app.silhouette.friend.MemberFriendDTO">
+
+        SELECT
+            F.FRIEND_SEQ AS FRIEND_MEMBER_SEQ,
+            F.FRIEND_SEQ AS MEMBER_SEQ,
+            'ACCEPTED' AS FRIEND_STATUS,
+            M.LOGIN_ID AS LOGIN_ID,
+            (SELECT MAX(MP.NICKNAME)
+             FROM MEMBER_PROFILE MP
+             WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ) AS NICKNAME,
+            (SELECT PI.FILE_URL
+             FROM PROFILE_IMAGE PI
+             WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
+               AND PI.PROFILE_IMAGE_SEQ = (
+                   SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                   FROM PROFILE_IMAGE PI2
+                   WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ
+               )) AS PROFILE_IMAGE
+        FROM (
+            SELECT DISTINCT
+                   CASE
+                       WHEN MEMBER_SEQ = #{value} THEN FRIEND_MEMBER_SEQ
+                       ELSE MEMBER_SEQ
+                   END AS FRIEND_SEQ
+            FROM MEMBER_FRIEND
+            WHERE (MEMBER_SEQ = #{value} OR FRIEND_MEMBER_SEQ = #{value})
+              AND FRIEND_STATUS = 'ACCEPTED'
+        ) F
+        JOIN MEMBER M ON M.MEMBER_SEQ = F.FRIEND_SEQ
+        WHERE M.MEMBER_STATUS = 'ACTIVE'
+        ORDER BY NICKNAME
+
+    </select>
+
+    <!-- 친구 중 닉네임 검색: 회원 번호 기준 중복 제거 -->
+    <select id="searchAcceptedFriends"
+        parameterType="map"
+        resultType="com.app.silhouette.friend.MemberFriendDTO">
+
+        SELECT
+            F.FRIEND_SEQ AS FRIEND_MEMBER_SEQ,
+            F.FRIEND_SEQ AS MEMBER_SEQ,
+            'ACCEPTED' AS FRIEND_STATUS,
+            M.LOGIN_ID AS LOGIN_ID,
+            (SELECT MAX(MP.NICKNAME)
+             FROM MEMBER_PROFILE MP
+             WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ) AS NICKNAME,
+            (SELECT PI.FILE_URL
+             FROM PROFILE_IMAGE PI
+             WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
+               AND PI.PROFILE_IMAGE_SEQ = (
+                   SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                   FROM PROFILE_IMAGE PI2
+                   WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ
+               )) AS PROFILE_IMAGE
+        FROM (
+            SELECT DISTINCT
+                   CASE
+                       WHEN MEMBER_SEQ = #{memberSeq} THEN FRIEND_MEMBER_SEQ
+                       ELSE MEMBER_SEQ
+                   END AS FRIEND_SEQ
+            FROM MEMBER_FRIEND
+            WHERE (MEMBER_SEQ = #{memberSeq} OR FRIEND_MEMBER_SEQ = #{memberSeq})
+              AND FRIEND_STATUS = 'ACCEPTED'
+        ) F
+        JOIN MEMBER M ON M.MEMBER_SEQ = F.FRIEND_SEQ
+        WHERE M.MEMBER_STATUS = 'ACTIVE'
+          AND M.MEMBER_SEQ != #{memberSeq}
+          AND LOWER((SELECT MAX(MP.NICKNAME)
+                     FROM MEMBER_PROFILE MP
+                     WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ))
+              LIKE '%' || LOWER(#{keyword}) || '%'
+        ORDER BY NICKNAME
+
+    </select>
+
+    <!-- 채팅 초대 시 친구 여부 확인 -->
+    <select id="isAcceptedFriend" parameterType="map" resultType="int">
+
+        SELECT COUNT(*)
+        FROM MEMBER_FRIEND
+        WHERE FRIEND_STATUS = 'ACCEPTED'
+          AND (
+                (MEMBER_SEQ = #{memberSeq} AND FRIEND_MEMBER_SEQ = #{friendSeq})
+             OR (MEMBER_SEQ = #{friendSeq} AND FRIEND_MEMBER_SEQ = #{memberSeq})
+          )
+
+    </select>
+
+</mapper>
