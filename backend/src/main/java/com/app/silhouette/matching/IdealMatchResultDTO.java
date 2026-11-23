@@ -3,7 +3,7 @@ package com.app.silhouette.matching;
 //매칭 신청 API가 프론트에 돌려주는 응답
 public class IdealMatchResultDTO {
 
-    private String status;               // WAITING(상대 대기 중) / MATCHED(매칭 성공)
+    private String status;               // WAITING(상대 대기 중) / MATCHED(매칭 성공) / IDLE(대기열에 없음)
     private Integer partner_Seq;         // 매칭된 상대 (WAITING이면 null)
     private Integer ideal_Matching_Seq;
     private Integer chat_Room_Seq;
@@ -24,6 +24,11 @@ public class IdealMatchResultDTO {
     // 아직 상대를 못 찾았을 때
     public static IdealMatchResultDTO waiting() {
         return new IdealMatchResultDTO("WAITING", null, null, null, null);
+    }
+
+    // 대기열에 없을 때 (취소했거나 처음 상태)
+    public static IdealMatchResultDTO idle() {
+        return new IdealMatchResultDTO("IDLE", null, null, null, null);
     }
 
     public String getStatus() { return status; }
