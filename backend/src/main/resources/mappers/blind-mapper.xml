@@ -50,8 +50,8 @@
         <selectKey keyProperty="blindMatchingSeq" resultType="long" order="BEFORE">
             SELECT SEQ_BLIND_MATCHING.NEXTVAL FROM DUAL
         </selectKey>
-        INSERT INTO BLIND_MATCHING (BLIND_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, STATUS)
-        VALUES (#{blindMatchingSeq}, #{memberSeq1}, #{memberSeq2}, 'MATCHED')
+                INSERT INTO BLIND_MATCHING (BLIND_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, STATUS, MATCHED_AT)
+        VALUES (#{blindMatchingSeq}, #{memberSeq1}, #{memberSeq2}, 'MATCHED', LOCALTIMESTAMP)
     </insert>
 
     <insert id="insertRoom" parameterType="com.app.silhouette.blind.BlindRoomDTO">
