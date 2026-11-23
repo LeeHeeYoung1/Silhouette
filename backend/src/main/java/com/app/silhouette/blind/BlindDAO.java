@@ -136,4 +136,23 @@ public class BlindDAO {
         param.put("memberSeq", memberSeq);
         return mybatis.insert(NS + "insertChatRoomList", param);
     }
+
+    // ===== AI 추천답변 =====
+
+    // 실행 후 suggestion.aiReplySuggestionSeq 채워짐
+    public int insertSuggestion(BlindSuggestionDTO suggestion) {
+        return mybatis.insert(NS + "insertSuggestion", suggestion);
+    }
+
+    public BlindSuggestionDTO selectSuggestion(long seq) {
+        return mybatis.selectOne(NS + "selectSuggestion", seq);
+    }
+
+    // 골라서 보냄 표시 (edited: 고쳐서 보냈는지)
+    public int updateSuggestionSelected(long seq, boolean edited) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("seq", seq);
+        param.put("editedYn", edited ? "Y" : "N");
+        return mybatis.update(NS + "updateSuggestionSelected", param);
+    }
 }

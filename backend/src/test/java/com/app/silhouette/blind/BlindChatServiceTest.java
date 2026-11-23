@@ -76,11 +76,11 @@ class BlindChatServiceTest {
     }
     @Test void nonMemberForbidden() { chatLeft(600); assertThrows(ResponseStatusException.class, () -> svc.state("x", 100L)); }
     @Test void goDuringChatRejected() { chatLeft(600); assertThrows(ResponseStatusException.class, () -> svc.vote("a", 100L, "GO")); }
-    @Test void sendAfterExpiryRejected() { chatLeft(-1); assertThrows(ResponseStatusException.class, () -> svc.send("a", 100L, "hi")); }
+    @Test void sendAfterExpiryRejected() { chatLeft(-1); assertThrows(ResponseStatusException.class, () -> svc.send("a", 100L, "hi", null)); }
     @Test void sendBroadcastsSlotNotId() {
         chatLeft(600);
         when(dao.insertMessage(any())).thenAnswer(i -> { ((BlindChatMessageDTO) i.getArgument(0)).setBlindChatMessageSeq(11L); return 1; });
-        svc.send("b", 100L, " 안녕 ");
+        svc.send("b", 100L, " 안녕 ", null);
         Map<String, Object> e = events().get(0);
         assertEquals("MESSAGE", e.get("kind")); assertEquals(2, e.get("senderSlot")); assertEquals("안녕", e.get("content"));
         assertFalse(e.toString().contains("senderSeq"));

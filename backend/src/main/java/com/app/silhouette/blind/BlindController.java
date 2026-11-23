@@ -28,10 +28,12 @@ public class BlindController {
 
     private final BlindService blindService;
     private final BlindChatService chatService;
+    private final BlindAiService aiService;
 
-    public BlindController(BlindService blindService, BlindChatService chatService) {
+    public BlindController(BlindService blindService, BlindChatService chatService, BlindAiService aiService) {
         this.blindService = blindService;
         this.chatService = chatService;
+        this.aiService = aiService;
     }
 
     // ===================== 매칭 대기열 (STOMP) =====================
@@ -72,12 +74,16 @@ public class BlindController {
         return chatService.messages(loginId, roomSeq);
     }
 
-    // 메시지 전송 { content }
+    // 메시지 전송 { content, aiReplySuggestionSeq? }
     @PostMapping("/room/{roomSeq}/messages")
     public BlindChatMessageDTO send(@RequestAttribute("id") String loginId, @PathVariable long roomSeq,
             @RequestBody Map<String, Object> body) {
         Object content = body.get("content");
-        return chatService.send(loginId, roomSeq, content == null ? null : content.toString());
+        Long suggestionSeq = null;
+        if (body.get("aiReplySuggestionSeq") instanceof Number n) {
+            suggestionSeq = n.longValue();
+        }
+        return chatService.send(loginId, roomSeq, content == null ? null : content.toString(), suggestionSeq);
     }
 
     // GO / STOP { vote: 'GO' | 'STOP' }
@@ -93,6 +99,20 @@ public class BlindController {
     public ResponseEntity<Void> leave(@RequestAttribute("id") String loginId, @PathVariable long roomSeq) {
         chatService.leave(loginId, roomSeq);
         return ResponseEntity.ok().build();
+    }
+
+    // ===================== AI 추천답변 (고스트채팅) =====================
+
+    // AI 추천 사용 가능 여부 (API 키 설정 여부) → { available }
+    @GetMapping("/ai/status")
+    public Map<String, Object> aiStatus() {
+        return Map.of("available", aiService.isAvailable());
+    }
+
+    // 상대의 마지막 메시지에 대한 답장 추천 3개 → [{ aiReplySuggestionSeq, tone, text, triggerMessageSeq }]
+    @PostMapping("/room/{roomSeq}/suggestions")
+    public List<BlindSuggestionDTO> suggest(@RequestAttribute("id") String loginId, @PathVariable long roomSeq) {
+        return aiService.suggest(loginId, roomSeq);
     }
 
     // Service에서 던진 에러를 "상태 코드 + 메시지"로 응답

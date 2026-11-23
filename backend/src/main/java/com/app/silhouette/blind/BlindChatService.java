@@ -130,8 +130,9 @@ public class BlindChatService {
 
     // =========================================================
     // 메시지 전송 (대화 시간 안에만)
+    // aiReplySuggestionSeq: AI 추천을 골라서 보낸 경우 그 추천 번호 (없으면 null)
     // =========================================================
-    public BlindChatMessageDTO send(String loginId, long roomSeq, String content) {
+    public BlindChatMessageDTO send(String loginId, long roomSeq, String content, Long aiReplySuggestionSeq) {
         long me = getMemberSeq(loginId);
         BlindRoomDTO room = getRoom(roomSeq);
         int mySlot = requireSlot(room, me);
@@ -154,11 +155,27 @@ public class BlindChatService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "메시지는 " + MAX_MESSAGE_LENGTH + "자까지 보낼 수 있어요.");
         }
 
+        // AI 추천을 골라서 보낸 경우: 내 추천이고 이 방의 것이며 아직 안 쓴 것만 인정
+        BlindSuggestionDTO suggestion = null;
+        if (aiReplySuggestionSeq != null) {
+            BlindSuggestionDTO s = dao.selectSuggestion(aiReplySuggestionSeq);
+            if (s != null && Long.valueOf(me).equals(s.getMemberSeq())
+                    && Long.valueOf(roomSeq).equals(s.getBlindChatRoomSeq()) && "N".equals(s.getSelectedYn())) {
+                suggestion = s;
+            }
+        }
+
         BlindChatMessageDTO message = new BlindChatMessageDTO();
         message.setBlindChatRoomSeq(roomSeq);
         message.setSenderSeq(me);
         message.setContent(text);
+        message.setAiReplySuggestionSeq(suggestion == null ? null : suggestion.getAiReplySuggestionSeq());
         dao.insertMessage(message);   // blindChatMessageSeq 채워짐
+
+        if (suggestion != null) {
+            // 고쳐서 보냈는지도 기록 (추천 품질 확인용)
+            dao.updateSuggestionSelected(suggestion.getAiReplySuggestionSeq(), !text.equals(suggestion.getText()));
+        }
 
         message.setSenderSlot(mySlot);
         message.setSentAt(room.getDbNow());
