@@ -145,11 +145,15 @@ function Home() {
   }, [chatMessages, isChatOpen]);
 
 
-  // 이상형 매칭 성공 처리 (채팅 화면이 생기면 결과 화면으로 바꿀 예정)
+  // 대기 중인지 (화면을 떠날 때 자동 취소 판단용)
+  const isIdealWaitingRef = useRef(false);
+
+  // 이상형 매칭 성공 → 채팅방이 이미 만들어져 있으므로 바로 이동
   const handleIdealMatched = useCallback((result) => {
+    isIdealWaitingRef.current = false;
     setIsIdealMatching(false);
-    alert(`💖 매칭 성공!\n상대 회원: ${result.partner_Seq}번\n상호 점수: ${result.score}점\n채팅방: ${result.chat_Room_Seq}번`);
-  }, []);
+    navi(`/chatting/${result.chat_Room_Seq}`);
+  }, [navi]);
 
   // 이상형 매칭 신청
   const handleIdealStart = async () => {
@@ -159,10 +163,11 @@ function Home() {
       if (data.status === 'MATCHED') {
         handleIdealMatched(data);      // 조건 맞는 상대가 이미 기다리고 있었음
       } else {
+        isIdealWaitingRef.current = true;
         setIsIdealMatching(true);      // WAITING → 검색 중 화면
       }
     } catch (error) {
-      // 서버가 보낸 메시지 (예: "프로필과 이상형을 먼저 입력해주세요.")
+      // 서버가 보낸 메시지 (예: "프로필을 먼저 등록해주세요.")
       const message = error.response?.data || '매칭 신청 중 오류가 발생했어요.';
       alert(message);
     }
@@ -177,10 +182,17 @@ function Home() {
     const timer = setInterval(async () => {
       try {
         const { data } = await getIdealMatchStatus();
-        if (!stopped && data.status === 'MATCHED') {
+        if (stopped) return;
+        if (data.status === 'MATCHED') {
           stopped = true;
           clearInterval(timer);
           handleIdealMatched(data);
+        } else if (data.status === 'IDLE') {
+          // 대기열에서 빠져 있음 (다른 탭에서 취소 등) → 검색 중 화면 종료
+          stopped = true;
+          clearInterval(timer);
+          isIdealWaitingRef.current = false;
+          setIsIdealMatching(false);
         }
       } catch {
         // 일시적인 오류는 무시하고 다음 주기에 다시 확인
@@ -193,10 +205,37 @@ function Home() {
     };
   }, [isIdealMatching, handleIdealMatched]);
 
+  // 대기 중에 창을 닫거나 새로고침하면 대기열에서 빠지도록 취소 요청
+  // (자리에 없는 사람과 매칭되는 것 방지. keepalive라 페이지가 닫혀도 요청이 전송됨)
+  useEffect(() => {
+    if (!isIdealMatching) return;
+
+    const cancelOnUnload = () => {
+      fetch(`${Client.defaults.baseURL}/matching/ideal/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` },
+        keepalive: true,
+      });
+    };
+
+    window.addEventListener('beforeunload', cancelOnUnload);
+    return () => window.removeEventListener('beforeunload', cancelOnUnload);
+  }, [isIdealMatching]);
+
+  // 대기 중에 다른 메뉴로 이동하면 대기 취소
+  useEffect(() => {
+    return () => {
+      if (isIdealWaitingRef.current) {
+        cancelIdealMatch().catch(() => {});
+      }
+    };
+  }, []);
+
   // 이상형 매칭 대기 취소
   const handleIdealCancel = async () => {
     try {
       await cancelIdealMatch();
+      isIdealWaitingRef.current = false;
       setIsIdealMatching(false);
     } catch (error) {
       // 409: 취소를 누르는 순간 이미 매칭됨 → 매칭 결과를 보여줌
@@ -211,6 +250,7 @@ function Home() {
           // 아래 공통 처리로 넘어감
         }
       }
+      isIdealWaitingRef.current = false;
       setIsIdealMatching(false);
       alert(error.response?.data || '취소 중 오류가 발생했어요.');
     }
@@ -410,8 +450,8 @@ function Home() {
             waitingLabel="이상형 매칭"
             waitingCount={waitingIdealUsers}
             isMatching={isIdealMatching}
-            onStart={() => setIsIdealMatching(true)}
-            onCancel={() => setIsIdealMatching(false)}
+            onStart={handleIdealStart}
+            onCancel={handleIdealCancel}
             btnSubtitle="IDEAL MATCH"
             guideContent={
               <div className={styles.idealKeywords}>

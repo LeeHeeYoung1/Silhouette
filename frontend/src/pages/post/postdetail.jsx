@@ -6,14 +6,16 @@ import useAuthStore from '../../stores/useAuthStore';
 
 /* =========================================================
    실루엣 게시글 상세 컴포넌트 (PostDetail) - 담당: 권형석
-   - 경로: /post/detail/:id
+   - 경로: /post/detail/:id  (자유 · 익명 게시판 공용)
    - B001 게시글 상세 조회 (조회수 증가, 본문)
    - 추천 토글 (1인 1회)
    - 댓글 / 대댓글 등록 · 수정 · 삭제
-   - 본인 글 삭제
+   - 본인 글 수정 · 삭제
+   - 익명게시판 글: 글 작성자 · 댓글 작성자 모두 '익명' 표시
    ========================================================= */
 
 const MAX_COMMENT = 1000;
+const ANON_NAME = '익명';
 
 // "2026-11-19T15:30:12.123" → "2026-11-19 15:30"
 const formatDate = (value) => {
@@ -48,20 +50,43 @@ function PostDetail() {
     const [editText, setEditText] = useState('');            // 수정 입력
     const [submitting, setSubmitting] = useState(false);     // 중복 클릭 방지
 
-    const isMine = !!loginId && post?.loginId === loginId;
-    const isMyComment = (c) => !!loginId && c.isDeleted !== 'Y' && c.loginId === loginId;
+    // ✅ 익명게시판 글인지 (CATEGORY가 아니라 BOARD_TYPE으로 판단)
+    const isAnonPost = post?.boardType === 'ANON';
+
+    // ✅ 이 글이 속한 게시판 주소 (목록 · 수정 이동용)
+    const boardPath = isAnonPost ? '/post/anon' : '/post/free';
+
+    // ✅ 내 글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교 (서버 수정 전 호환)
+    const isMine = !!loginId && (post?.mine ?? post?.loginId === loginId);
+
+    // ✅ 내 댓글인지: 서버가 mine을 주면 그 값, 아니면 아이디 비교
+    const isMyComment = (c) =>
+        !!loginId && c.isDeleted !== 'Y' && (c.mine ?? c.loginId === loginId);
+
+    // ✅ 글쓴이가 단 댓글인지: 서버가 writer를 주면 그 값, 아니면 아이디 비교
+    const isWriterComment = (c) =>
+        c.writer ?? (!!post?.loginId && c.loginId === post.loginId);
+
+    // ✅ 화면에 보일 이름 (익명게시판이면 무조건 '익명')
+    const postWriterName = isAnonPost ? ANON_NAME : post?.writerName;
+    const commentWriterName = (c) => (isAnonPost ? ANON_NAME : c.writerName);
+
+    // 게시글이 수정된 적 있는지 (등록 시각과 수정 시각이 다르면)
+    const postEdited = post && post.updatedAt && formatDate(post.updatedAt) !== formatDate(post.createdAt);
 
     /* ===================== 데이터 불러오기 ===================== */
 
     // 처음 들어올 때와 댓글 등록/수정/삭제 후에 다시 불러오기 위해 함수로 분리
+    // ✅ loginId를 같이 보내야 서버가 '내 댓글'(mine)을 계산할 수 있음
     const loadComments = () => {
-        Client.get(`/api/posts/${id}/comments`)
+        Client.get(`/api/posts/${id}/comments`, { params: { loginId } })
             .then((res) => setComments(res.data))
             .catch((err) => console.error(err));
     };
 
     useEffect(() => {
-        Client.get(`/api/posts/${id}`)
+        // ✅ loginId를 같이 보내야 서버가 '내 글'(mine)을 계산할 수 있음
+        Client.get(`/api/posts/${id}`, { params: { loginId } })
             .then((res) => setPost(res.data))
             .catch((err) => {
                 console.error(err);
@@ -74,7 +99,7 @@ function PostDetail() {
 
         loadComments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, loginId]);
 
     useEffect(() => {
         if (!loginId) return;
@@ -230,14 +255,21 @@ function PostDetail() {
         }
     };
 
-    /* ===================== 게시글 삭제 / 추천 / 다운로드 ===================== */
+    /* ===================== 게시글 수정 / 삭제 / 추천 / 다운로드 ===================== */
+
+    // ✅ 게시글 수정 화면으로 이동 (익명 글이면 익명게시판 수정 화면)
+    const handleEditPost = () => {
+        if (!requireLogin('로그인한 회원만 수정할 수 있습니다.')) return;
+        navigate(`${boardPath}/edit/${id}`);
+    };
+
     const handleDeletePost = async () => {
         if (!requireLogin('로그인한 회원만 삭제가능합니다.')) return;
         if (!window.confirm('게시글을 삭제하시겠습니까?')) return;
         try {
             await Client.delete(`/api/posts/${id}`, { params: { loginId } });
             alert('게시글이 삭제되었습니다.');
-            navigate('/post/free');
+            navigate(boardPath);   // ✅ 원래 게시판 목록으로
         } catch (err) {
             console.error(err);
             alert('게시글을 삭제할 수 없습니다.');
@@ -297,10 +329,12 @@ function PostDetail() {
                     <div className={styles.commentAuthorBar}>
                         <div className={styles.commentAuthorGroup}>
                             <span className={styles.commentAuthor}>
-                                {isReply && '↳ '}{comment.writerName}
+                                {/* ✅ 익명게시판이면 '익명' */}
+                                {isReply && '↳ '}{commentWriterName(comment)}
                             </span>
                             {mine && <span className={styles.myBadge}>내 댓글</span>}
-                            {post.loginId && comment.loginId === post.loginId && post.category !== '익명' && (
+                            {/* ✅ 글쓴이 댓글 표시 (익명게시판에서도 '작성자'인지는 보여줌) */}
+                            {isWriterComment(comment) && (
                                 <span className={styles.myBadge}>작성자</span>
                             )}
                         </div>
@@ -386,7 +420,7 @@ function PostDetail() {
                     <i className="fa-regular fa-circle-question"></i>
                     <span>게시글을 찾을 수 없거나 이미 삭제되었습니다.</span>
                     <Link to="/post/free" className={`${styles.backToListBtn} ${styles.emptyBackBtn}`}>
-                        자유게시판 목록으로 돌아가기
+                        게시판 목록으로 돌아가기
                     </Link>
                 </div>
             </div>
@@ -398,12 +432,18 @@ function PostDetail() {
             {/* 헤더 */}
             <div className={styles.detailHeader}>
                 <div>
-                    <span className={styles.categoryBadge}>{post.category}</span>
+                    {/* ✅ 익명게시판이면 '🎭 익명 게시판' 배지 */}
+                    <span className={styles.categoryBadge}>
+                        {isAnonPost ? '🎭 익명 게시판' : post.category}
+                    </span>
                     <h1 className={styles.detailTitle}>{post.title}</h1>
                     <div className={styles.detailMeta}>
-                        <span>작성자: <strong>{post.writerName}</strong></span>
+                        <span>작성자: <strong>{postWriterName}</strong></span>
                         <span>·</span>
-                        <span>등록일시: <strong>{formatDate(post.createdAt)}</strong></span>
+                        <span>
+                            등록일시: <strong>{formatDate(post.createdAt)}</strong>
+                            {postEdited && <span className={styles.editedMark}>(수정됨)</span>}
+                        </span>
                         <span>·</span>
                         <span>조회수: <strong>{post.viewCount}</strong></span>
                         <span>·</span>
@@ -411,7 +451,8 @@ function PostDetail() {
                     </div>
                 </div>
 
-                <Link to="/post/free" className={styles.backToListBtn}>
+                {/* ✅ 원래 게시판 목록으로 */}
+                <Link to={boardPath} className={styles.backToListBtn}>
                     <i className="fa-solid fa-arrow-left"></i> 목록으로
                 </Link>
             </div>
@@ -456,14 +497,20 @@ function PostDetail() {
 
             {/* 하단 버튼 */}
             <div className={styles.detailActionButtons}>
-                <Link to="/post/free" className={styles.backToListBtn}>
+                <Link to={boardPath} className={styles.backToListBtn}>
                     <i className="fa-solid fa-list"></i> 목록으로 이동
                 </Link>
 
+                {/* 본인 글: 수정 + 삭제 */}
                 {isMine && (
-                    <button type="button" className={styles.deletePostBtn} onClick={handleDeletePost}>
-                        <i className="fa-solid fa-trash-can"></i> 게시글 삭제
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" className={styles.backToListBtn} onClick={handleEditPost}>
+                            <i className="fa-solid fa-pen"></i> 게시글 수정
+                        </button>
+                        <button type="button" className={styles.deletePostBtn} onClick={handleDeletePost}>
+                            <i className="fa-solid fa-trash-can"></i> 게시글 삭제
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -472,6 +519,12 @@ function PostDetail() {
                 <div className={styles.commentTitle}>
                     <i className="fa-regular fa-comment-dots"></i>
                     <span>댓글 {post.commentCount || 0}</span>
+                    {/* ✅ 익명 안내 */}
+                    {isAnonPost && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginLeft: 8 }}>
+                            🎭 이 게시판의 댓글은 모두 익명으로 표시됩니다
+                        </span>
+                    )}
                 </div>
 
                 <div className={styles.commentList}>
@@ -492,7 +545,7 @@ function PostDetail() {
                                         <input
                                             type="text"
                                             className={styles.commentInput}
-                                            placeholder={`${comment.writerName}님에게 답글을 작성하세요...`}
+                                            placeholder={`${commentWriterName(comment)}님에게 답글을 작성하세요...`}
                                             value={replyText}
                                             maxLength={MAX_COMMENT}
                                             autoFocus
@@ -523,7 +576,11 @@ function PostDetail() {
                     <input
                         type="text"
                         className={styles.commentInput}
-                        placeholder={token ? '매너 있고 따뜻한 댓글을 남겨주세요' : '로그인 후 댓글을 작성할 수 있습니다'}
+                        placeholder={
+                            !token ? '로그인 후 댓글을 작성할 수 있습니다'
+                                : isAnonPost ? '🎭 익명으로 댓글이 등록됩니다'
+                                : '매너 있고 따뜻한 댓글을 남겨주세요'
+                        }
                         value={commentText}
                         maxLength={MAX_COMMENT}
                         onChange={(e) => setCommentText(e.target.value)}

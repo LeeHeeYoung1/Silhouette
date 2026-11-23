@@ -15,52 +15,159 @@
 		 where login_id = #{loginId}
 	</select>
 
-
-		<!-- 온보딩 완료 여부: 내 프로필 행이 있으면 1, 없으면 0 -->
+	<!-- 온보딩 완료 여부: 내 프로필 행이 있으면 1, 없으면 0 -->
 	<select id="countProfile" parameterType="string" resultType="int">
 		select count(*)
 		  from member_profile mp
 		  join member m on mp.member_seq = m.member_seq
 		 where m.login_id = #{loginId}
 	</select>
-	
-		<!-- 나의 정보 저장 (온보딩) -->
+
+	<!-- 나의 정보 저장 (온보딩) -->
 	<insert id="insertProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		insert into member_profile (
 			member_profile_seq, member_seq, nickname, mbti, job, height, weight,
 			introduction, love_type, hobby, favorite, dislike, drinking, smoking,
-			religion, food_preference, face_type, skin_type, created_at
+			religion, food_preference, face_type, skin_type, military_status, created_at
 		) values (
 			seq_member_profile.nextval, #{memberSeq}, #{nickname}, #{mbti}, #{job}, #{height}, #{weight},
 			#{introduction}, #{loveType}, #{hobby}, #{favorite}, #{dislike}, #{drinking}, #{smoking},
-			#{religion}, #{foodPreference}, #{faceType}, #{skinType}, sysdate
+			#{religion}, #{foodPreference}, #{faceType}, #{skinType},
+			#{militaryStatus, jdbcType=VARCHAR}, sysdate
 		)
 	</insert>
 
-	<!-- 이상형이 이미 있는지 (아이디로 연결) -->
+	<!-- ✅ 나의 정보 조회 (프로필 화면, 없으면 null) -->
+	<select id="selectProfileByMember" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
+		select member_profile_seq, member_seq, nickname, mbti, job, height, weight,
+		       introduction, love_type, hobby, favorite, dislike, drinking, smoking,
+		       religion, food_preference, face_type, skin_type, military_status, created_at
+		  from member_profile
+		 where member_seq = #{memberSeq}
+	</select>
+
+	<!-- ✅ 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) -->
+	<update id="updateProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
+		update member_profile
+		   set mbti            = #{mbti},
+		       job             = #{job},
+		       height          = #{height},
+		       weight          = #{weight},
+		       introduction    = #{introduction},
+		       love_type       = #{loveType},
+		       hobby           = #{hobby},
+		       favorite        = #{favorite},
+		       dislike         = #{dislike},
+		       drinking        = #{drinking},
+		       smoking         = #{smoking},
+		       religion        = #{religion},
+		       food_preference = #{foodPreference},
+		       face_type       = #{faceType},
+		       skin_type       = #{skinType},
+		       military_status = #{militaryStatus, jdbcType=VARCHAR}
+		 where member_seq = #{memberSeq}
+	</update>
+
+	<!-- ===================== 이상형 (아이디로 연결) ===================== -->
+
+	<!-- 이상형이 이미 있는지 -->
 	<select id="countIdealType" parameterType="string" resultType="int">
 		select count(*) from ideal_type where login_id = #{loginId}
+	</select>
+
+	<!-- ✅ 이상형 조회 (프로필 화면, 없으면 null) -->
+	<select id="selectIdealType" parameterType="string" resultType="com.app.silhouette.profile.IdealTypeDTO">
+		select ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
+		       body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
+		       created_at, updated_at
+		  from ideal_type
+		 where login_id = #{loginId}
 	</select>
 
 	<!-- 이상형 저장 -->
 	<insert id="insertIdealType" parameterType="com.app.silhouette.profile.IdealTypeDTO">
 		insert into ideal_type (
 			ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
-			body_type, mbti_pref, smoking_pref, drinking_pref, memo, created_at, updated_at
+			body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
+			created_at, updated_at
 		) values (
-			seq_ideal_type.nextval, #{loginId}, #{ageMin}, #{ageMax}, #{minHeight}, #{maxHeight},
-			#{bodyType}, #{mbtiPref}, #{smokingPref}, #{drinkingPref}, #{memo}, systimestamp, systimestamp
+			seq_ideal_type.nextval, #{loginId},
+			#{ageMin, jdbcType=INTEGER}, #{ageMax, jdbcType=INTEGER},
+			#{minHeight, jdbcType=INTEGER}, #{maxHeight, jdbcType=INTEGER},
+			#{bodyType, jdbcType=VARCHAR}, #{mbtiPref, jdbcType=VARCHAR},
+			#{smokingPref, jdbcType=VARCHAR}, #{drinkingPref, jdbcType=VARCHAR},
+			#{militaryPref, jdbcType=VARCHAR}, #{memo, jdbcType=VARCHAR},
+			systimestamp, systimestamp
 		)
 	</insert>
 
 	<!-- 이상형 수정 (이미 있을 때) -->
 	<update id="updateIdealType" parameterType="com.app.silhouette.profile.IdealTypeDTO">
 		update ideal_type
-		   set age_min = #{ageMin}, age_max = #{ageMax},
-		       min_height = #{minHeight}, max_height = #{maxHeight},
-		       body_type = #{bodyType}, mbti_pref = #{mbtiPref},
-		       smoking_pref = #{smokingPref}, drinking_pref = #{drinkingPref},
-		       memo = #{memo}, updated_at = systimestamp
+		   set age_min       = #{ageMin, jdbcType=INTEGER},
+		       age_max       = #{ageMax, jdbcType=INTEGER},
+		       min_height    = #{minHeight, jdbcType=INTEGER},
+		       max_height    = #{maxHeight, jdbcType=INTEGER},
+		       body_type     = #{bodyType, jdbcType=VARCHAR},
+		       mbti_pref     = #{mbtiPref, jdbcType=VARCHAR},
+		       smoking_pref  = #{smokingPref, jdbcType=VARCHAR},
+		       drinking_pref = #{drinkingPref, jdbcType=VARCHAR},
+		       military_pref = #{militaryPref, jdbcType=VARCHAR},
+		       memo          = #{memo, jdbcType=VARCHAR},
+		       updated_at    = systimestamp
 		 where login_id = #{loginId}
+	</update>
+
+	<!-- ✅ 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
+	<delete id="deleteIdealType" parameterType="string">
+		delete from ideal_type where login_id = #{loginId}
+	</delete>
+
+	<!-- ===================== 프로필 사진 (회원당 1장) ===================== -->
+
+	<!-- 내 사진 목록 (순서대로) -->
+	<select id="selectProfileImages" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
+		select profile_image_seq, member_seq, original_name, stored_name,
+		       file_url, review_status, sort_order
+		  from profile_image
+		 where member_seq = #{memberSeq}
+		 order by sort_order
+	</select>
+
+	<!-- 사진 한 장 (화면에 보여줄 때) -->
+	<select id="selectProfileImageOne" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
+		select profile_image_seq, member_seq, original_name, stored_name,
+		       file_url, review_status, sort_order
+		  from profile_image
+		 where profile_image_seq = #{profileImageSeq}
+	</select>
+
+	<!-- 내 사진 전부 삭제 (온보딩에서 새로 등록하기 전) -->
+	<delete id="deleteProfileImages" parameterType="long">
+		delete from profile_image where member_seq = #{memberSeq}
+	</delete>
+
+	<!-- 사진 한 장 저장: 번호를 먼저 받아서 file_url에 사용 -->
+	<insert id="insertProfileImage" parameterType="com.app.silhouette.profile.ProfileImageDTO">
+		<selectKey keyProperty="profileImageSeq" resultType="long" order="BEFORE">
+			select seq_profile_image.nextval from dual
+		</selectKey>
+		insert into profile_image (
+			profile_image_seq, member_seq, original_name, stored_name,
+			file_url, review_status, sort_order
+		) values (
+			#{profileImageSeq}, #{memberSeq}, #{originalName}, #{storedName},
+			'/api/profile/image/' || #{profileImageSeq}, 'PENDING', #{sortOrder}
+		)
+	</insert>
+
+	<!-- 사진 교체 (프로필 화면: 같은 번호, 파일만 바뀜) -->
+	<update id="updateProfileImage" parameterType="com.app.silhouette.profile.ProfileImageDTO">
+		update profile_image
+		   set original_name = #{originalName},
+		       stored_name   = #{storedName},
+		       review_status = 'PENDING'
+		 where member_seq = #{memberSeq}
+		   and sort_order = #{sortOrder}
 	</update>
 </mapper>
