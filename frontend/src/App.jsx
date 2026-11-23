@@ -10,7 +10,9 @@ import PostList from './pages/post/postlist';
 import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import NoticeDetail from './pages/post/noticedetail';   // 공지사항 상세
-import FaqWrite from './pages/post/faqwrite';           // ✅ FAQ 작성·수정 (관리자)
+import FaqWrite from './pages/post/faqwrite';           // FAQ 작성·수정 (관리자)
+import QnaWrite from './pages/post/qnawrite';           // ✅ Q&A 작성·수정
+import QnaDetail from './pages/post/qnadetail';         // ✅ Q&A 상세
 import Live from './pages/live/live';
 import LiveAdmin from './pages/live/liveAdmin';
 import Chatting from './pages/chatting/chatting';
@@ -52,14 +54,16 @@ function App() {
           <Route path="anon/edit/:id" element={<PostWrite writeType="anon" />} />
           <Route path="notice/write" element={<PostWrite writeType="notice" />} />
           <Route path="notice/edit/:id" element={<PostWrite writeType="notice" />} />   {/* 공지 수정 */}
-          <Route path="faq/write" element={<FaqWrite />} />                             {/* ✅ FAQ 작성 */}
-          <Route path="faq/edit/:id" element={<FaqWrite />} />                          {/* ✅ FAQ 수정 */}
-          <Route path="qna/write" element={<PostWrite writeType="qna" />} />
+          <Route path="faq/write" element={<FaqWrite />} />                             {/* FAQ 작성 */}
+          <Route path="faq/edit/:id" element={<FaqWrite />} />                          {/* FAQ 수정 */}
+          <Route path="qna/write" element={<QnaWrite />} />                             {/* ✅ Q&A 작성 */}
+          <Route path="qna/edit/:id" element={<QnaWrite />} />                          {/* ✅ Q&A 수정 */}
           <Route path="write/:type" element={<PostWrite />} />
 
           {/* 상세 */}
           <Route path="detail/:id" element={<PostDetail />} />            {/* 자유 · 익명 */}
           <Route path="notice/:id" element={<NoticeDetail />} />          {/* 공지사항 */}
+          <Route path="qna/:id" element={<QnaDetail />} />                {/* ✅ Q&A */}
           {/* FAQ는 상세 페이지 없음 (목록에서 펼쳐서 봄) */}
         </Route>
 
