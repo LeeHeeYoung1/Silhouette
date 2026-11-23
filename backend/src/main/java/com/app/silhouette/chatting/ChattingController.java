@@ -1,4 +1,3 @@
-
 package com.app.silhouette.chatting;
 
 import java.util.Date;
@@ -66,7 +65,12 @@ public class ChattingController {
 
         room.setRoom_type(inviteeSeqs.size() > 1 ? "GROUP" : "1:1");
 
-        return ResponseEntity.ok(chattingService.createRoom(room, memberSeq, inviteeSeqs));
+        try {
+            return ResponseEntity.ok(
+                    chattingService.createRoom(room, memberSeq, inviteeSeqs));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 내 채팅방 목록
@@ -80,6 +84,23 @@ public class ChattingController {
         }
 
         return ResponseEntity.ok(chattingService.getRoomList(memberSeq));
+    }
+
+
+    // 채팅방 참여 회원 목록
+    @GetMapping("/room/{chat_room_seq}/members")
+    public ResponseEntity<?> getRoomMembers(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        try {
+            return ResponseEntity.ok(chattingService.getRoomMembers(roomSeq, memberSeq));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
     }
 
     // 내 회원 번호
@@ -231,23 +252,6 @@ public class ChattingController {
         }
     }
 
-    // 회원 검색 후 초대할 회원 선택
-    @GetMapping("/members")
-    public ResponseEntity<?> searchMembers(@RequestParam("keyword") String keyword,
-            HttpServletRequest request) {
-
-        Long memberSeq = getLoginMemberSeq(request);
-
-        if (memberSeq == null) {
-            return ResponseEntity.status(401).body("로그인이 필요합니다.");
-        }
-
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(List.of());
-        }
-
-        return ResponseEntity.ok(chattingService.searchMembers(keyword.trim(), memberSeq));
-    }
 
     // 채팅방에 회원 초대
     @PostMapping("/invite")
@@ -314,7 +318,19 @@ public class ChattingController {
         }
 
         try {
+            ChattingInvitationDTO invitation = chattingDAO.selectInvitation(invitationSeq);
+
             chattingService.respondInvitation(invitationSeq, memberSeq, accept);
+
+            // 초대를 수락하면 기존 채팅방 참여자에게 참여자 목록 갱신을 알립니다.
+            if (accept && invitation != null && invitation.getChat_room_seq() != null) {
+            	Object payload = Map.of("type", "ROOM_MEMBERS_UPDATED");
+
+            	messagingTemplate.convertAndSend(
+            	        "/sub/chat/" + invitation.getChat_room_seq(),
+            	        payload
+            	);
+            }
 
             return ResponseEntity.ok(accept ? "초대를 수락했습니다." : "초대를 거절했습니다.");
 
