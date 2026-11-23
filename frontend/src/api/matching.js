@@ -10,8 +10,9 @@ export const getIdealMatchStatus = () => Client.get('/matching/ideal/status');
 // 대기 취소
 export const cancelIdealMatch = () => Client.post('/matching/ideal/cancel');
 
-// 이상형 매칭 채팅방의 상대 프로필 (채팅창 사이드 표시용, 이상형 매칭 방이 아니면 404)
-// → { nickname, age, mbti, job, introduction, hobby }
+// 매칭으로 연결된 채팅방의 상대 프로필 (채팅창 사이드 표시용)
+// 이상형 매칭 방(IDEAL), 블라인드에서 둘 다 GO한 방(BLIND)만 조회 가능, 그 외 404
+// → { roomType, nickname, age, mbti, job, introduction, hobby }
 export const getIdealPartner = (chatRoomSeq) => Client.get(`/matching/ideal/room/${chatRoomSeq}/partner`);
 
 // 내 주변 추천 (최대 10명, 같은 시·군·구 → 같은 시·도 순, 호출할 때마다 랜덤)
