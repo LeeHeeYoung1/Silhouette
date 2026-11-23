@@ -144,7 +144,7 @@ function Signup() {
 
     try {
       const resp = await axios.get(
-        'http://10.5.4.15/members/idCheck',
+        'http://localhost:80/members/idCheck',
         {
           params: {
             loginId: formData.loginId

@@ -15,6 +15,9 @@ import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
 import Profile from './pages/profile/profile';          // ✅ 주석 해제: 내 프로필
+import FoodTest from './pages/event/foodTest';
+// import Profile from './pages/profile/profile';
+
 import Onboarding from './pages/onboarding/onboarding';
 
 import BlindChatting from './pages/blindChatting/blindChatting';
@@ -29,6 +32,10 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/event" element={<Event />} />
         <Route path="/profile" element={<Profile />} />  {/* ✅ 주석 해제: 내 프로필 (보기 · 수정) */}
+
+        <Route path="/event/food-test" element={<FoodTest />} />
+        {/* <Route path="/profile" element={<Profile />} /> */}
+        
 
         {/* 게시판 (Post) 라우트 */}
         <Route path="/post" element={<Post />}>
