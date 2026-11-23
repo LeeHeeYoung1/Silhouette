@@ -164,6 +164,22 @@ const Chatting = () => {
           if (!isActive) return;
 
           const receivedData = JSON.parse(frame.body);
+
+          // 다른 회원이 초대를 수락하면 참여자 목록을 다시 조회합니다.
+          if (receivedData?.type === 'ROOM_MEMBERS_UPDATED') {
+            Client.get(`/api/chat/room/${roomId}/members`)
+              .then((response) => {
+                if (isActive) {
+                  setRoomMembers(response.data || []);
+                }
+              })
+              .catch((error) => {
+                console.error('참여 회원 목록 갱신 실패:', error);
+              });
+
+            return;
+          }
+
           let newMessage = receivedData;
           let newAttachment = null;
 
@@ -198,6 +214,17 @@ const Chatting = () => {
             );
           });
         });
+
+        // 소켓 연결 직후에도 참여자 목록을 다시 조회해 연결 전 변경을 놓치지 않도록 합니다.
+        Client.get(`/api/chat/room/${roomId}/members`)
+          .then((response) => {
+            if (isActive) {
+              setRoomMembers(response.data || []);
+            }
+          })
+          .catch((error) => {
+            console.error('참여 회원 목록 초기 갱신 실패:', error);
+          });
 
         Promise.all([
           Client.get(`/api/chat/messages/${roomId}`),
@@ -643,14 +670,15 @@ const Chatting = () => {
 
     if (token && roomId) loadRoomMembers();
   }, [roomId, token]);
-
+ 
   // 프로필 이미지 불러오기
-  // img src로 직접 요청하면 JWT가 전달되지 않으므로 Axios로 받아옵니다.
   useEffect(() => {
     let cancelled = false;
     const objectUrls = [];
 
     const loadProfileImages = async () => {
+      if (!token) return;
+
       const imageEntries = await Promise.all(
         roomMembers.map(async (member) => {
           const memberSeqValue = Number(member.member_seq);
@@ -660,14 +688,17 @@ const Chatting = () => {
             return [memberSeqValue, null];
           }
 
-          // GCS 서명 URL 등 외부 이미지 주소는 그대로 사용합니다.
+          // 외부 이미지 주소는 그대로 사용
           if (/^https?:\/\//i.test(imagePath)) {
             return [memberSeqValue, imagePath];
           }
 
           try {
             const response = await Client.get(imagePath, {
-              responseType: 'blob'
+              responseType: 'blob',
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
             });
 
             const imageUrl = URL.createObjectURL(response.data);
@@ -677,8 +708,10 @@ const Chatting = () => {
           } catch (error) {
             console.error(
               `${member.nickname || member.login_id} 프로필 이미지 로드 실패:`,
+              error.response?.status,
               error
             );
+
             return [memberSeqValue, null];
           }
         })
@@ -695,7 +728,8 @@ const Chatting = () => {
       cancelled = true;
       objectUrls.forEach((imageUrl) => URL.revokeObjectURL(imageUrl));
     };
-  }, [roomMembers]);
+  }, [roomMembers, token]);
+
 
   // 회원 검색
   const searchMembers = async () => {
