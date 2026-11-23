@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    주소지 기반 내 주변 추천
+    ADDRESS1은 카카오 우편번호 서비스 형식("서울 강남구 테헤란로 123")이라
+    공백 기준 1번째 단어 = 시·도, 2번째 단어 = 시·군·구 로 본다.
+-->
+<mapper namespace="Nearby">
+
+    <!-- 내 지역: "서울 강남구" -->
+    <select id="selectMyRegion" resultType="string">
+        SELECT TRIM(REGEXP_SUBSTR(TRIM(ADDRESS1), '[^ ]+', 1, 1) || ' ' ||
+                    REGEXP_SUBSTR(TRIM(ADDRESS1), '[^ ]+', 1, 2))
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+          AND ADDRESS1 IS NOT NULL
+    </select>
+
+    <!--
+        추천 대상: 활성 회원 / 이성 / 온보딩(프로필) 완료 / 서로 차단하지 않음 / 같은 시·도
+        정렬: 같은 시·군·구(1) → 같은 시·도(2), 같은 순위 안에서는 랜덤
+    -->
+    <select id="selectNearbyMembers" resultType="com.app.silhouette.nearby.NearbyMemberDTO">
+    <![CDATA[
+        WITH me AS (
+            SELECT MEMBER_SEQ,
+                   GENDER,
+                   REGEXP_SUBSTR(TRIM(ADDRESS1), '[^ ]+', 1, 1) AS SIDO,
+                   REGEXP_SUBSTR(TRIM(ADDRESS1), '[^ ]+', 1, 2) AS SIGUNGU
+            FROM MEMBER
+            WHERE LOGIN_ID = #{loginId}
+        ),
+        cand AS (
+            SELECT m.MEMBER_SEQ,
+                   NVL(p.NICKNAME, m.NICKNAME)                       AS NICKNAME,
+                   TRUNC(MONTHS_BETWEEN(SYSDATE, m.BIRTH_DATE) / 12)  AS AGE,
+                   REGEXP_SUBSTR(TRIM(m.ADDRESS1), '[^ ]+', 1, 1)     AS SIDO,
+                   REGEXP_SUBSTR(TRIM(m.ADDRESS1), '[^ ]+', 1, 2)     AS SIGUNGU,
+                   p.INTRODUCTION,
+                   p.MBTI,
+                   p.JOB
+            FROM MEMBER m
+            JOIN MEMBER_PROFILE p ON p.MEMBER_SEQ = m.MEMBER_SEQ
+            CROSS JOIN me
+            WHERE m.MEMBER_SEQ <> me.MEMBER_SEQ
+              AND m.MEMBER_STATUS = 'ACTIVE'
+              AND m.GENDER <> me.GENDER
+              AND m.ADDRESS1 IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM MEMBER_BLOCK b
+                  WHERE (b.MEMBER_SEQ = me.MEMBER_SEQ AND b.BLOCKED_MEMBER_SEQ = m.MEMBER_SEQ)
+                     OR (b.MEMBER_SEQ = m.MEMBER_SEQ  AND b.BLOCKED_MEMBER_SEQ = me.MEMBER_SEQ))
+        )
+        SELECT * FROM (
+            SELECT c.MEMBER_SEQ                                   AS memberSeq,
+                   c.NICKNAME                                     AS nickname,
+                   c.AGE                                          AS age,
+                   c.SIDO || ' ' || c.SIGUNGU                     AS region,
+                   CASE WHEN c.SIGUNGU = me.SIGUNGU THEN 1 ELSE 2 END AS nearRank,
+                   c.INTRODUCTION                                 AS introduction,
+                   c.MBTI                                         AS mbti,
+                   c.JOB                                          AS job
+            FROM cand c
+            CROSS JOIN me
+            WHERE c.SIDO = me.SIDO
+            ORDER BY CASE WHEN c.SIGUNGU = me.SIGUNGU THEN 1 ELSE 2 END,
+                     DBMS_RANDOM.VALUE
+        )
+        WHERE ROWNUM <= #{limit}
+    ]]>
+    </select>
+
+</mapper>
