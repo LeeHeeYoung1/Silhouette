@@ -4,8 +4,8 @@ import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 
 // 온보딩 확인을 건너뛸 화면 (로그인 전 화면)
-const SKIP_PATHS = ['/login', '/signup'];
 
+const SKIP_PATHS = ['/login', '/signup', '/onboarding'];
 /* 로그인했는데 온보딩을 안 했으면 /onboarding으로 보내는 훅
    - Layout에서 한 줄로 호출: useOnboardingGuard(); */
 export default function useOnboardingGuard() {
@@ -29,5 +29,5 @@ export default function useOnboardingGuard() {
 
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, loginId]);
+    }, [token, loginId, pathname]);
 }

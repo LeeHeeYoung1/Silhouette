@@ -22,3 +22,14 @@ export const FOOD_LIST = ['한식', '양식', '일식', '중식', '매운 음식
 export const BODY_TYPE_LIST = ['마른', '보통', '근육질', '통통한'];
 export const SMOKING_PREF_LIST = ['상관없음', '비흡연자만'];
 export const DRINKING_PREF_LIST = ['상관없음', '안 마시는 분', '가끔 마시는 분', '잘 마시는 분'];
+
+// 병역 (남성 본인 입력) - 카드형으로 보여줌
+export const MILITARY_LIST = [
+  { value: '군필', icon: '🎖️', desc: '병역 의무 완료' },
+  { value: '미필', icon: '📅', desc: '입대 예정' },
+  { value: '복무 중', icon: '🪖', desc: '현재 복무 중' },
+  { value: '면제', icon: '📄', desc: '면제 판정' },
+];
+
+// 이상형 병역 (여성 선택) - 여러 개 선택, '상관없음'은 단독
+export const MILITARY_PREF_LIST = ['상관없음', '군필', '미필', '복무 중', '면제'];
