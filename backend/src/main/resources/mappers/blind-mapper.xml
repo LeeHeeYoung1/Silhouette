@@ -50,8 +50,8 @@
         <selectKey keyProperty="blindMatchingSeq" resultType="long" order="BEFORE">
             SELECT SEQ_BLIND_MATCHING.NEXTVAL FROM DUAL
         </selectKey>
-        INSERT INTO BLIND_MATCHING (BLIND_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, STATUS)
-        VALUES (#{blindMatchingSeq}, #{memberSeq1}, #{memberSeq2}, 'MATCHED')
+                INSERT INTO BLIND_MATCHING (BLIND_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, STATUS, MATCHED_AT)
+        VALUES (#{blindMatchingSeq}, #{memberSeq1}, #{memberSeq2}, 'MATCHED', LOCALTIMESTAMP)
     </insert>
 
     <insert id="insertRoom" parameterType="com.app.silhouette.blind.BlindRoomDTO">
@@ -236,5 +236,43 @@
             (SEQ_CHAT_ROOM_LIST.NEXTVAL, #{memberSeq}, #{chatRoomSeq}, 'ACTIVE',
              0, 0, NULL, NULL, SYSDATE)
     </insert>
+
+    <!-- ===================================================== -->
+    <!-- AI 추천답변 (고스트채팅)                                  -->
+    <!-- 생성된 추천과 실제로 골라서 보낸 추천을 기록 (품질 확인용)    -->
+    <!-- ===================================================== -->
+
+    <insert id="insertSuggestion" parameterType="com.app.silhouette.blind.BlindSuggestionDTO">
+        <selectKey keyProperty="aiReplySuggestionSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_AI_REPLY_SUGGESTION.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO AI_REPLY_SUGGESTION (
+            AI_REPLY_SUGGESTION_SEQ, BLIND_CHAT_ROOM_SEQ, MEMBER_SEQ, BATCH_KEY, TRIGGER_MESSAGE_SEQ,
+            TONE_TYPE, SUGGESTION, SELECTED_YN, EDITED_YN, MODEL_NAME, CREATED_AT
+        ) VALUES (
+            #{aiReplySuggestionSeq}, #{blindChatRoomSeq}, #{memberSeq}, #{batchKey},
+            #{triggerMessageSeq, jdbcType=NUMERIC}, #{tone, jdbcType=VARCHAR}, #{text},
+            'N', 'N', #{modelName, jdbcType=VARCHAR}, LOCALTIMESTAMP
+        )
+    </insert>
+
+    <!-- 메시지 전송 시: 내 것이고 이 방의 것이며 아직 안 쓴 추천인지 확인 -->
+    <select id="selectSuggestion" resultType="com.app.silhouette.blind.BlindSuggestionDTO">
+        SELECT AI_REPLY_SUGGESTION_SEQ AS aiReplySuggestionSeq,
+               BLIND_CHAT_ROOM_SEQ     AS blindChatRoomSeq,
+               MEMBER_SEQ              AS memberSeq,
+               SUGGESTION              AS text,
+               SELECTED_YN             AS selectedYn
+        FROM AI_REPLY_SUGGESTION
+        WHERE AI_REPLY_SUGGESTION_SEQ = #{seq}
+    </select>
+
+    <update id="updateSuggestionSelected">
+        UPDATE AI_REPLY_SUGGESTION
+        SET SELECTED_YN = 'Y',
+            EDITED_YN = #{editedYn}
+        WHERE AI_REPLY_SUGGESTION_SEQ = #{seq}
+          AND SELECTED_YN = 'N'
+    </update>
 
 </mapper>
