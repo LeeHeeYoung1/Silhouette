@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="EventSpecialMapper">
+
+    <!-- 1. 오늘 날짜 기준 룰렛 참여 여부 확인 -->
+    <select id="countTodayRoulette" parameterType="long" resultType="int">
+        SELECT COUNT(*)
+        FROM MILEAGE_LEDGER
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND SOURCE_TYPE = 'EVENT_ROULETTE'
+          AND TRUNC(CREATED_AT) = TRUNC(SYSDATE)
+    </select>
+
+    <!-- 2. 특정 이벤트 보상 수령 이력 확인 (중복 수령 방지) -->
+    <select id="countTicketEventReward" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM TICKET_LEDGER
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND SOURCE_TYPE = #{sourceType}
+    </select>
+
+    <!-- 3. 3종 성향 테스트 완료 건수 확인 -->
+    <select id="countFoodTest" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM FOOD_TEST_RESULT WHERE MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <select id="countLoveValueTest" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM LOVE_VALUE_TEST_RESULT WHERE MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <select id="countMbtiTest" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM MBTI_TEST_RESULT WHERE MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <!-- 4. 최신 마일리지 잔액 조회 -->
+    <select id="selectLatestMileageBalance" parameterType="long" resultType="int">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+            FROM (
+                SELECT BALANCE_AFTER
+                FROM MILEAGE_LEDGER
+                WHERE MEMBER_SEQ = #{memberSeq}
+                ORDER BY MILEAGE_LEDGER_SEQ DESC
+            )
+            WHERE ROWNUM = 1
+        ), 0)
+        FROM DUAL
+    </select>
+
+    <!-- 5. 마일리지 적립 -->
+    <insert id="insertMileageLedger" parameterType="map">
+        INSERT INTO MILEAGE_LEDGER (
+            MILEAGE_LEDGER_SEQ,
+            MEMBER_SEQ,
+            PAYMENT_SEQ,
+            SOURCE_TYPE,
+            CHANGE_AMOUNT,
+            BALANCE_AFTER,
+            DESCRIPTION,
+            CREATED_AT
+        ) VALUES (
+            SEQ_MILEAGE_LEDGER.NEXTVAL,
+            #{memberSeq},
+            NULL,
+            #{sourceType},
+            #{changeAmount},
+            #{balanceAfter},
+            #{description},
+            SYSDATE
+        )
+    </insert>
+
+    <!-- 6. 최신 이용권 잔액 조회 -->
+    <select id="selectLatestTicketBalance" parameterType="long" resultType="int">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+            FROM (
+                SELECT BALANCE_AFTER
+                FROM TICKET_LEDGER
+                WHERE MEMBER_SEQ = #{memberSeq}
+                ORDER BY TICKET_LEDGER_SEQ DESC
+            )
+            WHERE ROWNUM = 1
+        ), 0)
+        FROM DUAL
+    </select>
+
+    <!-- 7. 이용권 적립 -->
+    <insert id="insertTicketLedger" parameterType="map">
+        INSERT INTO TICKET_LEDGER (
+            TICKET_LEDGER_SEQ,
+            MEMBER_SEQ,
+            PAYMENT_SEQ,
+            SOURCE_TYPE,
+            CHANGE_AMOUNT,
+            BALANCE_AFTER,
+            DESCRIPTION,
+            CREATED_AT
+        ) VALUES (
+            SEQ_TICKET_LEDGER.NEXTVAL,
+            #{memberSeq},
+            NULL,
+            #{sourceType},
+            #{changeAmount},
+            #{balanceAfter},
+            #{description},
+            SYSDATE
+        )
+    </insert>
+    
+    <!-- 첫 블라인드 채팅 보상 수령 여부 -->
+    <select id="countMileageEventReward" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM MILEAGE_LEDGER
+        WHERE MEMBER_SEQ = #{memberSeq}
+          AND SOURCE_TYPE = #{sourceType}
+    </select>
+
+    <!-- 블라인드 채팅 완료 이력 확인 -->
+<select id="countCompletedBlindChat" parameterType="long" resultType="int">
+    SELECT COUNT(*)
+    FROM BLIND_CHAT_ROOM bcr
+    JOIN BLIND_MATCHING bm
+      ON bcr.BLIND_MATCHING_SEQ = bm.BLIND_MATCHING_SEQ
+    WHERE (bm.MEMBER_SEQ_1 = #{memberSeq} OR bm.MEMBER_SEQ_2 = #{memberSeq})
+      AND bcr.STATUS = 'COMPLETED'
+</select>
+
+</mapper>

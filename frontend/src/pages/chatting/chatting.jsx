@@ -29,7 +29,7 @@ const Chatting = () => {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
-  // 이상형 매칭 방이면 상대 프로필 (일반 채팅방이면 null → 사이드 패널 숨김)
+  // 매칭으로 연결된 방(이상형 / 블라인드 GO)이면 상대 프로필 (일반 채팅방이면 null → 사이드 패널 숨김)
   const [idealPartner, setIdealPartner] = useState(null);
 
 
@@ -106,7 +106,7 @@ const Chatting = () => {
     }
   }, [roomId, token]);
 
-  // 이상형 매칭 방인지 확인하고 상대 프로필 가져오기 (이상형 방이 아니면 404 → 패널 숨김)
+  // 매칭 방인지 확인하고 상대 프로필 가져오기 (매칭 방이 아니면 404 → 패널 숨김)
   useEffect(() => {
     if (!token || !roomId) return;
     let ignore = false;
@@ -1133,10 +1133,12 @@ const Chatting = () => {
 
       </div>
 
-      {/* 이상형 매칭 방일 때만: 상대 프로필 사이드 패널 */}
+      {/* 매칭 방(이상형 / 블라인드 GO)일 때만: 상대 프로필 사이드 패널 */}
       {idealPartner && (
         <aside className={styles.partnerPanel}>
-          <div className={styles.partnerBadge}>💖 이상형 매칭</div>
+          <div className={styles.partnerBadge}>
+            {idealPartner.roomType === 'BLIND' ? '🎭 블라인드 매칭 · 서로 GO!' : '💖 이상형 매칭'}
+          </div>
 
           <div className={styles.partnerAvatar}>👤</div>
           <h3 className={styles.partnerName}>{idealPartner.nickname}</h3>

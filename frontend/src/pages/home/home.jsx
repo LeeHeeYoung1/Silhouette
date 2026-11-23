@@ -148,6 +148,9 @@ function Home() {
   // 대기 중인지 (화면을 떠날 때 자동 취소 판단용)
   const isIdealWaitingRef = useRef(false);
 
+  // 블라인드 매칭 대기 중인지 (웹소켓 재연결 시 다시 등록할지 판단용)
+  const isBlindWaitingRef = useRef(false);
+
   // 이상형 매칭 성공 → 채팅방이 이미 만들어져 있으므로 바로 이동
   const handleIdealMatched = useCallback((result) => {
     isIdealWaitingRef.current = false;
@@ -276,18 +279,24 @@ function Home() {
       onConnect: () => {
         console.log('STOMP Connected to', brokerURL);
         if (id) {
+          // 매칭 결과 { status: 'MATCHED', roomSeq } → 블라인드 대화방으로 이동
           client.subscribe(`/sub/user/${id}/match`, (message) => {
-            console.log('매칭 응답 수신:', message.body);
             try {
               const response = JSON.parse(message.body);
-              setIsBlindMatching(false);
-              if (response.chatRoomSeq) {
-                navi(`/chat/${response.chatRoomSeq}`);
+              if (response.status === 'MATCHED' && response.roomSeq) {
+                isBlindWaitingRef.current = false;
+                setIsBlindMatching(false);
+                navi(`/chat/${response.roomSeq}`);
               }
             } catch (err) {
               console.error('응답 메시지 파싱 에러:', err);
             }
           });
+
+          // 서버 재시작 등으로 다시 연결됐을 때 대기 중이었다면 대기열에 다시 등록
+          if (isBlindWaitingRef.current) {
+            client.publish({ destination: '/pub/match/join', body: '{}' });
+          }
         }
       },
       onStompError: (frame) => {
@@ -307,30 +316,27 @@ function Home() {
   }, [token, id, navi]);
 
   // 블라인드 매칭 시스템
+  // (회원 확인은 서버가 웹소켓 연결 토큰으로 하므로 아이디를 보내지 않음.
+  //  이성끼리만 매칭되고, 진행 중인 블라인드 대화가 있으면 그 방으로 다시 연결됨)
   const handleBlindMatching = () => {
-    // 1. 매칭 중 탐색(레이더 UI) 화면으로 즉시 전환
+    // 매칭 중 탐색(레이더 UI) 화면으로 즉시 전환
+    isBlindWaitingRef.current = true;
     setIsBlindMatching(true);
 
     if (stompClient && stompClient.connected) {
-      console.log('블라인드 매칭 요청 전송: id =', id);
-      stompClient.publish({
-        destination: '/pub/match/join',
-        body: JSON.stringify({ id: id })
-      });
+      stompClient.publish({ destination: '/pub/match/join', body: '{}' });
     } else {
-      console.warn('STOMP 소켓이 아직 연결되지 않았거나 연결 중입니다. (stompClient.connected = false)');
+      // 연결되면 onConnect에서 자동으로 등록 요청을 보냄
+      console.warn('STOMP 소켓이 아직 연결되지 않았습니다. 연결 후 자동으로 매칭을 요청합니다.');
     }
   };
 
   const handleCancelBlindMatching = () => {
+    isBlindWaitingRef.current = false;
     setIsBlindMatching(false);
 
     if (stompClient && stompClient.connected) {
-      console.log('블라인드 매칭 취소 요청 전송: id =', id);
-      stompClient.publish({
-        destination: '/pub/match/cancel',
-        body: JSON.stringify({ id: id })
-      });
+      stompClient.publish({ destination: '/pub/match/cancel', body: '{}' });
     }
   };
 
