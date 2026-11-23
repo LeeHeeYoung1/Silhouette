@@ -547,20 +547,20 @@ function Home() {
           </div>
         </section>
 
-        {/* 오른쪽 섹션: 이벤트 배너 & 커뮤니티 */}
+        {/* 오른쪽 섹션: 출석체크 배너 & 커뮤니티 */}
         <aside className={styles.rightSection}>
           <div
             className={styles.eventBannerCard}
-            onClick={() => alert('🎉 얼굴 실물 인증을 완료하시면 무료 대화권 5장이 즉시 지급됩니다!')}
+            onClick={() => navi('/event')}
           >
-            <span className={styles.eventBannerBadge}>SPECIAL EVENT</span>
-            <h4 className={styles.eventBannerTitle}>🎁 얼굴 실물 인증 이벤트</h4>
+            <span className={styles.eventBannerBadge}>DAILY ATTENDANCE</span>
+            <h4 className={styles.eventBannerTitle}>📅 매일 출석체크 & 혜택 충전</h4>
             <p className={styles.eventBannerDesc}>
-              지금 바로 AI 실물 인증 완료하고,<br />
-              <strong>무료 대화권 5장</strong> 즉시 받아보세요!
+              매일 출석체크하고 마일리지와<br />
+              <strong>무료 매칭 이용권</strong>을 받아보세요!
             </p>
             <div className={styles.eventBannerFooter}>
-              <span>자세히 보기</span>
+              <span>출석체크 하러가기</span>
               <span>→</span>
             </div>
           </div>
