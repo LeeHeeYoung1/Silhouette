@@ -2,7 +2,10 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
 import useAuthStore from '../../stores/useAuthStore';
-import { getBlindRoom, getBlindMessages, sendBlindMessage, voteBlind, leaveBlind } from '../../api/blind';
+import {
+    getBlindRoom, getBlindMessages, sendBlindMessage, voteBlind, leaveBlind,
+    getBlindAiStatus, getBlindSuggestions,
+} from '../../api/blind';
 import styles from './blindChatting.module.css';
 
 /*
@@ -11,7 +14,11 @@ import styles from './blindChatting.module.css';
  *  - 둘 다 GO  → 프로필이 공개된 일반 채팅방으로 이동
  *  - 한 명이라도 STOP / 시간 안에 선택 안 함 → 종료 후 홈
  *  - 메시지는 "나 / 상대"만 구분 (상대 아이디는 서버가 보내지 않음)
+ *  - 고스트채팅: 상대의 마지막 메시지 옆 👻 버튼 → AI 답장 추천 3개 → 고르면 입력창에 채워짐 (자동 전송 X)
  */
+
+// AI 추천 톤 → 화면 표시
+const TONE_LABELS = { EMPATHY: '공감', QUESTION: '질문', HUMOR: '유머' };
 
 // 초 → "mm:ss"
 const formatClock = (seconds) => {
@@ -39,6 +46,11 @@ const BlindChatting = () => {
     const [deadlines, setDeadlines] = useState({ chatEnd: 0, voteEnd: 0 });
     const [ending, setEnding] = useState(null);          // 결론 안내 { type: 'CONTINUED' | 'ENDED', text }
     const [busy, setBusy] = useState(false);
+
+    // 고스트채팅 (AI 추천답변)
+    const [aiAvailable, setAiAvailable] = useState(false);
+    const [ghost, setGhost] = useState({ open: false, loading: false, error: '', list: [] });
+    const [chosen, setChosen] = useState(null);           // 고른 추천 { aiReplySuggestionSeq, text }
 
     const messageEndRef = useRef(null);
     const mySlotRef = useRef(0);
@@ -125,6 +137,16 @@ const BlindChatting = () => {
         return () => clearTimeout(first);
     }, [token, refresh, navi]);
 
+    // ---------- AI 추천 사용 가능 여부 (서버에 API 키가 있는지) ----------
+    useEffect(() => {
+        if (!token) return;
+        let ignore = false;
+        getBlindAiStatus()
+            .then(({ data }) => { if (!ignore) setAiAvailable(Boolean(data.available)); })
+            .catch(() => { if (!ignore) setAiAvailable(false); });
+        return () => { ignore = true; };
+    }, [token]);
+
     // ---------- 실시간 수신 ----------
     useEffect(() => {
         if (!token || !roomSeq) return;
@@ -184,6 +206,9 @@ const BlindChatting = () => {
     }, [refresh]);
 
     const phase = room?.phase;
+    // 상대의 마지막 메시지 (👻 버튼은 여기에만 표시, 서버도 이 메시지 기준으로 추천)
+    const lastPartnerSeq = [...messages].reverse()
+        .find((m) => room && m.senderSlot !== room.mySlot)?.blindChatMessageSeq;
     const chatLeft = (deadlines.chatEnd - now) / 1000;
     const voteLeft = (deadlines.voteEnd - now) / 1000;
     // 서버 응답 전이라도 대화 시간이 끝나면 화면은 투표 단계로 전환
@@ -203,15 +228,47 @@ const BlindChatting = () => {
 
         setBusy(true);
         try {
-            const { data } = await sendBlindMessage(roomSeq, text);
+            const { data } = await sendBlindMessage(roomSeq, text, chosen?.aiReplySuggestionSeq ?? null);
             addMessage(data);
             setInput('');
+            setChosen(null);
         } catch (error) {
             alert(error.response?.data || '메시지를 보내지 못했어요.');
             refresh();
         } finally {
             setBusy(false);
         }
+    };
+
+    // 👻 AI 답장 추천 받기
+    const handleGhost = async () => {
+        if (!aiAvailable || ghost.loading) return;
+
+        // 처음 사용할 때 한 번: 대화가 외부 AI로 전송된다는 안내 후 동의 받기
+        let agreed = false;
+        try { agreed = sessionStorage.getItem('blindAiNoticeAgreed') === 'Y'; } catch { /* 저장소 사용 불가 */ }
+        if (!agreed) {
+            const ok = window.confirm(
+                'AI 답장 추천을 받으면 이 대화방의 최근 대화 내용(최대 10개)이\n'
+                + 'AI(Google Gemini)에 전송돼요. 닉네임·아이디는 전송되지 않아요.\n\n계속할까요?'
+            );
+            if (!ok) return;
+            try { sessionStorage.setItem('blindAiNoticeAgreed', 'Y'); } catch { /* 저장소 사용 불가 */ }
+        }
+        setGhost({ open: true, loading: true, error: '', list: [] });
+        try {
+            const { data } = await getBlindSuggestions(roomSeq);
+            setGhost({ open: true, loading: false, error: '', list: data });
+        } catch (error) {
+            setGhost({ open: true, loading: false, error: error.response?.data || '추천을 불러오지 못했어요.', list: [] });
+        }
+    };
+
+    // 추천 고르기 → 입력창에 채우기 (수정해서 보낼 수 있음)
+    const handlePickSuggestion = (s) => {
+        setInput(s.text);
+        setChosen({ aiReplySuggestionSeq: s.aiReplySuggestionSeq, text: s.text });
+        setGhost({ open: false, loading: false, error: '', list: [] });
     };
 
     const handleVote = async (vote) => {
@@ -280,14 +337,28 @@ const BlindChatting = () => {
                     ) : (
                         messages.map((m) => {
                             const isMine = m.senderSlot === room?.mySlot;
+                            const isLastPartner = !isMine && m.blindChatMessageSeq === lastPartnerSeq;
                             return (
                                 <div
                                     key={m.blindChatMessageSeq}
                                     className={`${styles.messageRow} ${isMine ? styles.myMessageRow : styles.otherMessageRow}`}
                                 >
                                     <span className={styles.senderName}>{isMine ? '나' : '상대방 (익명)'}</span>
-                                    <div className={`${styles.bubble} ${isMine ? styles.myBubble : styles.otherBubble}`}>
-                                        {m.content}
+                                    <div className={styles.bubbleLine}>
+                                        <div className={`${styles.bubble} ${isMine ? styles.myBubble : styles.otherBubble}`}>
+                                            {m.content}
+                                        </div>
+                                        {isLastPartner && canChat && (
+                                            <button
+                                                type="button"
+                                                className={styles.ghostBtn}
+                                                onClick={handleGhost}
+                                                disabled={!aiAvailable || ghost.loading}
+                                                title={aiAvailable ? 'AI 답장 추천 받기' : 'AI 추천은 준비 중이에요'}
+                                            >
+                                                👻
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -296,13 +367,43 @@ const BlindChatting = () => {
                     <div ref={messageEndRef} />
                 </div>
 
+                {/* 고스트채팅: AI 답장 추천 */}
+                {ghost.open && canChat && (
+                    <div className={styles.ghostPanel}>
+                        <div className={styles.ghostHeader}>
+                            <span>👻 AI 답장 추천</span>
+                            <button type="button" className={styles.ghostClose}
+                                onClick={() => setGhost({ open: false, loading: false, error: '', list: [] })}>
+                                ✕
+                            </button>
+                        </div>
+                        {ghost.loading && <p className={styles.ghostInfo}>답장을 고민하고 있어요...</p>}
+                        {ghost.error && <p className={styles.ghostError}>{ghost.error}</p>}
+                        {ghost.list.length > 0 && (
+                            <div className={styles.ghostList}>
+                                {ghost.list.map((s) => (
+                                    <button key={s.aiReplySuggestionSeq} type="button" className={styles.ghostChip}
+                                        onClick={() => handlePickSuggestion(s)}>
+                                        <span className={styles.ghostTone}>{TONE_LABELS[s.tone] || '추천'}</span>
+                                        {s.text}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <p className={styles.ghostNotice}>AI 추천을 받으면 최근 대화 내용이 AI(Google Gemini)에 전송돼요. 고른 답장은 바로 보내지지 않고 입력창에 채워져요.</p>
+                    </div>
+                )}
+
                 {/* 입력 폼 */}
                 <form onSubmit={handleSend} className={styles.inputArea}>
                     <input
                         className={styles.chatInput}
                         placeholder={canChat ? '따뜻한 첫 인사를 건네보세요...' : '대화 시간이 끝났어요'}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                            if (!e.target.value.trim()) setChosen(null);
+                        }}
                         disabled={!canChat}
                         maxLength={500}
                         autoFocus
