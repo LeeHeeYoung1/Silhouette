@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Notice">
+
+	<!-- ===================== 목록 (페이징 + 검색) ===================== -->
+
+	<!-- 목록 조건: 삭제 안 된 공지 + 검색 (단어 모두 포함, 대소문자 무시) -->
+	<sql id="noticeListWhere">
+		where n.is_deleted = 'N'
+		<if test="keywords != null and keywords.size() > 0">
+			<foreach collection="keywords" item="kw">
+				<choose>
+					<when test="searchType == 'title'">
+		  and upper(n.title) like '%' || upper(#{kw}) || '%' escape '\'
+					</when>
+					<when test="searchType == 'content'">
+		  and upper(n.content) like '%' || upper(#{kw}) || '%' escape '\'
+					</when>
+					<otherwise>
+		  and (upper(n.title) like '%' || upper(#{kw}) || '%' escape '\'
+		       or upper(n.content) like '%' || upper(#{kw}) || '%' escape '\')
+					</otherwise>
+				</choose>
+			</foreach>
+		</if>
+	</sql>
+
+	<!-- 전체 공지 수 -->
+	<select id="countNoticeList" parameterType="map" resultType="int">
+		select count(*)
+		  from notice n
+		<include refid="noticeListWhere"/>
+	</select>
+
+	<!-- 해당 페이지 공지 (상단 고정 먼저, 그다음 최신순 / 본문은 목록에서 안 가져옴) -->
+	<select id="selectNoticeList" parameterType="map" resultType="com.app.silhouette.post.NoticeDTO">
+		select notice_seq, title, is_pinned, view_count, created_at, updated_at, writer_name
+		  from (
+			select rownum as rnum, t.*
+			  from (
+				select n.notice_seq, n.title, n.is_pinned, n.view_count, n.created_at, n.updated_at,
+				       m.nickname as writer_name
+				  from notice n
+				  left join member m on n.admin_seq = m.member_seq
+				<include refid="noticeListWhere"/>
+				 order by case when n.is_pinned = 'Y' then 0 else 1 end, n.notice_seq desc
+			  ) t
+			 where rownum &lt;= #{endRow}
+		  )
+		 where rnum &gt;= #{startRow}
+	</select>
+
+	<!-- ===================== 상세 ===================== -->
+
+	<!-- 조회수 +1 -->
+	<update id="updateNoticeViewCount" parameterType="long">
+		update notice
+		   set view_count = view_count + 1
+		 where notice_seq = #{noticeSeq}
+		   and is_deleted = 'N'
+	</update>
+
+	<!-- 공지 상세 (없거나 삭제됐으면 null) -->
+	<select id="selectNotice" parameterType="long" resultType="com.app.silhouette.post.NoticeDTO">
+		select n.notice_seq, n.admin_seq, n.updated_by, n.title, n.content, n.is_pinned,
+		       n.view_count, n.created_at, n.updated_at,
+		       m.nickname as writer_name
+		  from notice n
+		  left join member m on n.admin_seq = m.member_seq
+		 where n.notice_seq = #{noticeSeq}
+		   and n.is_deleted = 'N'
+	</select>
+
+	<!-- ===================== 작성 · 수정 · 삭제 (관리자) ===================== -->
+
+	<!-- 공지 작성 (기본값이 없어서 전부 직접 넣음) -->
+	<insert id="insertNotice" parameterType="com.app.silhouette.post.NoticeDTO">
+		<selectKey keyProperty="noticeSeq" resultType="long" order="BEFORE">
+			select seq_notice.nextval from dual
+		</selectKey>
+		insert into notice (
+			notice_seq, admin_seq, updated_by, title, content, is_pinned,
+			view_count, is_deleted, created_at, updated_at
+		) values (
+			#{noticeSeq}, #{adminSeq}, null, #{title}, #{content}, #{isPinned},
+			0, 'N', systimestamp, systimestamp
+		)
+	</insert>
+
+	<!-- 공지 수정 (수정한 관리자 기록) -->
+	<update id="updateNotice" parameterType="com.app.silhouette.post.NoticeDTO">
+		update notice
+		   set title      = #{title},
+		       content    = #{content},
+		       is_pinned  = #{isPinned},
+		       updated_by = #{updatedBy},
+		       updated_at = systimestamp
+		 where notice_seq = #{noticeSeq}
+		   and is_deleted = 'N'
+	</update>
+
+	<!-- 공지 삭제 (소프트 삭제) -->
+	<update id="deleteNotice" parameterType="map">
+		update notice
+		   set is_deleted = 'Y',
+		       updated_by = #{adminSeq},
+		       deleted_at = systimestamp,
+		       updated_at = systimestamp
+		 where notice_seq = #{noticeSeq}
+		   and is_deleted = 'N'
+	</update>
+</mapper>
