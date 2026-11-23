@@ -2,20 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
-import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch } from '../../api/matching';
+import { startIdealMatch, getIdealMatchStatus, cancelIdealMatch, getNearbyMembers } from '../../api/matching';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
 
 
-// 주소지 기반 위치 랜덤 리스팅 매칭 풀 데이터
-const INITIAL_LOCATION_PROFILES = [
-  { id: 101, name: '하은', age: 27, address: '서울 강남구 역삼동', distance: '0.8km', intro: '퇴근 후 가볍게 치맥 하거나 산책할 친구 찾아요 🍺' },
-  { id: 102, name: '도윤', age: 29, address: '서울 강남구 신사동', distance: '1.5km', intro: '새로 생긴 맛집 탐방과 드립 커피를 좋아합니다 ☕' },
-  { id: 103, name: '유진', age: 26, address: '서울 서초구 양재동', distance: '2.1km', intro: '주말마다 양재천에서 러닝해요. 밝고 건강한 분 환영해요 🏃‍♀️' },
-  { id: 104, name: '준서', age: 30, address: '서울 강남구 논현동', distance: '1.2km', intro: '서로의 일상을 편안하게 털어놓을 수 있는 따뜻한 인연을 기다려요' },
-  { id: 105, name: '채원', age: 24, address: '서울 강남구 대치동', distance: '2.8km', intro: '인디 음악 & 재즈 페스티벌 좋아하시는 분 계신가요? 🎶' },
-  { id: 106, name: '수현', age: 28, address: '서울 서초구 반포동', distance: '3.4km', intro: '반포 한강공원에서 야경 보며 맥주 한 캔 하는 여유를 즐겨요' }
-];
+
 
 // 커뮤니티 인기글 목데이터
 const MOCK_POPULAR_POSTS = [
@@ -115,7 +107,10 @@ function Home() {
   const [waitingIdealUsers, setWaitingIdealUsers] = useState(556);
 
   // 주소지 기반 추천 목록
-  const [locationProfiles, setLocationProfiles] = useState(INITIAL_LOCATION_PROFILES);
+  const [locationProfiles, setLocationProfiles] = useState([]);
+  const [myRegion, setMyRegion] = useState(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
+
 
   // AI 챗봇 상태
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -299,8 +294,37 @@ function Home() {
     }
   };
 
-  const handleShuffleLocation = () => {
-    setLocationProfiles((prev) => [...prev].sort(() => Math.random() - 0.5));
+  // 내 주변 추천 불러오기 (서버가 매번 랜덤 순서로 최대 10명을 돌려줌)
+  const fetchNearby = useCallback(async () => {
+    try {
+      const { data } = await getNearbyMembers();
+      return { region: data.myRegion, members: data.members ?? [] };
+    } catch (error) {
+      console.error('내 주변 추천 조회 실패:', error);
+      return { region: null, members: [] };
+    }
+  }, []);
+
+  // 첫 화면 진입 시 1회 조회
+  useEffect(() => {
+    if (!token) return;
+    let ignore = false;   // 화면을 벗어난 뒤 늦게 도착한 응답 무시용
+    fetchNearby().then(({ region, members }) => {
+      if (ignore) return;
+      setMyRegion(region);
+      setLocationProfiles(members);
+      setIsLocationLoading(false);
+    });
+    return () => { ignore = true; };
+  }, [token, fetchNearby]);
+
+  // "새로운 이웃 추천" → 다시 조회 (랜덤 순서가 새로 섞임)
+  const handleShuffleLocation = async () => {
+    setIsLocationLoading(true);
+    const { region, members } = await fetchNearby();
+    setMyRegion(region);
+    setLocationProfiles(members);
+    setIsLocationLoading(false);
   };
 
   const handleSendChatMessage = (textToSend) => {
@@ -418,40 +442,61 @@ function Home() {
                   <span>📍 내 주변 가까운 매칭</span>
                 </h3>
                 <span className={styles.sectionSub}>
-                  회원님의 거주지(서울 강남구) 주변 실시간 위치 기반 랜덤 리스팅
+                  {myRegion
+                    ? `회원님의 거주지(${myRegion}) 기준 같은 동네 우선 추천 (최대 10명)`
+                    : '회원정보에 주소를 등록하면 가까운 이웃을 추천해드려요'}
                 </span>
               </div>
               <button
                 type="button"
                 className={styles.randomShuffleBtn}
                 onClick={handleShuffleLocation}
+                disabled={isLocationLoading}
                 title="다른 추천 프로필 보기"
               >
-                🔄 새로운 이웃 추천
+                {isLocationLoading ? '불러오는 중...' : '🔄 새로운 이웃 추천'}
               </button>
             </div>
 
+            {!isLocationLoading && locationProfiles.length === 0 && (
+              <p className={styles.locEmpty}>
+                {myRegion
+                  ? '아직 근처에 추천할 회원이 없어요. 잠시 후 다시 확인해보세요!'
+                  : '주소 정보가 없어 추천할 수 없어요.'}
+              </p>
+            )}
+
             <div className={styles.locationCardGrid}>
               {locationProfiles.map((item) => (
-                <div key={item.id} className={styles.locCard}>
+                <div key={item.memberSeq} className={styles.locCard}>
                   <div className={styles.locCardImage}>
                     <div className={styles.locAvatar}>👥</div>
-                    <span className={styles.distBadge}>{item.distance}</span>
+                    <span className={styles.distBadge}>
+                      {item.nearRank === 1 ? '같은 동네' : '같은 지역'}
+                    </span>
                   </div>
 
                   <div className={styles.locCardInfo}>
                     <div className={styles.locMeta}>
-                      <span>{item.name}</span>
+                      <span>{item.nickname}</span>
                       <span>·</span>
                       <span>{item.age}세</span>
+                      {item.mbti && (
+                        <>
+                          <span>·</span>
+                          <span>{item.mbti}</span>
+                        </>
+                      )}
                     </div>
-                    <span className={styles.locAddress}>{item.address}</span>
-                    <p className={styles.locIntro}>{item.intro}</p>
+                    <span className={styles.locAddress}>{item.region}</span>
+                    <p className={styles.locIntro}>
+                      {item.introduction || '아직 자기소개를 작성하지 않았어요.'}
+                    </p>
 
                     <button
                       type="button"
                       className={styles.locBtn}
-                      onClick={()=>{navi("/chattingRoomList")}}
+                      onClick={() => { navi("/chattingRoomList") }}
                     >
                       대화 신청
                     </button>
@@ -546,15 +591,13 @@ function Home() {
             {chatMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`${styles.chatBubbleRow} ${
-                  msg.sender === 'user' ? styles.userRow : styles.aiRow
-                }`}
+                className={`${styles.chatBubbleRow} ${msg.sender === 'user' ? styles.userRow : styles.aiRow
+                  }`}
               >
                 {msg.sender === 'ai' && <div className={styles.chatBotAvatarSmall}>🤖</div>}
                 <div
-                  className={`${styles.chatBubble} ${
-                    msg.sender === 'user' ? styles.userBubble : styles.aiBubble
-                  }`}
+                  className={`${styles.chatBubble} ${msg.sender === 'user' ? styles.userBubble : styles.aiBubble
+                    }`}
                 >
                   <p className={styles.chatBubbleText}>{msg.text}</p>
                   <span className={styles.chatTime}>{msg.time}</span>
