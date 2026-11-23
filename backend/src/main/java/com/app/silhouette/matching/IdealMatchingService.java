@@ -3,7 +3,7 @@ package com.app.silhouette.matching;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -12,6 +12,9 @@ public class IdealMatchingService {
 
     // 동시에 같은 상대를 노린 경우 다시 시도하는 최대 횟수
     private static final int MAX_RETRY = 3;
+
+    private static final String QUEUE_WAITING = "WAITING";
+    private static final String QUEUE_MATCHED = "MATCHED";
 
     private final IdealMatchingDAO dao;
     private final TransactionTemplate tx;
@@ -27,22 +30,25 @@ public class IdealMatchingService {
     public IdealMatchResultDTO start(String loginId) {
         int me = getMemberSeq(loginId);
 
-        // 이미 매칭된 상태면 그 결과를 그대로 돌려줌
-        IdealMatchingDTO active = dao.selectActiveMatching(me);
-        if (active != null) {
-            return toResult(active, me);
+        // 프로필이 있어야 상대가 나를 평가할 수 있음 (이상형은 선택)
+        if (dao.countProfile(me) == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "프로필을 먼저 등록해주세요.");
         }
 
-        // 프로필과 이상형이 모두 있어야 점수 계산 가능
-        if (dao.countProfileAndIdeal(me) < 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "프로필과 이상형을 먼저 입력해주세요.");
+        String queue = dao.selectQueueStatus(me);
+
+        // 대기 중에 다른 사람이 나를 이미 매칭함 → 그 결과로 바로 이동
+        if (QUEUE_MATCHED.equals(queue)) {
+            return receiveMatched(me);
         }
 
-        // 대기열 등록 (블라인드든 이상형이든 이미 있으면 PK 중복)
-        try {
-            dao.insertQueue(me);
-        } catch (DuplicateKeyException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 매칭이 진행 중이에요.");
+        // 처음 신청이면 대기열 등록 (WAITING이면 이미 대기 중 → 그대로 후보 탐색)
+        if (queue == null) {
+            try {
+                dao.insertQueue(me);
+            } catch (DuplicateKeyException e) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 매칭이 진행 중이에요.");
+            }
         }
 
         return tryMatch(me);
@@ -53,9 +59,8 @@ public class IdealMatchingService {
         for (int i = 0; i < MAX_RETRY; i++) {
 
             // 그 사이 다른 사람이 나를 먼저 매칭했을 수 있음
-            IdealMatchingDTO active = dao.selectActiveMatching(me);
-            if (active != null) {
-                return toResult(active, me);
+            if (QUEUE_MATCHED.equals(dao.selectQueueStatus(me))) {
+                return receiveMatched(me);
             }
 
             IdealCandidateDTO cand = dao.selectCandidate(me);
@@ -73,8 +78,7 @@ public class IdealMatchingService {
     }
 
     // 매칭 확정 + 채팅방 생성 (하나의 트랜잭션)
-    private IdealMatchResultDTO confirm(int me, IdealCandidateDTO cand,
-            org.springframework.transaction.TransactionStatus status) {
+    private IdealMatchResultDTO confirm(int me, IdealCandidateDTO cand, TransactionStatus status) {
 
         int target = cand.getCandidate_Seq();
 
@@ -93,24 +97,36 @@ public class IdealMatchingService {
 
         dao.insertMatching(dto);    // dto.ideal_Matching_Seq 채워짐
         dao.insertChatRoom(dto);    // dto.chat_Room_Seq 채워짐
-        dao.insertParticipant(dto.getChat_Room_Seq(), me, "OWNER");
-        dao.insertParticipant(dto.getChat_Room_Seq(), target, "MEMBER");
+
+        int room = dto.getChat_Room_Seq();
+        dao.insertParticipant(room, me, "OWNER");
+        dao.insertParticipant(room, target, "MEMBER");
+        dao.insertChatRoomList(room, me);
+        dao.insertChatRoomList(room, target);
+
+        // 나는 바로 채팅방으로 가므로 대기열에서 제거
+        // 상대는 MATCHED로 남겨 두고, 상대가 상태를 확인할 때 결과를 받고 제거됨
+        dao.deleteMyQueue(me);
 
         return new IdealMatchResultDTO("MATCHED", target,
-                dto.getIdeal_Matching_Seq(), dto.getChat_Room_Seq(), dto.getScore());
+                dto.getIdeal_Matching_Seq(), room, dto.getScore());
     }
 
     // =========================================================
     // 매칭 상태 확인 (대기 중인 사람이 주기적으로 호출)
+    // WAITING: 계속 대기 / MATCHED: 채팅방으로 이동 / IDLE: 대기열에 없음
     // =========================================================
     public IdealMatchResultDTO status(String loginId) {
         int me = getMemberSeq(loginId);
 
-        IdealMatchingDTO active = dao.selectActiveMatching(me);
-        if (active != null) {
-            return toResult(active, me);
+        String queue = dao.selectQueueStatus(me);
+        if (QUEUE_MATCHED.equals(queue)) {
+            return receiveMatched(me);
         }
-        return IdealMatchResultDTO.waiting();
+        if (QUEUE_WAITING.equals(queue)) {
+            return IdealMatchResultDTO.waiting();
+        }
+        return IdealMatchResultDTO.idle();
     }
 
     // =========================================================
@@ -121,7 +137,7 @@ public class IdealMatchingService {
 
         if (dao.deleteWaitingQueue(me) == 0) {
             // 지워진 게 없음 → 이미 매칭됐거나 대기 중이 아님
-            if (dao.selectActiveMatching(me) != null) {
+            if (QUEUE_MATCHED.equals(dao.selectQueueStatus(me))) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 매칭이 완료됐어요.");
             }
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "대기 중인 매칭이 없어요.");
@@ -129,36 +145,37 @@ public class IdealMatchingService {
     }
 
     // =========================================================
-    // 매칭 종료 (채팅방 나가기)
+    // 채팅창 사이드: 상대 프로필
     // =========================================================
-    @Transactional
-    public void end(String loginId, int chatRoomSeq) {
+    public IdealPartnerProfileDTO partnerProfile(String loginId, int chatRoomSeq) {
         int me = getMemberSeq(loginId);
 
-        IdealMatchingDTO matching = dao.selectMatchingByRoom(chatRoomSeq);
-        if (matching == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없어요.");
+        IdealPartnerProfileDTO partner = dao.selectPartnerProfile(chatRoomSeq, me);
+        if (partner == null) {
+            // 이상형 매칭 방이 아니거나 내가 참여한 방이 아님
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "이상형 매칭 채팅방이 아니에요.");
         }
-
-        // 이 채팅방의 참여자만 종료 가능
-        int m1 = matching.getMember_Seq_1();
-        int m2 = matching.getMember_Seq_2();
-        if (me != m1 && me != m2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "참여 중인 채팅방이 아니에요.");
-        }
-
-        // 이미 종료된 방이면 (상대가 먼저 나간 경우) 아무것도 안 함
-        if (dao.updateChatRoomClosed(chatRoomSeq) == 0) {
-            return;
-        }
-        dao.updateParticipantsLeft(chatRoomSeq);
-        dao.updateMatchingEnded(matching.getIdeal_Matching_Seq());
-        dao.deleteMatchedQueue(m1, m2);
+        return partner;
     }
 
     // =========================================================
     // 내부 공통
     // =========================================================
+
+    // 다른 사람이 나를 매칭한 결과를 받아가고 대기열에서 빠짐
+    private IdealMatchResultDTO receiveMatched(int me) {
+        IdealMatchingDTO m = dao.selectLatestMatching(me);
+        dao.deleteMyQueue(me);
+
+        if (m == null) {
+            // 매칭 이력이 없는 비정상 상태 → 대기열만 정리하고 다시 시작하게 함
+            return IdealMatchResultDTO.idle();
+        }
+
+        int partner = (m.getMember_Seq_1() == me) ? m.getMember_Seq_2() : m.getMember_Seq_1();
+        return new IdealMatchResultDTO("MATCHED", partner,
+                m.getIdeal_Matching_Seq(), m.getChat_Room_Seq(), m.getScore());
+    }
 
     // 로그인 아이디 → 회원 번호
     private int getMemberSeq(String loginId) {
@@ -167,12 +184,5 @@ public class IdealMatchingService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "회원 정보를 찾을 수 없어요.");
         }
         return seq;
-    }
-
-    // 매칭 이력 → 응답 (상대 번호는 내가 1번인지 2번인지에 따라 결정)
-    private IdealMatchResultDTO toResult(IdealMatchingDTO m, int me) {
-        int partner = (m.getMember_Seq_1() == me) ? m.getMember_Seq_2() : m.getMember_Seq_1();
-        return new IdealMatchResultDTO("MATCHED", partner,
-                m.getIdeal_Matching_Seq(), m.getChat_Room_Seq(), m.getScore());
     }
 }
