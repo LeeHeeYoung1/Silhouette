@@ -104,7 +104,7 @@ type: 제목
 | `style` | 포맷, 들여쓰기, CSS, UI 디자인 수정 (로직 변경 X) | `style: 프로필 카드 레이아웃 수정` |
 | `docs` | 문서 수정 | `docs: README 실행 방법 추가` |
 | `test` | 테스트 코드 추가/수정 | `test: 매칭 서비스 단위 테스트 추가` |
-| `chore` | 빌드, 설정, 패키지, .gitignore 등 | `chore: MySQL 의존성 추가` |
+| `chore` | 빌드, 설정, 패키지, .gitignore 등 | `chore: Oracle JDBC 의존성 추가` |
 | `rename` | 파일/폴더명 변경 | `rename: MatchDao를 MatchDAO로 변경` |
 | `remove` | 파일 삭제 | `remove: 사용하지 않는 테스트 파일 삭제` |
 
@@ -299,7 +299,7 @@ git push origin --delete feat/C1-blind-matching
 
 ### 6-1. 클래스 이름
 
-계층별 접미사는 **앞글자 대문자**로 통일한다. (`Dao`, `Dto` ❌ → `DAO`, `DTO` ⭕)
+계층별 접미사는 아래 표대로 쓰고, `DAO`·`DTO`는 **전부 대문자**로 쓴다. (`Dao`, `Dto` ❌ → `DAO`, `DTO` ⭕)
 
 | 계층 | 접미사 | 예시 |
 |---|---|---|
@@ -312,8 +312,8 @@ git push origin --delete feat/C1-blind-matching
 ### 6-2. DB 네이밍
 
 - 테이블, 컬럼: **snake_case, 소문자**
-- 테이블명은 **단수형** 통일 → `file`, `reply`
-- PK는 `seq`, FK는 `대상테이블_seq` (예: `member_seq`)
+- 테이블명은 **단수형** 통일 → `member`, `post_file`
+- PK는 `테이블명_seq`, FK는 `대상테이블_seq` (예: `post_file` 테이블의 PK `post_file_seq`, FK `post_seq`)
 - 시퀀스 이름은 `seq_테이블명`으로 통일 (예: `seq_member`, `seq_match_history`)
 - 시퀀스를 새로 만들거나 이름을 바꿀 때 테이블에 데이터가 있으면 `START WITH (PK 최댓값 + 1)`로 만든다. (1부터 시작하면 기존 PK와 겹쳐 `ORA-00001`)
 - DB는 팀이 함께 쓰므로, 테이블·시퀀스를 바꾸는 작업은 미리 공지하고 PR 본문에 SQL 스크립트(`ALTER TABLE` 등)를 함께 적는다.
@@ -342,6 +342,7 @@ public class LiveRoomDTO {
     public void setLiveRoomSeq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
     public Long getLive_room_seq() { return live_room_seq; }            // ❌ IDE 자동 생성 이름 그대로 쓰지 않는다
 }
+```
 
 - 이 프로젝트는 `map-underscore-to-camel-case`를 **쓰지 않는다.** 필드명이 컬럼명과 같아야 조회 결과가 자동으로 들어간다.
 - SELECT에서 camelCase 별칭(`AS memberSeq`)을 쓰지 않는다. 컬럼명을 그대로 쓴다.
@@ -350,7 +351,7 @@ public class LiveRoomDTO {
 - 조인 등으로 컬럼명이 겹치거나 계산 컬럼을 쓸 때는 **snake_case 별칭**을 쓴다.
   - 예: `SELECT COUNT(*) AS viewer_count`, `m.nickname AS host_nickname`
 - getter/setter는 **camelCase**로 쓴다. (예: `getLiveRoomSeq()`, IDE가 만든 `getLive_room_seq()`는 이름을 바꾼다)
-- INSERT/UPDATE 파라미터는 getter 이름을 따라 camelCase로 쓴다. → `#{memberSeq}`
+- `#{}` 파라미터(INSERT/UPDATE 값, WHERE 조건 등)는 getter 이름을 따라 camelCase로 쓴다. → `#{memberSeq}`
 - API JSON 키는 getter 이름을 따라 **camelCase**가 되므로, 프론트에서도 같은 이름을 쓴다. → `room.liveRoomSeq`
 - DTO 필드명이나 getter/setter 이름을 바꿀 때는 **매퍼 XML(컬럼·별칭·`#{}`)과 프론트 코드를 같은 커밋에서 함께** 바꾼다.
 - 새 DTO·매퍼를 만들거나 필드명을 바꾸면, 조회 결과와 요청 값이 **null로 들어오지 않는지 꼭 확인**한다.
@@ -411,3 +412,4 @@ public class LiveRoomDTO {
 | 2026.11.16 | 커밋 및 PR 타입 통일, `update` 타입 추가, `style`과 `design` 통합 | 서현수 |
 | 2026.11.20 | 시퀀스 생성 시 시작 번호·DB 변경 스크립트 규칙, MyBatis 매핑(6-4), API·서버 주소(6-5), JWT 회원 판단·업로드 검사(보안), PR 범위·빌드 확인 규칙 추가 | 서현수 |
 | 2026.11.24 | DTO 멤버 필드 snake_case 통일, getter/setter·`#{}`·JSON 키는 camelCase(6-3, 6-4 개정), camelCase 별칭 금지, 이름 변경 시 매퍼·프론트 동시 수정 규칙 추가 | 서현수 |
+| 2026.11.24 | 6-4 코드 블록 닫힘 누락 수정, PK 규칙(`테이블명_seq`)·테이블명 예시·접미사 표기·커밋 예시(Oracle) 정정, `#{}` 규칙 범위 명확화 | 서현수 |
