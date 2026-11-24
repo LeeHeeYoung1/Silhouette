@@ -22,7 +22,7 @@ function LiveForm({ initial, onSubmit, onClose }) {
   const [category, setCategory] = useState(initial?.category ?? 'TALK');
   const [tagText, setTagText] = useState((initial?.hashtags ?? []).map((t) => `#${t}`).join(' '));
   const [description, setDescription] = useState(initial?.description ?? '');
-  const [thumbnailUrl, setThumbnailUrl] = useState(initial?.thumbnail_url ?? null);
+  const [thumbnailUrl, setThumbnailUrl] = useState(initial?.thumbnailUrl ?? null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +40,7 @@ function LiveForm({ initial, onSubmit, onClose }) {
     setUploading(true);
     try {
       const { data } = await uploadThumbnail(file);
-      setThumbnailUrl(data.thumbnail_url);
+      setThumbnailUrl(data.thumbnailUrl);
     } catch (err) {
       setError(errorMessage(err, '썸네일을 올리지 못했어요.'));
     } finally {
@@ -61,7 +61,7 @@ function LiveForm({ initial, onSubmit, onClose }) {
         category,
         hashtags: tags,
         description: description.trim() || null,
-        thumbnail_url: thumbnailUrl,
+        thumbnailUrl: thumbnailUrl,
       });
     } catch (err) {
       setError(errorMessage(err, editing ? '수정하지 못했어요.' : '방송을 시작하지 못했어요.'));

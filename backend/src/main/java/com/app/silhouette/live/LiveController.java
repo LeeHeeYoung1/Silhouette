@@ -29,8 +29,8 @@ public class LiveController {
         this.reportService = reportService;
     }
 
-    // 방송 시작 → { live_room_seq, token, url }
-    // body: { title, description, category, hashtags: [], thumbnail_url }
+    // 방송 시작 → { liveRoomSeq, token, url }
+    // body: { title, description, category, hashtags: [], thumbnailUrl }
     @PostMapping
     public ResponseEntity<Map<String, Object>> start(@RequestAttribute("id") String loginId,
             @RequestBody LiveRoomDTO body) {
@@ -74,7 +74,7 @@ public class LiveController {
     }
 
     // 방송 정보 수정 (방송자만) → 수정된 방송 정보
-    // body: { title, description, category, hashtags: [], thumbnail_url }
+    // body: { title, description, category, hashtags: [], thumbnailUrl }
     @PutMapping("/{liveRoomSeq}")
     public ResponseEntity<LiveRoomDTO> update(@RequestAttribute("id") String loginId,
             @PathVariable long liveRoomSeq, @RequestBody LiveRoomDTO body) {
@@ -118,7 +118,7 @@ public class LiveController {
         return ResponseEntity.ok("차단을 해제했어요.");
     }
 
-    // 신고  body: { live_chat_seq(채팅 신고일 때만), reason, detail }
+    // 신고  body: { liveChatSeq(채팅 신고일 때만), reason, detail }
     @PostMapping("/{liveRoomSeq}/report")
     public ResponseEntity<String> report(@RequestAttribute("id") String loginId,
             @PathVariable long liveRoomSeq, @RequestBody LiveReportDTO body) {

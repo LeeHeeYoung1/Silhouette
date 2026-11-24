@@ -6,7 +6,7 @@ export const getLiveList = (params) => Client.get('/api/live', { params });
 // 방송 상세
 export const getLiveDetail = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}`);
 
-// 방송 시작 { title, description, category, hashtags, thumbnail_url } → { live_room_seq, token, url }
+// 방송 시작 { title, description, category, hashtags, thumbnailUrl } → { liveRoomSeq, token, url }
 export const startLive = (body) => Client.post('/api/live', body);
 
 // 시청 입장 → { token, url, room }
@@ -15,7 +15,7 @@ export const joinLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/j
 // 방송 종료 (방송자)
 export const endLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/end`);
 
-// 방송 정보 수정 (방송자) { title, description, category, hashtags, thumbnail_url }
+// 방송 정보 수정 (방송자) { title, description, category, hashtags, thumbnailUrl }
 export const updateLive = (liveRoomSeq, body) => Client.put(`/api/live/${liveRoomSeq}`, body);
 
 // 현재 시청자 목록 (방송자)
@@ -30,10 +30,10 @@ export const banMember = (memberSeq) => Client.post(`/api/live/ban/${memberSeq}`
 export const unbanMember = (memberSeq) => Client.delete(`/api/live/ban/${memberSeq}`);
 export const getBans = () => Client.get('/api/live/ban');
 
-// 신고 { live_chat_seq(채팅 신고일 때만), reason: ADULT|ABUSE|SPAM|ETC, detail }
+// 신고 { liveChatSeq(채팅 신고일 때만), reason: ADULT|ABUSE|SPAM|ETC, detail }
 export const reportLive = (liveRoomSeq, body) => Client.post(`/api/live/${liveRoomSeq}/report`, body);
 
-// 썸네일 업로드 (jpg/png/webp, 5MB 이하) → { thumbnail_url }
+// 썸네일 업로드 (jpg/png/webp, 5MB 이하) → { thumbnailUrl }
 export const uploadThumbnail = (file) => {
   const form = new FormData();
   form.append('file', file);
@@ -44,7 +44,7 @@ export const uploadThumbnail = (file) => {
 
 // 방송 강제 종료
 export const adminEndLive = (liveRoomSeq, endReason) =>
-  Client.post(`/api/admin/live/${liveRoomSeq}/end`, { end_reason: endReason });
+  Client.post(`/api/admin/live/${liveRoomSeq}/end`, { endReason: endReason });
 
 // 신고 목록 { status: WAIT|DONE, page }
 export const getLiveReports = (params) => Client.get('/api/admin/live/report', { params });

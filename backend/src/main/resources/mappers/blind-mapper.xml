@@ -23,7 +23,7 @@
 
     <!-- 매칭 대기열 등록용: 활성 회원의 번호와 성별 -->
     <select id="selectQueueMember" resultType="com.app.silhouette.blind.BlindQueueMemberDTO">
-        SELECT MEMBER_SEQ AS memberSeq,
+        SELECT MEMBER_SEQ AS member_seq,
                GENDER     AS gender
         FROM MEMBER
         WHERE LOGIN_ID = #{loginId}
@@ -91,17 +91,17 @@
     <!-- ===================================================== -->
 
     <sql id="roomColumns">
-        r.BLIND_CHAT_ROOM_SEQ   AS blindChatRoomSeq,
-        r.BLIND_MATCHING_SEQ    AS blindMatchingSeq,
-        r.LINKED_CHAT_ROOM_SEQ  AS linkedChatRoomSeq,
-        r.TIME_LIMIT_MIN        AS timeLimitMin,
-        r.EXPIRE_AT             AS expireAt,
+        r.BLIND_CHAT_ROOM_SEQ   AS blind_chat_room_seq,
+        r.BLIND_MATCHING_SEQ    AS blind_matching_seq,
+        r.LINKED_CHAT_ROOM_SEQ  AS linked_chat_room_seq,
+        r.TIME_LIMIT_MIN        AS time_limit_min,
+        r.EXPIRE_AT             AS expire_at,
         r.STATUS                AS status,
-        m.MEMBER_SEQ_1          AS memberSeq1,
-        m.MEMBER_SEQ_2          AS memberSeq2,
-        m.VOTE_1                AS vote1,
-        m.VOTE_2                AS vote2,
-        LOCALTIMESTAMP          AS dbNow
+        m.MEMBER_SEQ_1          AS member_seq_1,
+        m.MEMBER_SEQ_2          AS member_seq_2,
+        m.VOTE_1                AS vote_1,
+        m.VOTE_2                AS vote_2,
+        LOCALTIMESTAMP          AS db_now
     </sql>
 
     <select id="selectRoom" resultType="com.app.silhouette.blind.BlindRoomDTO">
@@ -159,12 +159,12 @@
 
     <!-- 방의 메시지 전체 (오래된 순) -->
     <select id="selectMessages" resultType="com.app.silhouette.blind.BlindChatMessageDTO">
-        SELECT BLIND_CHAT_MESSAGE_SEQ   AS blindChatMessageSeq,
-               BLIND_CHAT_ROOM_SEQ      AS blindChatRoomSeq,
-               SENDER_SEQ               AS senderSeq,
+        SELECT BLIND_CHAT_MESSAGE_SEQ   AS blind_chat_message_seq,
+               BLIND_CHAT_ROOM_SEQ      AS blind_chat_room_seq,
+               SENDER_SEQ               AS sender_seq,
                CONTENT                  AS content,
-               AI_REPLY_SUGGESTION_SEQ  AS aiReplySuggestionSeq,
-               SENT_AT                  AS sentAt
+               AI_REPLY_SUGGESTION_SEQ  AS ai_reply_suggestion_seq,
+               SENT_AT                  AS sent_at
         FROM BLIND_CHAT_MESSAGE
         WHERE BLIND_CHAT_ROOM_SEQ = #{roomSeq}
         ORDER BY BLIND_CHAT_MESSAGE_SEQ
@@ -258,11 +258,11 @@
 
     <!-- 메시지 전송 시: 내 것이고 이 방의 것이며 아직 안 쓴 추천인지 확인 -->
     <select id="selectSuggestion" resultType="com.app.silhouette.blind.BlindSuggestionDTO">
-        SELECT AI_REPLY_SUGGESTION_SEQ AS aiReplySuggestionSeq,
-               BLIND_CHAT_ROOM_SEQ     AS blindChatRoomSeq,
-               MEMBER_SEQ              AS memberSeq,
+        SELECT AI_REPLY_SUGGESTION_SEQ AS ai_reply_suggestion_seq,
+               BLIND_CHAT_ROOM_SEQ     AS blind_chat_room_seq,
+               MEMBER_SEQ              AS member_seq,
                SUGGESTION              AS text,
-               SELECTED_YN             AS selectedYn
+               SELECTED_YN             AS selected_yn
         FROM AI_REPLY_SUGGESTION
         WHERE AI_REPLY_SUGGESTION_SEQ = #{seq}
     </select>
