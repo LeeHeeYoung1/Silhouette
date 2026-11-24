@@ -9,6 +9,7 @@ import {
   getNearbyMembers
 } from '../../api/matching';
 import Client from '../../api/client';
+import { wsUrl } from '../../api/ws';
 import MemberProfileModal from '../memberProfileModal/memberProfileModal';
 import { Client as StompClient } from '@stomp/stompjs';
 
@@ -223,46 +224,41 @@ function Home() {
   }, [token]);
 
   // 친구 목록 실시간 갱신 STOMP 연결
-useEffect(() => {
-  if (!token || !memberSeq) return;
+  useEffect(() => {
+    if (!token || !memberSeq) return;
 
-  const wsHost = window.location.hostname || 'localhost';
-  const wsPort = window.location.port === '5173'
-    ? ':80'
-    : (window.location.port ? `:${window.location.port}` : '');
+    const brokerURL = wsUrl('/chat');
 
-  const brokerURL = `ws://${wsHost}${wsPort}/chat`;
+    const client = new StompClient({
+      brokerURL,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      reconnectDelay: 5000,
 
-  const client = new StompClient({
-    brokerURL,
-    connectHeaders: {
-      Authorization: `Bearer ${token}`
-    },
-    reconnectDelay: 5000,
+      onConnect: () => {
+        console.log('친구 목록 실시간 갱신 웹소켓 연결 성공');
 
-    onConnect: () => {
-      console.log('친구 목록 실시간 갱신 웹소켓 연결 성공');
+        client.subscribe(`/sub/friends/${memberSeq}`, () => {
+          window.dispatchEvent(new Event('silhouette-friends-updated'));
+        });
+      },
 
-      client.subscribe(`/sub/friends/${memberSeq}`, () => {
-        window.dispatchEvent(new Event('silhouette-friends-updated'));
-      });
-    },
+      onStompError: (frame) => {
+        console.error('친구 목록 STOMP 오류:', frame.headers['message'], frame.body);
+      },
 
-    onStompError: (frame) => {
-      console.error('친구 목록 STOMP 오류:', frame.headers['message'], frame.body);
-    },
+      onWebSocketError: (error) => {
+        console.error('친구 목록 WebSocket 오류:', error);
+      }
+    });
 
-    onWebSocketError: (error) => {
-      console.error('친구 목록 WebSocket 오류:', error);
-    }
-  });
+    client.activate();
 
-  client.activate();
-
-  return () => {
-    client.deactivate();
-  };
-}, [token, memberSeq]);
+    return () => {
+      client.deactivate();
+    };
+  }, [token, memberSeq]);
 
   // 친구 프로필 이미지 불러오기
   useEffect(() => {
@@ -463,12 +459,7 @@ useEffect(() => {
   useEffect(() => {
     if (!token) return;
 
-    const wsHost = window.location.hostname || 'localhost';
-    const wsPort = window.location.port === '5173'
-      ? ':80'
-      : (window.location.port ? `:${window.location.port}` : '');
-
-    const brokerURL = `ws://${wsHost}${wsPort}/blind`;
+    const brokerURL = wsUrl('/blind');
 
     const client = new StompClient({
       brokerURL: brokerURL,
