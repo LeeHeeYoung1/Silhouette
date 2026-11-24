@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Report">
+
+    <!-- "지금 적용 중인 블랙리스트" 조건 (별칭 b) -->
+    <sql id="activeBlacklist">
+            b.released_at is null
+        and b.start_at &lt;= systimestamp
+        and (b.end_at is null or b.end_at &gt; systimestamp)
+    </sql>
+
+    <!-- ===================== 사용자 신고 ===================== -->
+
+    <select id="selectPostTarget" parameterType="long" resultType="com.app.silhouette.report.ReportTargetDTO">
+        select member_seq, board_type, title, content, is_deleted
+          from post
+         where post_seq = #{targetSeq}
+    </select>
+
+    <select id="selectCommentTarget" parameterType="long" resultType="com.app.silhouette.report.ReportTargetDTO">
+        select member_seq, content, is_deleted
+          from post_comment
+         where post_comment_seq = #{targetSeq}
+    </select>
+
+    <select id="countMyReport" parameterType="map" resultType="int">
+        select count(*)
+          from report
+         where reporter_seq = #{reporterSeq}
+           and target_type  = #{targetType}
+           and target_seq   = #{targetSeq}
+    </select>
+
+    <insert id="insertReport" parameterType="com.app.silhouette.report.ReportDTO">
+        <selectKey keyProperty="reportSeq" resultType="long" order="BEFORE">
+            select seq_report.nextval from dual
+        </selectKey>
+        insert into report (report_seq, reporter_seq, reported_seq, target_type, target_seq,
+                            reason_type, reason_detail, target_content, status,
+                            created_at, updated_at)
+        values (#{reportSeq}, #{reporterSeq}, #{reportedSeq}, #{targetType}, #{targetSeq},
+                #{reasonType}, #{reasonDetail, jdbcType=VARCHAR}, #{targetContent, jdbcType=VARCHAR}, 'WAITING',
+                systimestamp, systimestamp)
+    </insert>
+
+    <select id="countMyReports" parameterType="long" resultType="int">
+        select count(*) from report where reporter_seq = #{reporterSeq}
+    </select>
+
+    <!-- 신고당한 회원(reported_seq)은 가져오지 않음: 익명 게시판 보호 -->
+    <select id="selectMyReports" parameterType="map" resultType="com.app.silhouette.report.ReportDTO">
+        select *
+          from (
+                select a.*, rownum rn
+                  from (
+                        select report_seq, target_type, target_seq, reason_type, reason_detail,
+                               target_content, status, processed_at, created_at
+                          from report
+                         where reporter_seq = #{reporterSeq}
+                         order by report_seq desc
+                       ) a
+                 where rownum &lt;= #{endRow}
+               )
+         where rn &gt; #{startRow}
+    </select>
+
+    <!-- ===================== 관리자: 신고 목록 ===================== -->
+
+    <select id="countAdminReports" parameterType="map" resultType="int">
+        select count(*) from report where status = #{status}
+    </select>
+
+    <select id="selectAdminReports" parameterType="map" resultType="com.app.silhouette.report.AdminReportDTO">
+        select *
+          from (
+                select a.*, rownum rn
+                  from (
+                        select rp.report_seq, rp.reporter_seq, rp.reported_seq, rp.target_type, rp.target_seq,
+                               rp.reason_type, rp.reason_detail, rp.target_content, rp.status,
+                               rp.admin_seq, rp.admin_memo, rp.processed_at, rp.created_at,
+                               r.nickname  as reporter_name,
+                               d.nickname  as reported_name,
+                               d.login_id  as reported_login_id,
+                               (select count(*) from report x where x.reported_seq = rp.reported_seq) as reported_count,
+                               case when exists (
+                                        select 1 from blacklist b
+                                         where b.member_seq = rp.reported_seq
+                                           and <include refid="activeBlacklist"/>
+                                    ) then 'Y' else 'N' end as blacklisted
+                          from report rp
+                          left join member r on r.member_seq = rp.reporter_seq
+                          left join member d on d.member_seq = rp.reported_seq
+                         where rp.status = #{status}
+                         order by rp.report_seq desc
+                       ) a
+                 where rownum &lt;= #{endRow}
+               )
+         where rn &gt; #{startRow}
+    </select>
+
+    <select id="selectReport" parameterType="long" resultType="com.app.silhouette.report.ReportDTO">
+        select report_seq, reporter_seq, reported_seq, target_type, target_seq,
+               reason_type, reason_detail, target_content, status, created_at
+          from report
+         where report_seq = #{reportSeq}
+    </select>
+
+    <!-- ===================== 관리자: 신고 처리 ===================== -->
+
+    <!-- 이 신고 처리 (대기 중일 때만) -->
+    <update id="updateReportProcess" parameterType="map">
+        update report
+           set status       = #{status},
+               admin_seq    = #{adminSeq},
+               admin_memo   = #{adminMemo, jdbcType=VARCHAR},
+               processed_at = systimestamp,
+               updated_at   = systimestamp
+         where report_seq = #{reportSeq}
+           and status = 'WAITING'
+    </update>
+
+    <!-- 같은 글·댓글에 쌓인 다른 대기 신고도 함께 처리 -->
+    <update id="updateSameTargetReports" parameterType="map">
+        update report
+           set status       = 'DONE',
+               admin_seq    = #{adminSeq},
+               admin_memo   = #{adminMemo, jdbcType=VARCHAR},
+               processed_at = systimestamp,
+               updated_at   = systimestamp
+         where target_type = #{targetType}
+           and target_seq  = #{targetSeq}
+           and status = 'WAITING'
+    </update>
+
+    <!-- 신고된 게시글 삭제 (soft delete) -->
+    <update id="deletePostByAdmin" parameterType="long">
+        update post
+           set is_deleted = 'Y',
+               deleted_at = systimestamp,
+               updated_at = systimestamp
+         where post_seq = #{targetSeq}
+    </update>
+
+   <!-- 신고된 댓글 삭제 (soft delete) + 그 댓글에 달린 대댓글도 함께 삭제 -->
+    <update id="deleteCommentByAdmin" parameterType="long">
+        update post_comment
+           set is_deleted = 'Y',
+               updated_at = systimestamp
+         where (post_comment_seq = #{targetSeq}
+                or parent_post_comment_seq = #{targetSeq})
+           and is_deleted = 'N'
+    </update>
+    
+        <!-- 댓글 삭제 후 게시글의 댓글 수 다시 세기 (삭제 안 된 댓글 + 답글) -->
+    <update id="recountPostComments" parameterType="long">
+        update post p
+           set p.comment_count = (select count(*)
+                                    from post_comment c
+                                   where c.post_seq = p.post_seq
+                                     and c.is_deleted = 'N')
+         where p.post_seq = (select post_seq
+                               from post_comment
+                              where post_comment_seq = #{targetSeq})
+    </update>
+    <!-- ===================== 관리자: 블랙리스트 ===================== -->
+
+    <select id="selectMemberRole" parameterType="long" resultType="string">
+        select role from member where member_seq = #{memberSeq}
+    </select>
+
+    <select id="countActiveBlacklist" parameterType="long" resultType="int">
+        select count(*)
+          from blacklist b
+         where b.member_seq = #{memberSeq}
+           and <include refid="activeBlacklist"/>
+    </select>
+
+    <!-- 지정 (days가 0이면 영구) -->
+    <insert id="insertBlacklist" parameterType="com.app.silhouette.report.BlacklistDTO">
+        <selectKey keyProperty="blacklistSeq" resultType="long" order="BEFORE">
+            select seq_blacklist.nextval from dual
+        </selectKey>
+        insert into blacklist (blacklist_seq, member_seq, admin_seq, report_seq, reason,
+                               start_at, end_at, created_at, updated_at)
+        values (#{blacklistSeq}, #{memberSeq}, #{adminSeq}, #{reportSeq, jdbcType=NUMERIC}, #{reason},
+                systimestamp,
+                <choose>
+                    <when test="days != null and days > 0">systimestamp + numtodsinterval(#{days}, 'DAY')</when>
+                    <otherwise>null</otherwise>
+                </choose>,
+                systimestamp, systimestamp)
+    </insert>
+
+    <select id="countBlacklist" parameterType="map" resultType="int">
+        select count(*)
+          from blacklist b
+        <if test="activeOnly">
+         where <include refid="activeBlacklist"/>
+        </if>
+    </select>
+
+    <select id="selectBlacklist" parameterType="map" resultType="com.app.silhouette.report.BlacklistDTO">
+        select *
+          from (
+                select a.*, rownum rn
+                  from (
+                        select b.blacklist_seq, b.member_seq, b.admin_seq, b.report_seq, b.reason,
+                               b.start_at, b.end_at, b.released_at, b.released_by, b.created_at,
+                               m.nickname  as member_name,
+                               m.login_id  as member_login_id,
+                               ad.nickname as admin_name,
+                               case when <include refid="activeBlacklist"/> then 'Y' else 'N' end as active
+                          from blacklist b
+                          left join member m  on m.member_seq  = b.member_seq
+                          left join member ad on ad.member_seq = b.admin_seq
+                        <if test="activeOnly">
+                         where <include refid="activeBlacklist"/>
+                        </if>
+                         order by b.blacklist_seq desc
+                       ) a
+                 where rownum &lt;= #{endRow}
+               )
+         where rn &gt; #{startRow}
+    </select>
+
+    <!-- 해제 (아직 해제 안 된 것만) -->
+    <update id="releaseBlacklist" parameterType="map">
+        update blacklist
+           set released_at = systimestamp,
+               released_by = #{adminSeq},
+               updated_at  = systimestamp
+         where blacklist_seq = #{blacklistSeq}
+           and released_at is null
+    </update>
+
+</mapper>

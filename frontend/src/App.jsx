@@ -11,10 +11,11 @@ import PostDetail from './pages/post/postdetail';
 import PostWrite from './pages/post/postwrite';
 import NoticeDetail from './pages/post/noticedetail';   // 공지사항 상세
 import FaqWrite from './pages/post/faqwrite';           // FAQ 작성·수정 (관리자)
-import QnaWrite from './pages/post/qnawrite';           // ✅ Q&A 작성·수정
-import QnaDetail from './pages/post/qnadetail';         // ✅ Q&A 상세
+import QnaWrite from './pages/post/qnawrite';           // Q&A 작성·수정
+import QnaDetail from './pages/post/qnadetail';         // Q&A 상세
 import Live from './pages/live/live';
 import LiveAdmin from './pages/live/liveAdmin';
+import AdminReport from './pages/admin/adminreport';    // 🛡️ 관리자 신고 · 블랙리스트
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
@@ -44,7 +45,7 @@ function App() {
         <Route path="/event/love-value-test" element={<LoveValueTest />} />
         <Route path="/event/mbti-test" element={<MBTITest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}
-        
+
 
 
         {/* 게시판 (Post) 라우트 */}
@@ -67,20 +68,21 @@ function App() {
           <Route path="notice/edit/:id" element={<PostWrite writeType="notice" />} />   {/* 공지 수정 */}
           <Route path="faq/write" element={<FaqWrite />} />                             {/* FAQ 작성 */}
           <Route path="faq/edit/:id" element={<FaqWrite />} />                          {/* FAQ 수정 */}
-          <Route path="qna/write" element={<QnaWrite />} />                             {/* ✅ Q&A 작성 */}
-          <Route path="qna/edit/:id" element={<QnaWrite />} />                          {/* ✅ Q&A 수정 */}
+          <Route path="qna/write" element={<QnaWrite />} />                             {/* Q&A 작성 */}
+          <Route path="qna/edit/:id" element={<QnaWrite />} />                          {/* Q&A 수정 */}
           <Route path="write/:type" element={<PostWrite />} />
 
           {/* 상세 */}
           <Route path="detail/:id" element={<PostDetail />} />            {/* 자유 · 익명 */}
           <Route path="notice/:id" element={<NoticeDetail />} />          {/* 공지사항 */}
-          <Route path="qna/:id" element={<QnaDetail />} />                {/* ✅ Q&A */}
+          <Route path="qna/:id" element={<QnaDetail />} />                {/* Q&A */}
           {/* FAQ는 상세 페이지 없음 (목록에서 펼쳐서 봄) */}
         </Route>
 
         <Route path="/board/*" element={<Navigate to="/post/free" replace />} />
         <Route path="/live" element={<Live />} />
         <Route path="/admin/live" element={<LiveAdmin />} />
+        <Route path="/admin/reports" element={<AdminReport />} />          {/* 🛡️ 관리자 신고 · 블랙리스트 */}
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
