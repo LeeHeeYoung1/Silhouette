@@ -74,13 +74,17 @@
     </update>
 
     <!-- ===================================================== -->
-    <!-- 후보 조회 → 점수 계산 → 랜덤 1명                          -->
+    <!-- 후보 조회 → 점수 계산 → 최고 점수 1명 (동점이면 랜덤)       -->
     <!--                                                        -->
     <!-- 이상형은 온보딩에서 저장하는 IDEAL_TYPE(LOGIN_ID 기준)을 사용 -->
     <!-- 이상형을 입력하지 않았거나 비어 있는 항목은 "상관없음"으로 본다 -->
     <!--   필수 조건 : 이성 / 서로의 나이 범위 / 서로 차단 X / 최근 7일 내 매칭 X -->
-    <!--   점수 항목 : 키, MBTI, 흡연, 음주 (가중치는 SYS_MATCHING_CONFIG) -->
-    <!--   상호 점수 = √(나→상대 × 상대→나) 가 IDEAL_MIN_SCORE 이상 -->
+    <!--   점수 항목 : 키, MBTI, 흡연, 음주, 병역 (가중치는 SYS_MATCHING_CONFIG) -->
+    <!--   상호 점수 = √(나→상대 × 상대→나) 가 기준점 이상                  -->
+    <!--   기준점 : 대기가 길어질수록 낮춤 (사용자가 적을 때도 매칭되도록)     -->
+    <!--     IDEAL_MIN_SCORE - IDEAL_RELAX_STEP × (대기초 / IDEAL_RELAX_SEC) -->
+    <!--     단, IDEAL_MIN_SCORE_FLOOR 아래로는 내려가지 않음                -->
+    <!--   파라미터 : memberSeq, waitedSec(내가 대기한 시간, 초)              -->
     <!-- ===================================================== -->
     <select id="selectCandidate" resultType="com.app.silhouette.matching.IdealCandidateDTO">
     <![CDATA[
@@ -90,8 +94,19 @@
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_SMOKING'  THEN TO_NUMBER(CONFIG_VALUE) END), 3) AS W_SMOKING,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_DRINKING' THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_DRINKING,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_HEIGHT'   THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_HEIGHT,
-                NVL(MAX(CASE CONFIG_KEY WHEN 'W_MBTI'     THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_MBTI
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_MBTI'     THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_MBTI,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_MILITARY' THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_MILITARY,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_MIN_SCORE_FLOOR' THEN TO_NUMBER(CONFIG_VALUE) END), 40) AS FLOOR_SCORE,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_RELAX_STEP'      THEN TO_NUMBER(CONFIG_VALUE) END), 10) AS RELAX_STEP,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_RELAX_SEC'       THEN TO_NUMBER(CONFIG_VALUE) END), 30) AS RELAX_SEC
             FROM SYS_MATCHING_CONFIG
+        ),
+        th AS (
+            /* 이번 탐색의 기준점 (기본값: 0초 70 → 30초 60 → 60초 50 → 90초~ 40) */
+            SELECT LEAST(MIN_SCORE,
+                         GREATEST(FLOOR_SCORE,
+                                  MIN_SCORE - RELAX_STEP * FLOOR(#{waitedSec} / NULLIF(RELAX_SEC, 0)))) AS MIN_SCORE
+            FROM cfg
         ),
         me AS (
             SELECT m.MEMBER_SEQ, m.GENDER,
@@ -141,7 +156,8 @@
                 CASE WHEN tp.HEIGHT BETWEEN NVL(it.MIN_HEIGHT, 0) AND NVL(it.MAX_HEIGHT, 300) THEN 1 ELSE 0 END AS H_HEIGHT,
 
                 CASE WHEN it.MBTI_PREF IS NOT NULL THEN c.W_MBTI ELSE 0 END AS A_MBTI,
-                CASE WHEN INSTR(',' || it.MBTI_PREF || ',', ',' || tp.MBTI || ',') > 0 THEN 1 ELSE 0 END AS H_MBTI,
+                /* 목록은 'ENFP, INTJ' 처럼 쉼표+공백으로 저장됨 → 공백 제거 후 비교 */
+                CASE WHEN INSTR(',' || REPLACE(it.MBTI_PREF, ' ') || ',', ',' || tp.MBTI || ',') > 0 THEN 1 ELSE 0 END AS H_MBTI,
 
                 /* 흡연: '비흡연자만' 일 때만 반영 */
                 CASE WHEN it.SMOKING_PREF = '비흡연자만' THEN c.W_SMOKING ELSE 0 END AS A_SMOKING,
@@ -154,7 +170,14 @@
                     WHEN it.DRINKING_PREF = '가끔 마시는 분' AND tp.DRINKING = '가끔'     THEN 1
                     WHEN it.DRINKING_PREF = '잘 마시는 분'   AND tp.DRINKING = '자주'     THEN 1
                     ELSE 0
-                END AS H_DRINKING
+                END AS H_DRINKING,
+
+                /* 병역: 이상형(여성 선택, 여러 개) ↔ 프로필(남성 입력). '상관없음'이 있으면 반영 안 함 */
+                CASE WHEN it.MILITARY_PREF IS NOT NULL
+                      AND INSTR(',' || REPLACE(it.MILITARY_PREF, ' ') || ',', ',상관없음,') = 0
+                     THEN c.W_MILITARY ELSE 0 END AS A_MILITARY,
+                CASE WHEN INSTR(',' || REPLACE(it.MILITARY_PREF, ' ') || ',', ',' || REPLACE(tp.MILITARY_STATUS, ' ') || ',') > 0
+                     THEN 1 ELSE 0 END AS H_MILITARY
             FROM dir d
             JOIN MEMBER fm          ON fm.MEMBER_SEQ = d.FROM_SEQ
             LEFT JOIN IDEAL_TYPE it ON it.LOGIN_ID   = fm.LOGIN_ID
@@ -164,8 +187,9 @@
         dir_score AS (
             /* 반영할 항목이 하나도 없으면(전부 상관없음) 100점 */
             SELECT FROM_SEQ, TO_SEQ,
-                NVL( (A_HEIGHT*H_HEIGHT + A_MBTI*H_MBTI + A_SMOKING*H_SMOKING + A_DRINKING*H_DRINKING)
-                   / NULLIF(A_HEIGHT + A_MBTI + A_SMOKING + A_DRINKING, 0) * 100
+                NVL( (A_HEIGHT*H_HEIGHT + A_MBTI*H_MBTI + A_SMOKING*H_SMOKING + A_DRINKING*H_DRINKING
+                      + A_MILITARY*H_MILITARY)
+                   / NULLIF(A_HEIGHT + A_MBTI + A_SMOKING + A_DRINKING + A_MILITARY, 0) * 100
                    , 100) AS SCORE
             FROM item
         )
@@ -176,10 +200,11 @@
                    ROUND(SQRT(ab.SCORE * ba.SCORE), 2) AS MUTUAL_SCORE
             FROM dir_score ab
             JOIN dir_score ba ON ba.FROM_SEQ = ab.TO_SEQ AND ba.TO_SEQ = ab.FROM_SEQ
-            CROSS JOIN cfg c
+            CROSS JOIN th
             WHERE ab.FROM_SEQ = #{memberSeq}
-              AND SQRT(ab.SCORE * ba.SCORE) >= c.MIN_SCORE
-            ORDER BY DBMS_RANDOM.VALUE
+              AND SQRT(ab.SCORE * ba.SCORE) >= th.MIN_SCORE
+            /* 기준점이 낮아져도 점수 높은 후보가 먼저, 같은 점수면 랜덤 */
+            ORDER BY MUTUAL_SCORE DESC, DBMS_RANDOM.VALUE
         )
         WHERE ROWNUM = 1
     ]]>

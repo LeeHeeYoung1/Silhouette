@@ -61,9 +61,13 @@ public class IdealMatchingDAO {
 
     // ===== 후보 선정 =====
 
-    // 조건 + 점수 통과한 후보 중 랜덤 1명 (없으면 null)
-    public IdealCandidateDTO selectCandidate(int memberSeq) {
-        return mybatis.selectOne(NS + "selectCandidate", memberSeq);
+    // 조건 + 기준점 통과한 후보 중 최고 점수 1명 (없으면 null)
+    // waitedSec: 내가 대기한 시간(초). 길수록 기준점이 낮아짐
+    public IdealCandidateDTO selectCandidate(int memberSeq, long waitedSec) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("memberSeq", memberSeq);
+        param.put("waitedSec", waitedSec);
+        return mybatis.selectOne(NS + "selectCandidate", param);
     }
 
     // ===== 매칭 확정 + 채팅방 생성 =====
