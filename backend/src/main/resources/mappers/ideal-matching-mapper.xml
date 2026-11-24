@@ -1,7 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!--
     이상형 매칭
@@ -14,79 +12,88 @@
 -->
 <mapper namespace="IdealMatching">
 
-    <!-- ===================================================== -->
-    <!-- 공통                                                    -->
-    <!-- ===================================================== -->
+	<!-- ===================================================== -->
+	<!-- 공통                                                    -->
+	<!-- ===================================================== -->
 
-    <!-- 로그인 아이디 → 회원 번호 (JWT에는 LOGIN_ID만 있어서 변환 필요) -->
-    <select id="selectMemberSeqByLoginId" resultType="int">
-        SELECT MEMBER_SEQ
-        FROM MEMBER
-        WHERE LOGIN_ID = #{loginId}
-          AND MEMBER_STATUS = 'ACTIVE'
-    </select>
+	<!-- 로그인 아이디 → 회원 번호 (JWT에는 LOGIN_ID만 있어서 변환 필요) -->
+	<select id="selectMemberSeqByLoginId" resultType="int">
+		SELECT MEMBER_SEQ
+		FROM MEMBER
+		WHERE LOGIN_ID = #{loginId}
+		AND MEMBER_STATUS = 'ACTIVE'
+	</select>
 
-    <!-- 프로필(온보딩) 등록 여부. 이상형(IDEAL_TYPE)은 선택이라 확인하지 않음 -->
-    <select id="countProfile" resultType="int">
-        SELECT COUNT(*) FROM MEMBER_PROFILE WHERE MEMBER_SEQ = #{memberSeq}
-    </select>
+	<!-- 프로필(온보딩) 등록 여부. 이상형(IDEAL_TYPE)은 선택이라 확인하지 않음 -->
+	<select id="countProfile" resultType="int">
+		SELECT COUNT(*) FROM MEMBER_PROFILE WHERE MEMBER_SEQ = #{memberSeq}
+	</select>
 
-    <!-- ===================================================== -->
-    <!-- 대기열                                                  -->
-    <!-- ===================================================== -->
+	<!-- ===================================================== -->
+	<!-- 대기열                                                  -->
+	<!-- ===================================================== -->
 
-    <!-- 내 대기열 상태 (WAITING / MATCHED, 없으면 null) -->
-    <select id="selectQueueStatus" resultType="string">
-        SELECT STATUS
-        FROM MATCH_QUEUE
-        WHERE MEMBER_SEQ = #{memberSeq}
-          AND MATCH_TYPE = 'IDEAL'
-    </select>
+	<!-- 내 대기열 상태 (WAITING / MATCHED, 없으면 null) -->
+	<select id="selectQueueStatus" resultType="string">
+		SELECT STATUS
+		FROM MATCH_QUEUE
+		WHERE MEMBER_SEQ = #{memberSeq}
+		AND MATCH_TYPE = 'IDEAL'
+	</select>
 
-    <!-- 대기열 등록 (이미 있으면 PK 중복 에러) -->
-    <insert id="insertQueue">
-        INSERT INTO MATCH_QUEUE (MEMBER_SEQ, MATCH_TYPE, STATUS)
-        VALUES (#{memberSeq}, 'IDEAL', 'WAITING')
-    </insert>
+	<!-- 대기열 등록 (이미 있으면 PK 중복 에러) -->
+	<insert id="insertQueue">
+		INSERT INTO MATCH_QUEUE (MEMBER_SEQ, MATCH_TYPE, STATUS)
+		VALUES (#{memberSeq}, 'IDEAL', 'WAITING')
+	</insert>
 
-    <!-- 대기 취소 (이미 매칭됐으면 0건) -->
-    <delete id="deleteWaitingQueue">
-        DELETE FROM MATCH_QUEUE
-        WHERE MEMBER_SEQ = #{memberSeq}
-          AND MATCH_TYPE = 'IDEAL'
-          AND STATUS = 'WAITING'
-    </delete>
+	<!-- 대기 취소 (이미 매칭됐으면 0건) -->
+	<delete id="deleteWaitingQueue">
+		DELETE FROM MATCH_QUEUE
+		WHERE MEMBER_SEQ = #{memberSeq}
+		AND MATCH_TYPE = 'IDEAL'
+		AND STATUS = 'WAITING'
+	</delete>
+	
+	<!-- 대기 중인 회원 전체 (나간 대기자 정리용) -->
+	<select id="selectWaitingMembers" resultType="int">
+		SELECT MEMBER_SEQ
+		FROM MATCH_QUEUE
+		WHERE MATCH_TYPE = 'IDEAL'
+		AND STATUS = 'WAITING'
+	</select>
 
-    <!-- 매칭 결과를 받은 뒤 내 대기열 행 제거 -->
-    <delete id="deleteMyQueue">
-        DELETE FROM MATCH_QUEUE
-        WHERE MEMBER_SEQ = #{memberSeq}
-          AND MATCH_TYPE = 'IDEAL'
-    </delete>
+	<!-- 매칭 결과를 받은 뒤 내 대기열 행 제거 -->
+	<delete id="deleteMyQueue">
+		DELETE FROM MATCH_QUEUE
+		WHERE MEMBER_SEQ = #{memberSeq}
+		AND MATCH_TYPE = 'IDEAL'
+	</delete>
 
-    <!-- 두 사람 모두 WAITING일 때만 MATCHED로 (결과가 2여야 성공 → 동시에 같은 상대를 노린 경우 방지) -->
-    <update id="updateQueueMatched">
-        UPDATE MATCH_QUEUE
-        SET STATUS = 'MATCHED'
-        WHERE MEMBER_SEQ IN (#{memberSeq}, #{targetSeq})
-          AND MATCH_TYPE = 'IDEAL'
-          AND STATUS = 'WAITING'
-    </update>
+	<!-- 두 사람 모두 WAITING일 때만 MATCHED로 (결과가 2여야 성공 → 동시에 같은 상대를 노린 경우 방지) -->
+	<update id="updateQueueMatched">
+		UPDATE MATCH_QUEUE
+		SET STATUS = 'MATCHED'
+		WHERE MEMBER_SEQ IN (#{memberSeq}, #{targetSeq})
+		AND MATCH_TYPE = 'IDEAL'
+		AND STATUS = 'WAITING'
+	</update>
 
-    <!-- ===================================================== -->
-    <!-- 후보 조회 → 점수 계산 → 최고 점수 1명 (동점이면 랜덤)       -->
-    <!--                                                        -->
-    <!-- 이상형은 온보딩에서 저장하는 IDEAL_TYPE(LOGIN_ID 기준)을 사용 -->
-    <!-- 이상형을 입력하지 않았거나 비어 있는 항목은 "상관없음"으로 본다 -->
-    <!--   필수 조건 : 이성 / 서로의 나이 범위 / 서로 차단 X / 최근 7일 내 매칭 X -->
-    <!--   점수 항목 : 키, MBTI, 흡연, 음주, 병역 (가중치는 SYS_MATCHING_CONFIG) -->
-    <!--   상호 점수 = √(나→상대 × 상대→나) 가 기준점 이상                  -->
-    <!--   기준점 : 대기가 길어질수록 낮춤 (사용자가 적을 때도 매칭되도록)     -->
-    <!--     IDEAL_MIN_SCORE - IDEAL_RELAX_STEP × (대기초 / IDEAL_RELAX_SEC) -->
-    <!--     단, IDEAL_MIN_SCORE_FLOOR 아래로는 내려가지 않음                -->
-    <!--   파라미터 : memberSeq, waitedSec(내가 대기한 시간, 초)              -->
-    <!-- ===================================================== -->
-    <select id="selectCandidate" resultType="com.app.silhouette.matching.IdealCandidateDTO">
+	<!-- ===================================================== -->
+	<!-- 후보 조회 → 점수 계산 → 최고 점수 1명 (동점이면 랜덤)       -->
+	<!--                                                        -->
+	<!-- 이상형은 온보딩에서 저장하는 IDEAL_TYPE(LOGIN_ID 기준)을 사용 -->
+	<!-- 이상형을 입력하지 않았거나 비어 있는 항목은 "상관없음"으로 본다 -->
+	<!--   필수 조건 : 이성 / 서로의 나이 범위 / 서로 차단 X / 최근 7일 내 매칭 X -->
+	<!--   점수 항목 : 키, MBTI, 흡연, 음주, 병역 (가중치는 SYS_MATCHING_CONFIG) -->
+	<!--   상호 점수 = √(나→상대 × 상대→나) 가 기준점 이상                  -->
+	<!--   기준점 : 대기가 길어질수록 낮춤 (사용자가 적을 때도 매칭되도록)     -->
+	<!--     IDEAL_MIN_SCORE - IDEAL_RELAX_STEP × (대기초 / IDEAL_RELAX_SEC) -->
+	<!--     단, IDEAL_MIN_SCORE_FLOOR 아래로는 내려가지 않음                -->
+	<!--   파라미터 : memberSeq, waitedSec(내가 대기한 시간, 초)              -->
+	<!-- ===================================================== -->
+	<select id="selectCandidate"
+		resultType="com.app.silhouette.matching.IdealCandidateDTO">
     <![CDATA[
         WITH cfg AS (
             SELECT
@@ -210,73 +217,80 @@
     ]]>
     </select>
 
-    <!-- ===================================================== -->
-    <!-- 매칭 확정 + 채팅방 생성                                  -->
-    <!-- 채팅 기능(chatting-mapper)과 같은 규칙으로 만든다:          -->
-    <!--   ROOM_STATUS='Y' + CHAT_PARTICIPANT + CHAT_ROOM_LIST     -->
-    <!-- ===================================================== -->
+	<!-- ===================================================== -->
+	<!-- 매칭 확정 + 채팅방 생성                                  -->
+	<!-- 채팅 기능(chatting-mapper)과 같은 규칙으로 만든다:          -->
+	<!--   ROOM_STATUS='Y' + CHAT_PARTICIPANT + CHAT_ROOM_LIST     -->
+	<!-- ===================================================== -->
 
-    <!-- 매칭 이력 저장 (번호는 dto.ideal_Matching_Seq에 채워짐) -->
-    <insert id="insertMatching" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
-        <selectKey keyProperty="idealMatchingSeq" resultType="int" order="BEFORE">
-            SELECT SEQ_IDEAL_MATCHING.NEXTVAL FROM DUAL
-        </selectKey>
-        INSERT INTO IDEAL_MATCHING
-            (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS)
-        VALUES
-            (#{idealMatchingSeq}, #{memberSeq1}, #{memberSeq2}, #{score}, #{score1To2}, #{score2To1}, 'MATCHED')
-    </insert>
+	<!-- 매칭 이력 저장 (번호는 dto.ideal_Matching_Seq에 채워짐) -->
+	<insert id="insertMatching"
+		parameterType="com.app.silhouette.matching.IdealMatchingDTO">
+		<selectKey keyProperty="idealMatchingSeq" resultType="int"
+			order="BEFORE">
+			SELECT SEQ_IDEAL_MATCHING.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO IDEAL_MATCHING (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1,
+		MEMBER_SEQ_2, SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS) VALUES
+		(#{idealMatchingSeq}, #{memberSeq1}, #{memberSeq2}, #{score},
+		#{score1To2}, #{score2To1}, 'MATCHED') </insert>
 
-    <!-- 채팅방 생성 (ROOM_NAME이 없으면 채팅 목록에 상대 닉네임이 표시됨) -->
-    <insert id="insertChatRoom" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
-        <selectKey keyProperty="chatRoomSeq" resultType="int" order="BEFORE">
-            SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
-        </selectKey>
-        INSERT INTO CHAT_ROOM
-            (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT)
-        VALUES
-            (#{chatRoomSeq}, NULL, 'IDEAL', #{idealMatchingSeq}, #{memberSeq1}, 'Y', SYSDATE)
-    </insert>
+	<!-- 채팅방 생성 (ROOM_NAME이 없으면 채팅 목록에 상대 닉네임이 표시됨) -->
+	<insert id="insertChatRoom"
+		parameterType="com.app.silhouette.matching.IdealMatchingDTO">
+		<selectKey keyProperty="chatRoomSeq" resultType="int" order="BEFORE">
+		SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO CHAT_ROOM (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE,
+		MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT) VALUES
+		(#{chatRoomSeq}, NULL, 'IDEAL', #{idealMatchingSeq}, #{memberSeq1}, 'Y',
+		SYSDATE) </insert>
 
-    <!-- 채팅방 참여자 등록 (role: OWNER / MEMBER) -->
-    <insert id="insertParticipant">
-        INSERT INTO CHAT_PARTICIPANT
-            (CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ, MEMBER_SEQ, PARTICIPANT_ROLE, PARTICIPANT_STATUS, JOINED_AT)
-        VALUES
-            (SEQ_CHAT_PARTICIPANT.NEXTVAL, #{chatRoomSeq}, #{memberSeq}, #{role}, 'JOINED', SYSDATE)
-    </insert>
+	<!-- 채팅방 참여자 등록 (role: OWNER / MEMBER) -->
+	<insert id="insertParticipant">
+		INSERT INTO CHAT_PARTICIPANT
+		(CHAT_PARTICIPANT_SEQ, CHAT_ROOM_SEQ, MEMBER_SEQ, PARTICIPANT_ROLE,
+		PARTICIPANT_STATUS, JOINED_AT)
+		VALUES
+		(SEQ_CHAT_PARTICIPANT.NEXTVAL, #{chatRoomSeq}, #{memberSeq}, #{role},
+		'JOINED', SYSDATE)
+	</insert>
 
-    <!-- 내 채팅 목록에 방 추가 (이게 있어야 채팅 목록 표시 + 메시지 전송 가능) -->
-    <insert id="insertChatRoomList">
-        INSERT INTO CHAT_ROOM_LIST
-            (CHAT_ROOM_LIST_SEQ, MEMBER_SEQ, CHAT_ROOM_SEQ, STATUS,
-             LAST_READ_MESSAGE_SEQ, DELETED_MESSAGE_SEQ, LEFT_AT, DELETED_AT, CREATED_AT)
-        VALUES
-            (SEQ_CHAT_ROOM_LIST.NEXTVAL, #{memberSeq}, #{chatRoomSeq}, 'ACTIVE',
-             0, 0, NULL, NULL, SYSDATE)
-    </insert>
+	<!-- 내 채팅 목록에 방 추가 (이게 있어야 채팅 목록 표시 + 메시지 전송 가능) -->
+	<insert id="insertChatRoomList">
+		INSERT INTO CHAT_ROOM_LIST
+		(CHAT_ROOM_LIST_SEQ, MEMBER_SEQ, CHAT_ROOM_SEQ, STATUS,
+		LAST_READ_MESSAGE_SEQ, DELETED_MESSAGE_SEQ, LEFT_AT, DELETED_AT,
+		CREATED_AT)
+		VALUES
+		(SEQ_CHAT_ROOM_LIST.NEXTVAL, #{memberSeq}, #{chatRoomSeq}, 'ACTIVE',
+		0, 0, NULL, NULL, SYSDATE)
+	</insert>
 
-    <!-- 나의 가장 최근 매칭 (다른 사람이 나를 매칭했을 때 결과를 받아가는 용도) -->
-    <select id="selectLatestMatching" resultType="com.app.silhouette.matching.IdealMatchingDTO">
-        SELECT * FROM (
-            SELECT im.IDEAL_MATCHING_SEQ, im.MEMBER_SEQ_1, im.MEMBER_SEQ_2,
-                   im.SCORE, im.SCORE_1_TO_2, im.SCORE_2_TO_1,
-                   im.STATUS, im.MATCHED_AT, im.ENDED_AT,
-                   r.CHAT_ROOM_SEQ
-            FROM IDEAL_MATCHING im
-            JOIN CHAT_ROOM r ON r.MATCHING_SEQ = im.IDEAL_MATCHING_SEQ AND r.ROOM_TYPE = 'IDEAL'
-            WHERE (im.MEMBER_SEQ_1 = #{memberSeq} OR im.MEMBER_SEQ_2 = #{memberSeq})
-            ORDER BY im.MATCHED_AT DESC, im.IDEAL_MATCHING_SEQ DESC
-        )
-        WHERE ROWNUM = 1
-    </select>
+	<!-- 나의 가장 최근 매칭 (다른 사람이 나를 매칭했을 때 결과를 받아가는 용도) -->
+	<select id="selectLatestMatching"
+		resultType="com.app.silhouette.matching.IdealMatchingDTO">
+		SELECT * FROM (
+		SELECT im.IDEAL_MATCHING_SEQ, im.MEMBER_SEQ_1, im.MEMBER_SEQ_2,
+		im.SCORE, im.SCORE_1_TO_2, im.SCORE_2_TO_1,
+		im.STATUS, im.MATCHED_AT, im.ENDED_AT,
+		r.CHAT_ROOM_SEQ
+		FROM IDEAL_MATCHING im
+		JOIN CHAT_ROOM r ON r.MATCHING_SEQ = im.IDEAL_MATCHING_SEQ AND
+		r.ROOM_TYPE = 'IDEAL'
+		WHERE (im.MEMBER_SEQ_1 = #{memberSeq} OR im.MEMBER_SEQ_2 = #{memberSeq})
+		ORDER BY im.MATCHED_AT DESC, im.IDEAL_MATCHING_SEQ DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
 
-    <!-- ===================================================== -->
-    <!-- 채팅창 사이드: 상대 프로필                                -->
-    <!-- 이상형 매칭 방(IDEAL), 블라인드에서 둘 다 GO한 방(BLIND)의   -->
-    <!-- 참여자만 조회 가능                                        -->
-    <!-- ===================================================== -->
-    <select id="selectPartnerProfile" resultType="com.app.silhouette.matching.IdealPartnerProfileDTO">
+	<!-- ===================================================== -->
+	<!-- 채팅창 사이드: 상대 프로필                                -->
+	<!-- 이상형 매칭 방(IDEAL), 블라인드에서 둘 다 GO한 방(BLIND)의   -->
+	<!-- 참여자만 조회 가능                                        -->
+	<!-- ===================================================== -->
+	<select id="selectPartnerProfile"
+		resultType="com.app.silhouette.matching.IdealPartnerProfileDTO">
     <![CDATA[
         SELECT r.ROOM_TYPE                                       AS room_type,
                NVL(p.NICKNAME, m.NICKNAME)                       AS nickname,

@@ -2,6 +2,7 @@ package com.app.silhouette.matching;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -19,12 +20,22 @@ public class IdealMatchingService {
     private static final String QUEUE_WAITING = "WAITING";
     private static final String QUEUE_MATCHED = "MATCHED";
 
+    // 이 시간 동안 상태 확인(3초 폴링)이 없으면 창을 닫고 나간 대기자로 보고 대기열에서 뺀다
+    // 브라우저는 백그라운드 탭의 타이머를 최대 1분에 한 번으로 늦추므로 1분보다 넉넉하게 잡음
+    static final long STALE_MILLIS = 90_000;
+
     private final IdealMatchingDAO dao;
     private final TransactionTemplate tx;
 
     // 회원별 대기 시작 시각(ms). 대기가 길수록 매칭 기준점을 낮추는 데 사용
     // 서버가 재시작되면 비워지고, 그 뒤 처음 확인한 시각부터 다시 잰다
     private final Map<Integer, Long> waitStartedAt = new ConcurrentHashMap<>();
+
+    // 회원별 마지막 상태 확인 시각(ms). 오래 확인이 없는 대기자를 정리하는 데 사용
+    private final Map<Integer, Long> lastSeenAt = new ConcurrentHashMap<>();
+
+    // 현재 시각 (테스트에서 시간을 바꿔 끼우기 위해 분리)
+    LongSupplier clock = System::currentTimeMillis;
 
     IdealMatchingService(IdealMatchingDAO dao, TransactionTemplate tx) {
         this.dao = dao;
@@ -56,8 +67,9 @@ public class IdealMatchingService {
             } catch (DuplicateKeyException e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 매칭이 진행 중이에요.");
             }
-            waitStartedAt.put(me, System.currentTimeMillis());
+            waitStartedAt.put(me, clock.getAsLong());
         }
+        lastSeenAt.put(me, clock.getAsLong());
 
         return tryMatch(me);
     }
@@ -103,8 +115,8 @@ public class IdealMatchingService {
         dto.setScore1To2(cand.getScoreMeToCand());
         dto.setScore2To1(cand.getScoreCandToMe());
 
-        dao.insertMatching(dto);    // dto.ideal_Matching_Seq 채워짐
-        dao.insertChatRoom(dto);    // dto.chat_Room_Seq 채워짐
+        dao.insertMatching(dto);    // dto.idealMatchingSeq 채워짐
+        dao.insertChatRoom(dto);    // dto.chatRoomSeq 채워짐
 
         int room = dto.getChatRoomSeq();
         dao.insertParticipant(room, me, "OWNER");
@@ -112,8 +124,8 @@ public class IdealMatchingService {
         dao.insertChatRoomList(room, me);
         dao.insertChatRoomList(room, target);
 
-        waitStartedAt.remove(me);
-        waitStartedAt.remove(target);
+        forget(me);
+        forget(target);
 
         // 나는 바로 채팅방으로 가므로 대기열에서 제거
         // 상대는 MATCHED로 남겨 두고, 상대가 상태를 확인할 때 결과를 받고 제거됨
@@ -135,11 +147,12 @@ public class IdealMatchingService {
             return receiveMatched(me);
         }
         if (QUEUE_WAITING.equals(queue)) {
+            lastSeenAt.put(me, clock.getAsLong());   // 아직 화면을 보고 있음
             // 대기 시간이 늘어 기준점이 낮아졌을 수 있으니 다시 찾아본다
             // (새로 들어오는 사람이 없어도 기존 대기자끼리 매칭되도록)
             return tryMatch(me);
         }
-        waitStartedAt.remove(me);
+        forget(me);
         return IdealMatchResultDTO.idle();
     }
 
@@ -149,7 +162,7 @@ public class IdealMatchingService {
     public void cancel(String loginId) {
         int me = getMemberSeq(loginId);
 
-        waitStartedAt.remove(me);
+        forget(me);
         if (dao.deleteWaitingQueue(me) == 0) {
             // 지워진 게 없음 → 이미 매칭됐거나 대기 중이 아님
             if (QUEUE_MATCHED.equals(dao.selectQueueStatus(me))) {
@@ -179,7 +192,7 @@ public class IdealMatchingService {
 
     // 다른 사람이 나를 매칭한 결과를 받아가고 대기열에서 빠짐
     private IdealMatchResultDTO receiveMatched(int me) {
-        waitStartedAt.remove(me);
+        forget(me);
         IdealMatchingDTO m = dao.selectLatestMatching(me);
         dao.deleteMyQueue(me);
 
@@ -193,10 +206,34 @@ public class IdealMatchingService {
                 m.getIdealMatchingSeq(), m.getChatRoomSeq(), m.getScore());
     }
 
+    // =========================================================
+    // 나간 대기자 정리 (IdealMatchingScheduler가 10초마다 호출)
+    // 창을 강제로 닫거나 네트워크가 끊기면 취소 요청이 오지 않아 대기열에 계속 남는다
+    // → STALE_MILLIS 동안 상태 확인이 없는 WAITING 행을 지운다
+    // =========================================================
+    public void removeStaleWaiting() {
+        long now = clock.getAsLong();
+        for (int seq : dao.selectWaitingMembers()) {
+            // 기록이 없으면(서버 재시작 등) 지금부터 잰다
+            Long seen = lastSeenAt.putIfAbsent(seq, now);
+            if (seen != null && now - seen > STALE_MILLIS) {
+                dao.deleteWaitingQueue(seq);   // 그 사이 매칭됐으면 0건 (WAITING만 지움)
+                forget(seq);
+            }
+        }
+    }
+
+    // 대기 관련 메모리 기록 정리
+    private void forget(int memberSeq) {
+        waitStartedAt.remove(memberSeq);
+        lastSeenAt.remove(memberSeq);
+    }
+
     // 대기한 시간(초). 기록이 없으면(서버 재시작 등) 지금부터 잰다
     private long waitedSec(int me) {
-        long started = waitStartedAt.computeIfAbsent(me, k -> System.currentTimeMillis());
-        return Math.max(0, (System.currentTimeMillis() - started) / 1000);
+        long now = clock.getAsLong();
+        long started = waitStartedAt.computeIfAbsent(me, k -> now);
+        return Math.max(0, (now - started) / 1000);
     }
 
     // 로그인 아이디 → 회원 번호
