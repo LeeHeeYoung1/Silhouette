@@ -3,6 +3,8 @@
 팀원 모두가 같은 규칙으로 작업하기 위한 문서입니다.  
 규칙을 바꾸고 싶으면 팀원과 합의 후 이 문서를 먼저 수정합니다.
 
+> 💡 규칙이 왜 이렇게 정해졌는지, 실제로 겪은 문제와 해결 과정은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 정리되어 있습니다.
+
 ## 목차
 1. [기본 원칙](#1-기본-원칙)
 2. [브랜치 전략](#2-브랜치-전략)
@@ -314,7 +316,7 @@ git push origin --delete feat/C1-blind-matching
 - 테이블, 컬럼: **snake_case, 소문자**
 - 테이블명은 **단수형** 통일 → `member`, `post_file`
 - PK는 `테이블명_seq`, FK는 `대상테이블_seq` (예: `post_file` 테이블의 PK `post_file_seq`, FK `post_seq`)
-- 시퀀스 이름은 `seq_테이블명`으로 통일 (예: `seq_member`, `seq_match_history`)
+- 시퀀스 이름은 `seq_테이블명`으로 통일 (예: `seq_member`, `seq_match_history`) → 배경: [트러블슈팅 1번](./TROUBLESHOOTING.md#1-시퀀스-이름-접두사접미사-혼용으로-인한-충돌)
 - 시퀀스를 새로 만들거나 이름을 바꿀 때 테이블에 데이터가 있으면 `START WITH (PK 최댓값 + 1)`로 만든다. (1부터 시작하면 기존 PK와 겹쳐 `ORA-00001`)
 - DB는 팀이 함께 쓰므로, 테이블·시퀀스를 바꾸는 작업은 미리 공지하고 PR 본문에 SQL 스크립트(`ALTER TABLE` 등)를 함께 적는다.
 - 생성/수정 시간 컬럼: `created_at`, `updated_at`
@@ -356,6 +358,7 @@ public class LiveRoomDTO {
 - DTO 필드명이나 getter/setter 이름을 바꿀 때는 **매퍼 XML(컬럼·별칭·`#{}`)과 프론트 코드를 같은 커밋에서 함께** 바꾼다.
 - 새 DTO·매퍼를 만들거나 필드명을 바꾸면, 조회 결과와 요청 값이 **null로 들어오지 않는지 꼭 확인**한다.
   - 이름이 안 맞으면 에러 없이 조용히 null이 되거나, `There is no getter for property ...` 예외가 난다.
+- 이 규칙을 정하게 된 배경은 [트러블슈팅 2번](./TROUBLESHOOTING.md#2-dto-필드-네이밍camelcase--snake_case-혼용으로-인한-충돌)을 참고한다.
 
 ### 6-5. API·서버 주소
 
@@ -398,6 +401,8 @@ public class LiveRoomDTO {
 > ⚠️ **`git push --force`는 사용 금지.** 팀원의 작업이 날아갈 수 있다.  
 > ⚠️ **`git reset --hard`**는 변경 내용이 완전히 사라지니 신중하게.
 
+> 💡 개발 중 겪은 문제와 해결 과정은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록한다. 비슷한 문제가 생기면 먼저 찾아보고, 새로 해결한 문제는 목차와 본문 맨 위에 추가한다.
+
 ---
 
 ## 📝 변경 이력
@@ -413,3 +418,4 @@ public class LiveRoomDTO {
 | 2026.11.20 | 시퀀스 생성 시 시작 번호·DB 변경 스크립트 규칙, MyBatis 매핑(6-4), API·서버 주소(6-5), JWT 회원 판단·업로드 검사(보안), PR 범위·빌드 확인 규칙 추가 | 서현수 |
 | 2026.11.24 | DTO 멤버 필드 snake_case 통일, getter/setter·`#{}`·JSON 키는 camelCase(6-3, 6-4 개정), camelCase 별칭 금지, 이름 변경 시 매퍼·프론트 동시 수정 규칙 추가 | 서현수 |
 | 2026.11.24 | 6-4 코드 블록 닫힘 누락 수정, PK 규칙(`테이블명_seq`)·테이블명 예시·접미사 표기·커밋 예시(Oracle) 정정, `#{}` 규칙 범위 명확화 | 서현수 |
+| 2026.11.24 | TROUBLESHOOTING.md 참조 안내 추가(문서 상단, 6-2, 6-4, 8) | 서현수 |
