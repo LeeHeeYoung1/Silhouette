@@ -429,7 +429,7 @@ function Home() {
               if (response.status === 'MATCHED' && response.roomSeq) {
                 isBlindWaitingRef.current = false;
                 setIsBlindMatching(false);
-                navi(`/chatting/${response.roomSeq}`);
+                navi(`/chat/${response.roomSeq}`);   // 블라인드 채팅방 (일반 채팅방 /chatting 아님)
               }
             } catch (err) {
               console.error('응답 메시지 파싱 에러:', err);
