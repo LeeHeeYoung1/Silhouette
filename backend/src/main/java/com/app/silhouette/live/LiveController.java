@@ -65,6 +65,13 @@ public class LiveController {
         return ResponseEntity.ok(service.join(loginId, liveRoomSeq));
     }
 
+    // 방송자 재입장 (다른 화면에 갔다가 내 방송으로 돌아올 때) → { token, url, room, liveRoomSeq, myMemberSeq }
+    @PostMapping("/{liveRoomSeq}/resume")
+    public ResponseEntity<Map<String, Object>> resume(@RequestAttribute("id") String loginId,
+            @PathVariable long liveRoomSeq) {
+        return ResponseEntity.ok(service.resume(loginId, liveRoomSeq));
+    }
+
     // 방송자 종료
     @PostMapping("/{liveRoomSeq}/end")
     public ResponseEntity<String> end(@RequestAttribute("id") String loginId,

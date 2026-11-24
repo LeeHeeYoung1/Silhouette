@@ -161,6 +161,36 @@ public class LiveService {
 		return result;
 	}
 
+	// ========================= 방송자 재입장 =========================
+
+	// 방송자가 다른 화면으로 이동해 연결이 끊긴 뒤 내 방송으로 돌아올 때
+	// 방송은 LIVE 그대로 두고 방송자 토큰만 다시 발급
+	// → { token, url, room, liveRoomSeq, myMemberSeq }
+	public Map<String, Object> resume(String loginId, long liveRoomSeq) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+
+		if (room.getHostSeq() != me) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "내 방송만 이어서 할 수 있어요.");
+		}
+
+		// 끊김 표시를 지워서 다시 연결되는 동안 30초 TIMEOUT 종료가 되지 않게 함
+		// (webhook이 오면 participant_joined에서 한 번 더 지워도 문제없음)
+		dao.clearHostDisconnected(liveRoomSeq);
+
+		room.setHashtags(dao.selectHashtags(liveRoomSeq));
+		String token = tokenService.createToken(
+				LiveKitRoomService.roomName(liveRoomSeq), me, displayName(me, loginId), true);
+
+		Map<String, Object> result = new HashMap<>();
+		result.put("token", token);
+		result.put("url", livekitUrl);
+		result.put("room", room);
+		result.put("liveRoomSeq", liveRoomSeq);
+		result.put("myMemberSeq", me);
+		return result;
+	}
+
 	// ========================= 조회 =========================
 
 	public List<LiveRoomDTO> list(String keyword, String category, int page) {

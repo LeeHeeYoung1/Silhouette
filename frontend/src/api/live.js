@@ -12,6 +12,9 @@ export const startLive = (body) => Client.post('/api/live', body);
 // 시청 입장 → { token, url, room }
 export const joinLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/join`);
 
+// 방송자 재입장 (다른 화면에 갔다가 내 방송으로 돌아올 때) → { token, url, room, liveRoomSeq, myMemberSeq }
+export const resumeLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/resume`);
+
 // 방송 종료 (방송자)
 export const endLive = (liveRoomSeq) => Client.post(`/api/live/${liveRoomSeq}/end`);
 
