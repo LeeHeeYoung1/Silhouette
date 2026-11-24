@@ -2,6 +2,7 @@ package com.app.silhouette.chatting;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -29,16 +31,19 @@ public class ChattingService {
     private final Storage storage;
     private final MemberFriendService memberFriendService;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${gcp.bucket}")
     private String bucketName;
 
     public ChattingService(ChattingDAO chattingDAO, Storage storage,
-            MemberFriendService memberFriendService, NotificationService notificationService) {
+            MemberFriendService memberFriendService, NotificationService notificationService,
+            SimpMessagingTemplate messagingTemplate) {
         this.chattingDAO = chattingDAO;
         this.storage = storage;
         this.memberFriendService = memberFriendService;
         this.notificationService = notificationService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // 채팅방 생성: 생성자 참여 후 선택한 회원들에게 초대 발송
@@ -75,6 +80,7 @@ public class ChattingService {
         roomList.setLast_read_message_seq(0L);
         roomList.setDeleted_message_seq(0L);
         chattingDAO.createChatRoomList(roomList);
+        publishSystemMessage(room.getChat_room_seq(), memberSeq, "JOIN");
 
         if (inviteeSeqs != null) {
             for (Long inviteeSeq : inviteeSeqs) {
@@ -362,6 +368,7 @@ public class ChattingService {
 
         if (accept) {
             Long roomSeq = invitation.getChat_room_seq();
+            boolean wasAlreadyJoined = chattingDAO.isRoomMember(roomSeq, memberSeq) > 0;
 
             if (chattingDAO.countParticipant(roomSeq, memberSeq) > 0) {
                 chattingDAO.reactivateParticipant(roomSeq, memberSeq);
@@ -385,6 +392,10 @@ public class ChattingService {
                 roomList.setDeleted_message_seq(0L);
                 chattingDAO.createChatRoomList(roomList);
             }
+
+            if (!wasAlreadyJoined) {
+                publishSystemMessage(roomSeq, memberSeq, "JOIN");
+            }
         }
     }
 
@@ -394,7 +405,8 @@ public class ChattingService {
             throw new IllegalArgumentException("참여 중인 채팅방이 아닙니다.");
         }
 
-        // 현재 회원만 채팅방에서 나가기
+        // 실제 참여 중인 회원만 한 번 퇴장 메시지를 남깁니다.
+        publishSystemMessage(roomSeq, memberSeq, "LEAVE");
         chattingDAO.leaveParticipant(roomSeq, memberSeq);
         chattingDAO.leaveRoomList(roomSeq, memberSeq);
 
@@ -402,6 +414,47 @@ public class ChattingService {
         if (chattingDAO.countJoinedParticipants(roomSeq) == 0) {
             chattingDAO.cancelRoomInvitations(roomSeq);
             chattingDAO.deleteChatRoom(roomSeq);
+        }
+    }
+
+    private void publishSystemMessage(Long roomSeq, Long memberSeq, String eventType) {
+        String nickname = chattingDAO.getMemberNickname(memberSeq);
+        String content = "JOIN".equals(eventType)
+                ? nickname + "님이 입장하였습니다."
+                : nickname + "님이 퇴장하였습니다.";
+
+        ChattingMessageDTO message = new ChattingMessageDTO();
+        message.setChat_room_seq(roomSeq);
+        message.setSender_seq(memberSeq);
+        message.setMessage_type("SYSTEM");
+        message.setSystem_event_type(eventType);
+        message.setMessage_content(content);
+        message.setCreated_at(new Date());
+        message.setDeleted_yn("N");
+        chattingDAO.insertMessage(message);
+
+        messagingTemplate.convertAndSend("/sub/chat/" + roomSeq, (Object) message);
+    }
+
+    public ChattingMessageDTO updateMessage(Long roomSeq, Long messageSeq, Long memberSeq, String content) {
+        if (!isRoomMember(roomSeq, memberSeq)) {
+            throw new IllegalArgumentException("채팅방 참여자만 수정할 수 있습니다.");
+        }
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("수정할 내용을 입력해 주세요.");
+        }
+        if (chattingDAO.updateMessageContent(roomSeq, messageSeq, memberSeq, content.trim()) == 0) {
+            throw new IllegalArgumentException("본인이 작성한 일반 메시지만 수정할 수 있습니다.");
+        }
+        return chattingDAO.selectMessageBySeq(messageSeq);
+    }
+
+    public void deleteMessage(Long roomSeq, Long messageSeq, Long memberSeq) {
+        if (!isRoomMember(roomSeq, memberSeq)) {
+            throw new IllegalArgumentException("채팅방 참여자만 삭제할 수 있습니다.");
+        }
+        if (chattingDAO.deleteMessage(roomSeq, messageSeq, memberSeq) == 0) {
+            throw new IllegalArgumentException("본인이 작성한 일반 메시지만 삭제할 수 있습니다.");
         }
     }
 

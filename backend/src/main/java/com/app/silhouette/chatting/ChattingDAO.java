@@ -39,6 +39,31 @@ public class ChattingDAO {
         return mybatis.selectOne("Chatting.selectRoomBySeq", roomSeq);
     }
 
+    public String getMemberNickname(Long memberSeq) {
+        return mybatis.selectOne("Chatting.getMemberNickname", memberSeq);
+    }
+
+    public ChattingMessageDTO selectMessageBySeq(Long messageSeq) {
+        return mybatis.selectOne("Chatting.selectMessageBySeq", messageSeq);
+    }
+
+    public int updateMessageContent(Long roomSeq, Long messageSeq, Long memberSeq, String content) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("roomSeq", roomSeq);
+        param.put("messageSeq", messageSeq);
+        param.put("memberSeq", memberSeq);
+        param.put("content", content);
+        return mybatis.update("Chatting.updateMessageContent", param);
+    }
+
+    public int deleteMessage(Long roomSeq, Long messageSeq, Long memberSeq) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("roomSeq", roomSeq);
+        param.put("messageSeq", messageSeq);
+        param.put("memberSeq", memberSeq);
+        return mybatis.update("Chatting.deleteMessage", param);
+    }
+
     public int insertMessage(ChattingMessageDTO message) {
         return mybatis.insert("Chatting.insertMessage", message);
     }

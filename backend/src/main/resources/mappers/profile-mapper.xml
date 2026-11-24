@@ -3,7 +3,7 @@
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="Profile">
-
+ 
 	<!-- 회원 기본 정보: 닉네임, 성별, 만 나이 -->
 	<select id="selectMemberBasic" parameterType="string" resultType="com.app.silhouette.profile.ProfileDTO">
 		select member_seq,
@@ -14,7 +14,30 @@
 		  from member
 		 where login_id = #{loginId}
 	</select>
-
+ 
+	<!-- 회원 번호로 기본 정보 (다른 회원 프로필 팝업) -->
+	<select id="selectMemberBasicBySeq" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
+		select member_seq,
+		       login_id,
+		       nickname,
+		       gender,
+		       trunc(months_between(sysdate, birth_date) / 12) as age
+		  from member
+		 where member_seq = #{value}
+		   and member_status = 'ACTIVE'
+	</select>
+ 
+	<!-- 두 회원이 같은 채팅방에 함께 참여 중인지 -->
+	<select id="countSharedRoom" parameterType="map" resultType="int">
+		select count(*)
+		  from chat_participant a
+		  join chat_participant b on a.chat_room_seq = b.chat_room_seq
+		 where a.member_seq = #{memberSeq}
+		   and b.member_seq = #{targetSeq}
+		   and a.participant_status = 'JOINED'
+		   and b.participant_status = 'JOINED'
+	</select>
+ 
 	<!-- 온보딩 완료 여부: 내 프로필 행이 있으면 1, 없으면 0 -->
 	<select id="countProfile" parameterType="string" resultType="int">
 		select count(*)
@@ -22,8 +45,13 @@
 		  join member m on mp.member_seq = m.member_seq
 		 where m.login_id = #{loginId}
 	</select>
+<<<<<<< HEAD
 
 	<!-- 나의 정보 저장 (온보딩) ✅ body_type 추가 -->
+=======
+ 
+	<!-- 나의 정보 저장 (온보딩) -->
+>>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
 	<insert id="insertProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		insert into member_profile (
 			member_profile_seq, member_seq, nickname, mbti, job, height, weight,
@@ -36,8 +64,13 @@
 			#{militaryStatus, jdbcType=VARCHAR}, sysdate
 		)
 	</insert>
+<<<<<<< HEAD
 
 	<!-- 나의 정보 조회 (프로필 화면, 없으면 null) ✅ body_type 추가 -->
+=======
+ 
+	<!-- ✅ 나의 정보 조회 (프로필 화면, 없으면 null) -->
+>>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
 	<select id="selectProfileByMember" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
 		select member_profile_seq, member_seq, nickname, mbti, job, height, weight,
 		       introduction, love_type, hobby, favorite, dislike, drinking, smoking,
@@ -45,8 +78,13 @@
 		  from member_profile
 		 where member_seq = #{memberSeq}
 	</select>
+<<<<<<< HEAD
 
 	<!-- 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) ✅ body_type 추가 -->
+=======
+ 
+	<!-- ✅ 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) -->
+>>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
 	<update id="updateProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		update member_profile
 		   set mbti            = #{mbti},
@@ -68,15 +106,20 @@
 		       military_status = #{militaryStatus, jdbcType=VARCHAR}
 		 where member_seq = #{memberSeq}
 	</update>
-
+ 
 	<!-- ===================== 이상형 (아이디로 연결) ===================== -->
-
+ 
 	<!-- 이상형이 이미 있는지 -->
 	<select id="countIdealType" parameterType="string" resultType="int">
 		select count(*) from ideal_type where login_id = #{loginId}
 	</select>
+<<<<<<< HEAD
 
 	<!-- 이상형 조회 (프로필 화면, 없으면 null) -->
+=======
+ 
+	<!-- ✅ 이상형 조회 (프로필 화면, 없으면 null) -->
+>>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
 	<select id="selectIdealType" parameterType="string" resultType="com.app.silhouette.profile.IdealTypeDTO">
 		select ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
 		       body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
@@ -84,7 +127,7 @@
 		  from ideal_type
 		 where login_id = #{loginId}
 	</select>
-
+ 
 	<!-- 이상형 저장 -->
 	<insert id="insertIdealType" parameterType="com.app.silhouette.profile.IdealTypeDTO">
 		insert into ideal_type (
@@ -101,7 +144,7 @@
 			systimestamp, systimestamp
 		)
 	</insert>
-
+ 
 	<!-- 이상형 수정 (이미 있을 때) -->
 	<update id="updateIdealType" parameterType="com.app.silhouette.profile.IdealTypeDTO">
 		update ideal_type
@@ -119,13 +162,15 @@
 		 where login_id = #{loginId}
 	</update>
 
-	<!-- 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
+ 
+	<!-- ✅ 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
+
 	<delete id="deleteIdealType" parameterType="string">
 		delete from ideal_type where login_id = #{loginId}
 	</delete>
-
+ 
 	<!-- ===================== 프로필 사진 (회원당 1장) ===================== -->
-
+ 
 	<!-- 내 사진 목록 (순서대로) -->
 	<select id="selectProfileImages" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
 		select profile_image_seq, member_seq, original_name, stored_name,
@@ -134,7 +179,7 @@
 		 where member_seq = #{memberSeq}
 		 order by sort_order
 	</select>
-
+ 
 	<!-- 사진 한 장 (화면에 보여줄 때) -->
 	<select id="selectProfileImageOne" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
 		select profile_image_seq, member_seq, original_name, stored_name,
@@ -142,12 +187,12 @@
 		  from profile_image
 		 where profile_image_seq = #{profileImageSeq}
 	</select>
-
+ 
 	<!-- 내 사진 전부 삭제 (온보딩에서 새로 등록하기 전) -->
 	<delete id="deleteProfileImages" parameterType="long">
 		delete from profile_image where member_seq = #{memberSeq}
 	</delete>
-
+ 
 	<!-- 사진 한 장 저장: 번호를 먼저 받아서 file_url에 사용 -->
 	<insert id="insertProfileImage" parameterType="com.app.silhouette.profile.ProfileImageDTO">
 		<selectKey keyProperty="profileImageSeq" resultType="long" order="BEFORE">
@@ -161,7 +206,7 @@
 			'/api/profile/image/' || #{profileImageSeq}, 'PENDING', #{sortOrder}
 		)
 	</insert>
-
+ 
 	<!-- 사진 교체 (프로필 화면: 같은 번호, 파일만 바뀜) -->
 	<update id="updateProfileImage" parameterType="com.app.silhouette.profile.ProfileImageDTO">
 		update profile_image

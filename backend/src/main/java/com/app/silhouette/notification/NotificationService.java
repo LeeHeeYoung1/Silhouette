@@ -1,8 +1,13 @@
 package com.app.silhouette.notification;
 
 import java.util.List;
+import java.util.Map;
+
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @Transactional
@@ -10,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private final NotificationDAO notificationDAO;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public NotificationService(NotificationDAO notificationDAO) {
+    public NotificationService(NotificationDAO notificationDAO, SimpMessagingTemplate messagingTemplate) {
         this.notificationDAO = notificationDAO;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // 알림을 만들 때 기본 읽음 상태를 N으로 지정하고 DB에 저장합니다.
@@ -26,6 +33,28 @@ public class NotificationService {
         notification.setNotification_content(content);
         notification.setRead_yn("N");
         notificationDAO.insertNotification(notification);
+        Object payload = Map.of(
+                "type", "NOTIFICATION_CREATED",
+                "notification_seq", notification.getNotification_seq()
+        );
+
+        Runnable sendNotificationEvent = () -> {
+            messagingTemplate.convertAndSend(
+                    "/sub/notifications/" + receiverSeq,
+                    payload
+            );
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendNotificationEvent.run();
+                }
+            });
+        } else {
+            sendNotificationEvent.run();
+        }
     }
 
     // 로그인한 회원에게 도착한 알림 목록을 반환합니다.

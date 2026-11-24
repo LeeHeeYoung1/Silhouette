@@ -358,4 +358,44 @@
 		AND PARTICIPANT_STATUS = 'JOINED'
 	</select>
 
+
+
+    <select id="getMemberNickname" parameterType="long" resultType="string">
+        SELECT NVL(
+            (SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ),
+            M.NICKNAME
+        )
+        FROM MEMBER M
+        WHERE M.MEMBER_SEQ = #{value}
+    </select>
+
+    <select id="selectMessageBySeq" parameterType="long"
+        resultType="com.app.silhouette.chatting.ChattingMessageDTO">
+        SELECT CHAT_MESSAGE_SEQ, CHAT_ROOM_SEQ, SENDER_SEQ, MESSAGE_TYPE,
+               SYSTEM_EVENT_TYPE, MESSAGE_CONTENT, CREATED_AT, DELETED_YN
+        FROM CHAT_MESSAGE
+        WHERE CHAT_MESSAGE_SEQ = #{value}
+    </select>
+
+    <update id="updateMessageContent" parameterType="map">
+        UPDATE CHAT_MESSAGE
+        SET MESSAGE_CONTENT = #{content}
+        WHERE CHAT_MESSAGE_SEQ = #{messageSeq}
+          AND CHAT_ROOM_SEQ = #{roomSeq}
+          AND SENDER_SEQ = #{memberSeq}
+          AND MESSAGE_TYPE = 'TEXT'
+          AND DELETED_YN = 'N'
+    </update>
+
+    <update id="deleteMessage" parameterType="map">
+        UPDATE CHAT_MESSAGE
+        SET DELETED_YN = 'Y',
+            MESSAGE_CONTENT = '삭제된 메시지입니다.'
+        WHERE CHAT_MESSAGE_SEQ = #{messageSeq}
+          AND CHAT_ROOM_SEQ = #{roomSeq}
+          AND SENDER_SEQ = #{memberSeq}
+          AND MESSAGE_TYPE = 'TEXT'
+          AND DELETED_YN = 'N'
+    </update>
+
 </mapper>
