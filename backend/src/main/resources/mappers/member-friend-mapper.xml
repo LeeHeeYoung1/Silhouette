@@ -94,9 +94,11 @@
     <!-- 이전 요청이 REJECTED였다면 새 요청 대신 PENDING으로 다시 활성화합니다. -->
     <update id="reactivateRejectedRequest" parameterType="map">
         UPDATE MEMBER_FRIEND
-        SET FRIEND_STATUS = 'PENDING'
-        WHERE MEMBER_SEQ = #{requesterSeq}
-          AND FRIEND_MEMBER_SEQ = #{requestedSeq}
+        SET MEMBER_SEQ = #{requesterSeq},
+            FRIEND_MEMBER_SEQ = #{requestedSeq},
+            FRIEND_STATUS = 'PENDING'
+        WHERE ((MEMBER_SEQ = #{requesterSeq} AND FRIEND_MEMBER_SEQ = #{requestedSeq})
+            OR (MEMBER_SEQ = #{requestedSeq} AND FRIEND_MEMBER_SEQ = #{requesterSeq}))
           AND FRIEND_STATUS = 'REJECTED'
     </update>
 
@@ -147,4 +149,42 @@
           AND FRIEND_STATUS = 'PENDING'
     </update>
 
+
+
+    <!-- 로그인 아이디로 검색하되 본인, 이미 친구인 회원, 진행 중인 요청 상대는 제외합니다. -->
+    <select id="searchNonFriendsByLoginId" parameterType="map"
+        resultType="com.app.silhouette.friend.MemberFriendDTO">
+        SELECT
+            M.MEMBER_SEQ AS MEMBER_SEQ,
+            M.MEMBER_SEQ AS FRIEND_MEMBER_SEQ,
+            M.LOGIN_ID AS LOGIN_ID,
+            NVL((SELECT MAX(MP.NICKNAME) FROM MEMBER_PROFILE MP
+                 WHERE MP.MEMBER_SEQ = M.MEMBER_SEQ), M.NICKNAME) AS NICKNAME,
+            (SELECT PI.FILE_URL FROM PROFILE_IMAGE PI
+             WHERE PI.MEMBER_SEQ = M.MEMBER_SEQ
+               AND PI.PROFILE_IMAGE_SEQ = (SELECT MAX(PI2.PROFILE_IMAGE_SEQ)
+                 FROM PROFILE_IMAGE PI2 WHERE PI2.MEMBER_SEQ = M.MEMBER_SEQ)) AS PROFILE_IMAGE,
+            'NONE' AS FRIEND_STATUS
+        FROM MEMBER M
+        WHERE M.MEMBER_STATUS = 'ACTIVE'
+          AND M.MEMBER_SEQ != #{memberSeq}
+          AND M.LOGIN_ID = #{keyword}
+          AND NOT EXISTS (
+              SELECT 1
+              FROM MEMBER_FRIEND MF
+              WHERE ((MF.MEMBER_SEQ = #{memberSeq} AND MF.FRIEND_MEMBER_SEQ = M.MEMBER_SEQ)
+                  OR (MF.MEMBER_SEQ = M.MEMBER_SEQ AND MF.FRIEND_MEMBER_SEQ = #{memberSeq}))
+                AND MF.FRIEND_STATUS IN ('PENDING', 'ACCEPTED')
+          )
+        ORDER BY M.LOGIN_ID
+    </select>
+
+    <delete id="deleteAcceptedFriend" parameterType="map">
+        DELETE FROM MEMBER_FRIEND
+        WHERE FRIEND_STATUS = 'ACCEPTED'
+          AND ((MEMBER_SEQ = #{memberSeq} AND FRIEND_MEMBER_SEQ = #{friendSeq})
+            OR (MEMBER_SEQ = #{friendSeq} AND FRIEND_MEMBER_SEQ = #{memberSeq}))
+    </delete>
+
 </mapper>
+
