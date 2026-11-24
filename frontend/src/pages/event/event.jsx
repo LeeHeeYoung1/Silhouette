@@ -125,6 +125,12 @@ const Event = () => {
       case 'profile-complete':
         setIsQuestOpen(true);
         break;
+
+        // [권형석] E001 외모 등급 테스트 - 페이지 이동 (시작)
+      case 'beauty-test':
+        navi('/event/beauty-test');
+        break;
+      // [권형석] E001 외모 등급 테스트 - 페이지 이동 (끝)
       default:
         break;
     }
@@ -211,8 +217,30 @@ const Event = () => {
     },
   ];
 
+
+    /* ==========================================================================
+     [권형석] E001 외모 등급 테스트 - 이벤트 카드 추가 (시작)
+     ========================================================================== */
+  const beautyTestEvents = [
+    {
+      id: 'beauty-test',
+      category: 'styleTest',
+      icon: '📸',
+      badge: 'AI 분석',
+      statusClass: styles.statusNew,
+      title: 'AI 외모 등급 테스트',
+      desc: '본인 사진 1~4장을 올리면 AI가 모든 사진을 분석해 평균 점수와 등급을 알려드려요. 사진은 저장되지 않아요.',
+      tags: ['#AI외모분석', '#사진저장안함', '#주1회참여'],
+      btnText: '외모 등급 확인하기',
+    },
+  ];
+  /* [권형석] E001 외모 등급 테스트 - 이벤트 카드 추가 (끝) */
+
+
   // 탭 필터링 로직
-  const allEvents = [...styleTestEvents, ...specialEvents];
+   // [권형석] E001 외모 등급 테스트 - 카드 목록에 추가 (시작)
+  const allEvents = [...styleTestEvents, ...beautyTestEvents, ...specialEvents];
+  // [권형석] E001 외모 등급 테스트 - 카드 목록에 추가 (끝)
   const filteredEvents =
     activeTab === 'all'
       ? allEvents

@@ -23,30 +23,30 @@
 		 where m.login_id = #{loginId}
 	</select>
 
-	<!-- 나의 정보 저장 (온보딩) -->
+	<!-- 나의 정보 저장 (온보딩) ✅ body_type 추가 -->
 	<insert id="insertProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		insert into member_profile (
 			member_profile_seq, member_seq, nickname, mbti, job, height, weight,
 			introduction, love_type, hobby, favorite, dislike, drinking, smoking,
-			religion, food_preference, face_type, skin_type, military_status, created_at
+			religion, food_preference, face_type, skin_type, body_type, military_status, created_at
 		) values (
 			seq_member_profile.nextval, #{memberSeq}, #{nickname}, #{mbti}, #{job}, #{height}, #{weight},
 			#{introduction}, #{loveType}, #{hobby}, #{favorite}, #{dislike}, #{drinking}, #{smoking},
-			#{religion}, #{foodPreference}, #{faceType}, #{skinType},
+			#{religion}, #{foodPreference}, #{faceType}, #{skinType}, #{bodyType, jdbcType=VARCHAR},
 			#{militaryStatus, jdbcType=VARCHAR}, sysdate
 		)
 	</insert>
 
-	<!-- ✅ 나의 정보 조회 (프로필 화면, 없으면 null) -->
+	<!-- 나의 정보 조회 (프로필 화면, 없으면 null) ✅ body_type 추가 -->
 	<select id="selectProfileByMember" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
 		select member_profile_seq, member_seq, nickname, mbti, job, height, weight,
 		       introduction, love_type, hobby, favorite, dislike, drinking, smoking,
-		       religion, food_preference, face_type, skin_type, military_status, created_at
+		       religion, food_preference, face_type, skin_type, body_type, military_status, created_at
 		  from member_profile
 		 where member_seq = #{memberSeq}
 	</select>
 
-	<!-- ✅ 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) -->
+	<!-- 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) ✅ body_type 추가 -->
 	<update id="updateProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		update member_profile
 		   set mbti            = #{mbti},
@@ -64,6 +64,7 @@
 		       food_preference = #{foodPreference},
 		       face_type       = #{faceType},
 		       skin_type       = #{skinType},
+		       body_type       = #{bodyType, jdbcType=VARCHAR},
 		       military_status = #{militaryStatus, jdbcType=VARCHAR}
 		 where member_seq = #{memberSeq}
 	</update>
@@ -75,7 +76,7 @@
 		select count(*) from ideal_type where login_id = #{loginId}
 	</select>
 
-	<!-- ✅ 이상형 조회 (프로필 화면, 없으면 null) -->
+	<!-- 이상형 조회 (프로필 화면, 없으면 null) -->
 	<select id="selectIdealType" parameterType="string" resultType="com.app.silhouette.profile.IdealTypeDTO">
 		select ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
 		       body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
@@ -118,7 +119,7 @@
 		 where login_id = #{loginId}
 	</update>
 
-	<!-- ✅ 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
+	<!-- 이상형 삭제 (수정에서 전부 비웠을 때, 없으면 0건이라 안전) -->
 	<delete id="deleteIdealType" parameterType="string">
 		delete from ideal_type where login_id = #{loginId}
 	</delete>

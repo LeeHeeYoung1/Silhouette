@@ -21,7 +21,7 @@ import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
 import Profile from './pages/profile/profile';
 import FoodTest from './pages/event/foodTest';
-
+import BeautyTest from './pages/event/beautytest'; // [권형석] E001 외모 등급 테스트
 import LoveValueTest from './pages/event/loveValueTest';
 import MBTITest from './pages/event/MBTITest';
 
@@ -42,6 +42,9 @@ function App() {
 
         <Route path="/profile" element={<Profile />} />
 
+        {/* [권형석] E001 외모 등급 테스트 - 경로 추가 (시작) */}
+        <Route path="/event/beauty-test" element={<BeautyTest />} />
+        {/* [권형석] E001 외모 등급 테스트 - 경로 추가 (끝) */}
         <Route path="/event/love-value-test" element={<LoveValueTest />} />
         <Route path="/event/mbti-test" element={<MBTITest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}

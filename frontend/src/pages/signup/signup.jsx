@@ -714,7 +714,7 @@ function Signup() {
                 className={styles.input}
                 value={formData.birthDate}
                 onChange={handleChange}
-                max="2007-12-31"
+                max="2027-12-31"
               />
 
               {errors.birthDate && (

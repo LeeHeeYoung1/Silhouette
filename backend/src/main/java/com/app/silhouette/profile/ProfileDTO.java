@@ -10,7 +10,7 @@ public class ProfileDTO {
 	private String nickname;
 	private String gender;
 	private Integer age;                  // 생년월일로 계산한 만 나이
-
+	private String body_type; 
 	// ===== 나의 정보 (MEMBER_PROFILE) =====
 	private Long member_profile_seq;
 	private String mbti;
@@ -101,4 +101,7 @@ public class ProfileDTO {
 
 	public LocalDateTime getCreatedAt() { return created_at; }
 	public void setCreatedAt(LocalDateTime created_at) { this.created_at = created_at; }
+	
+	public String getBodyType() { return body_type; }
+	public void setBodyType(String body_type) { this.body_type = body_type; }
 }

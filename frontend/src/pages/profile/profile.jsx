@@ -19,6 +19,8 @@ import {
    - 수정 모드: 온보딩과 같은 선택지로 수정 → PUT /api/profile
    - 사진 교체: PUT /api/profile/images/1 (사진은 1장)
    - 사진 표시: 토큰이 필요해서 Client(axios)로 받아서 보여줌
+   - ✅ 내 체형 표시·수정, 만 18세 미만 남성 병역 '미필' 고정
+   - ✅ 숫자 칸은 값을 몰래 고치지 않고 범위를 벗어나면 안내 (온보딩과 같은 규칙)
    ========================================================= */
 
 // ===== 규칙 (온보딩 · 서버와 같음) =====
@@ -29,9 +31,12 @@ const HEIGHT_MIN = 100;
 const HEIGHT_MAX = 250;
 const WEIGHT_MIN = 30;
 const WEIGHT_MAX = 200;
-const IDEAL_AGE_MIN = 14;
-const IDEAL_AGE_MAX = 100;
-const AGE_OPTIONS = Array.from({ length: IDEAL_AGE_MAX - IDEAL_AGE_MIN + 1 }, (_, i) => IDEAL_AGE_MIN + i);
+const IDEAL_AGE_MIN = 14;   // ✅ [권형석] 이상형 나이: 만 14세 이상 (최대 제한 없음)
+// ✅ [권형석] 병역: 만 18세 미만 남성은 '미필' 고정 (온보딩과 같은 규칙)
+const MILITARY_MIN_AGE = 18;
+const MILITARY_UNDERAGE_VALUE = '미필';
+// ✅ [권형석] 내 체형 선택지 (이상형 체형 목록에서 '상관없음'만 제외)
+const MY_BODY_TYPE_LIST = BODY_TYPE_LIST.filter((v) => v !== '상관없음');
 
 // ===== 도우미 함수 =====
 const toTags = (v) => (v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);  // "등산, 독서" → ['등산','독서']
@@ -46,13 +51,12 @@ const show = (v, unit = '') => (v === null || v === undefined || v === '' ? '-' 
 const isNone = (v) => String(v ?? '').toLowerCase() === 'none';
 const smokingText = (v) => (isNone(v) ? '비흡연' : show(v));
 const drinkingText = (v) => (isNone(v) ? '안 마셔요' : show(v));
+// 숫자만 남기고 최대 3자리 (글자 입력칸용)
+const onlyDigits = (v) => String(v).replace(/[^0-9]/g, '').slice(0, 3);
+// ✅ [권형석] 만 18세 미만 남성인지
+const isUnderageMaleOf = (basic) =>
+    isMaleGender(basic?.gender) && basic?.age != null && Number(basic.age) < MILITARY_MIN_AGE;
 
-const clamp = (v, min, max) => {
-    if (v === '' || v == null) return '';
-    const n = Number(v);
-    if (Number.isNaN(n)) return '';
-    return String(Math.min(Math.max(n, min), max));
-};
 const rangeText = (min, max, unit) => {
     if (min == null && max == null) return '상관없음';
     if (min != null && max != null) return `${min}${unit} ~ ${max}${unit}`;
@@ -74,10 +78,12 @@ const toForm = (data) => {
         profile: {
             mbti: toStr(p.mbti), job: toStr(p.job),
             height: toStr(p.height), weight: toStr(p.weight),
-            militaryStatus: toStr(p.militaryStatus),
+            // ✅ [권형석] 만 18세 미만 남성은 미필로 고정
+            militaryStatus: isUnderageMaleOf(data?.basic) ? MILITARY_UNDERAGE_VALUE : toStr(p.militaryStatus),
             drinking: toStr(p.drinking), smoking: toStr(p.smoking), religion: toStr(p.religion),
             foodPreference: toTags(p.foodPreference),
-            faceType: toStr(p.faceType), skinType: toStr(p.skinType), loveType: toStr(p.loveType),
+            // ✅ [권형석] bodyType(내 체형) 추가
+            faceType: toStr(p.faceType), skinType: toStr(p.skinType), bodyType: toStr(p.bodyType), loveType: toStr(p.loveType),
             hobby: toTags(p.hobby), favorite: toTags(p.favorite), dislike: toTags(p.dislike),
             introduction: toStr(p.introduction),
         },
@@ -172,6 +178,41 @@ function Field({ label, hint, children }) {
     );
 }
 
+// ✅ [권형석] 숫자 글자 입력칸 (온보딩과 같은 규칙: 값을 몰래 고치지 않고 범위를 벗어나면 안내)
+//   - 최대값보다 크면: 입력하는 동안 바로 안내
+//   - 최소값보다 작으면: 칸을 벗어났을 때 안내
+//   - 범위 밖 값은 저장할 때 막힘 (validate)
+function NumberText({ value, onChange, min, max, unit = '', placeholder }) {
+    const [focused, setFocused] = useState(false);
+
+    const n = value === '' || value == null ? null : Number(value);
+    const overMax = n !== null && max != null && n > max;
+    const underMin = n !== null && min != null && n < min;
+
+    let warn = '';
+    if (overMax) warn = `최대 ${max}${unit}까지만 입력할 수 있어요. (지금 ${n}${unit})`;
+    else if (underMin && !focused) warn = `최소 ${min}${unit} 이상 입력해야 해요. (지금 ${n}${unit})`;
+
+    return (
+        <>
+            <input
+                type="text"
+                inputMode="numeric"
+                maxLength={3}
+                className={ob.input}
+                placeholder={placeholder}
+                value={value}
+                aria-invalid={warn ? 'true' : 'false'}
+                style={warn ? { borderColor: '#f43f5e' } : undefined}
+                onChange={(e) => onChange(onlyDigits(e.target.value))}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+            />
+            {warn && <p className={ob.error}>⚠️ {warn}</p>}
+        </>
+    );
+}
+
 function Profile() {
     const navigate = useNavigate();
     const { id: loginId, token } = useAuthStore();
@@ -188,7 +229,7 @@ function Profile() {
 
     // 사진
     const [photoUrl, setPhotoUrl] = useState(null);   // 화면에 보여줄 사진 주소 (blob:...)
-    const [photoVersion, setPhotoVersion] = useState(0);   // ✅ 사진 바꿀 때마다 +1 → 다시 받아오기
+    const [photoVersion, setPhotoVersion] = useState(0);   // 사진 바꿀 때마다 +1 → 다시 받아오기
     const [imgFailed, setImgFailed] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
@@ -224,7 +265,7 @@ function Profile() {
         return () => { cancelled = true; };
     }, [token, loginId, navigate]);
 
-    // ✅ 사진 불러오기
+    // 사진 불러오기
     //    - <img src>는 토큰을 못 보내서 401 → Client(토큰 포함)로 받아서 보여줌
     //    - 주소(mainFileUrl)나 버전(photoVersion)이 바뀌면 다시 받아옴
     //    - ?v=버전 → 같은 주소여도 브라우저 캐시 말고 새로 받음
@@ -268,7 +309,7 @@ function Profile() {
         if (!file.type.startsWith('image/')) { alert('이미지 파일만 올릴 수 있어요.'); return; }
         if (file.size > MAX_PHOTO_SIZE) { alert('사진은 10MB까지 올릴 수 있어요.'); return; }
 
-        // ✅ 고른 사진을 업로드 전에 바로 보여주기 (기다리는 동안 미리보기)
+        // 고른 사진을 업로드 전에 바로 보여주기 (기다리는 동안 미리보기)
         const localPreview = URL.createObjectURL(file);
         setPhotoUrl(localPreview);
         setImgFailed(false);
@@ -283,10 +324,10 @@ function Profile() {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             await loadProfile();                 // 새 사진 정보(번호·주소) 받기
-            setPhotoVersion((v) => v + 1);       // ✅ 주소가 같아도 서버에서 새 사진 다시 받기
+            setPhotoVersion((v) => v + 1);       // 주소가 같아도 서버에서 새 사진 다시 받기
             alert('프로필 사진이 변경되었습니다.');
         } catch (err) {
-            setPhotoVersion((v) => v + 1);       // ✅ 실패하면 원래 사진으로 되돌리기
+            setPhotoVersion((v) => v + 1);       // 실패하면 원래 사진으로 되돌리기
             const status = err.response?.status;
             if (status === 401) { alert('로그인이 필요합니다.'); navigate('/login'); }
             else if (status === 413) alert('사진 용량이 너무 커요.');
@@ -300,7 +341,7 @@ function Profile() {
 
     /* ===================== 수정 모드 ===================== */
     const startEdit = () => {
-        setForm(toForm(data));
+        setForm(toForm(data));   // 만 18세 미만 남성은 toForm에서 미필로 고정됨
         setError('');
         setEditing(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -352,22 +393,23 @@ function Profile() {
         });
 
     // 입력값 검사 (온보딩과 같은 규칙)
-    const validate = (isMale) => {
+    const validate = (isMale, isUnderageMale) => {
         const p = form.profile;
         const i = form.ideal;
         if (!p.mbti) return 'MBTI를 선택해 주세요.';
         if (!p.job) return '직업을 선택해 주세요.';
         const h = toNum(p.height);
         const w = toNum(p.weight);
-        if (h === null || h < HEIGHT_MIN || h > HEIGHT_MAX) return `키를 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
-        if (w === null || w < WEIGHT_MIN || w > WEIGHT_MAX) return `몸무게를 ${WEIGHT_MIN}~${WEIGHT_MAX}kg 사이로 입력해 주세요.`;
-        if (isMale && !p.militaryStatus) return '병역 사항을 선택해 주세요.';
+        if (h === null || h < HEIGHT_MIN || h > HEIGHT_MAX) return `키는 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
+        if (w === null || w < WEIGHT_MIN || w > WEIGHT_MAX) return `몸무게는 ${WEIGHT_MIN}~${WEIGHT_MAX}kg 사이로 입력해 주세요.`;
+        if (isMale && !isUnderageMale && !p.militaryStatus) return '병역 사항을 선택해 주세요.';
         if (!p.drinking) return '음주 여부를 선택해 주세요.';
         if (!p.smoking) return '흡연 여부를 선택해 주세요.';
         if (!p.religion) return '종교를 선택해 주세요.';
         if (p.foodPreference.length === 0) return '음식 취향을 하나 이상 선택해 주세요.';
         if (!p.faceType) return '얼굴상을 선택해 주세요.';
         if (!p.skinType) return '피부 타입을 선택해 주세요.';
+        if (!p.bodyType) return '체형을 선택해 주세요.';   // ✅ [권형석]
         if (!p.loveType) return '연애 스타일을 선택해 주세요.';
         if (p.hobby.length === 0) return '취미를 하나 이상 선택해 주세요.';
         if (p.favorite.length === 0) return '좋아하는 것을 하나 이상 선택해 주세요.';
@@ -376,9 +418,10 @@ function Profile() {
 
         const aMin = toNum(i.ageMin), aMax = toNum(i.ageMax);
         const hMin = toNum(i.minHeight), hMax = toNum(i.maxHeight);
-        const ageOut = (a) => a !== null && (a < IDEAL_AGE_MIN || a > IDEAL_AGE_MAX);
+        // ✅ [권형석] 이상형 나이는 만 14세 이상만 (최대 제한 없음)
+        if (aMin !== null && aMin < IDEAL_AGE_MIN) return `이상형 최소 나이는 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMin}세)`;
+        if (aMax !== null && aMax < IDEAL_AGE_MIN) return `이상형 최대 나이도 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMax}세)`;
         const heightOut = (x) => x !== null && (x < HEIGHT_MIN || x > HEIGHT_MAX);
-        if (ageOut(aMin) || ageOut(aMax)) return `이상형 나이는 ${IDEAL_AGE_MIN}~${IDEAL_AGE_MAX}세 사이로 입력해 주세요.`;
         if (heightOut(hMin) || heightOut(hMax)) return `이상형 키는 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
         if (aMin !== null && aMax !== null && aMin > aMax) return '이상형 나이의 최소값이 최대값보다 클 수 없어요.';
         if (hMin !== null && hMax !== null && hMin > hMax) return '이상형 키의 최소값이 최대값보다 클 수 없어요.';
@@ -388,8 +431,9 @@ function Profile() {
     const handleSave = async () => {
         const isMale = isMaleGender(data.basic?.gender);
         const isFemale = isFemaleGender(data.basic?.gender);
+        const isUnderageMale = isUnderageMaleOf(data.basic);   // ✅ [권형석]
 
-        const msg = validate(isMale);
+        const msg = validate(isMale, isUnderageMale);
         if (msg) { setError(msg); return; }
 
         const p = form.profile;
@@ -412,7 +456,9 @@ function Profile() {
                 foodPreference: joinList(p.foodPreference),
                 faceType: p.faceType,
                 skinType: p.skinType,
-                militaryStatus: isMale ? p.militaryStatus : null,
+                bodyType: p.bodyType,   // ✅ [권형석] 내 체형
+                // ✅ [권형석] 만 18세 미만 남성은 저장할 때도 미필로 고정
+                militaryStatus: isMale ? (isUnderageMale ? MILITARY_UNDERAGE_VALUE : p.militaryStatus) : null,
             },
             // 이상형: 다 비우면 서버가 이상형을 지움
             ideal: {
@@ -459,6 +505,11 @@ function Profile() {
     const { basic = {}, profile = {}, ideal } = data;
     const isMale = isMaleGender(basic.gender);
     const isFemale = isFemaleGender(basic.gender);
+    const isUnderageMale = isUnderageMaleOf(basic);   // ✅ [권형석]
+    // ✅ [권형석] 화면에 보여줄 병역 (만 18세 미만 남성은 미필 고정)
+    const militaryText = isUnderageMale
+        ? `${MILITARY_UNDERAGE_VALUE} (만 ${MILITARY_MIN_AGE}세 미만)`
+        : show(profile.militaryStatus);
 
     return (
         <div className={styles.page}>
@@ -488,10 +539,18 @@ function Profile() {
                             {profile.mbti && <> · <strong>{profile.mbti}</strong></>}
                             {profile.job && <> · {profile.job}</>}
                         </p>
+                        {/* ✅ [권형석] 피부 타입·체형·종교 칩 추가 */}
                         <div className={styles.heroChips}>
                             {profile.loveType && <span className={styles.heroChip}>💕 {profile.loveType}</span>}
                             {profile.faceType && <span className={styles.heroChip}>✨ {profile.faceType}</span>}
-                            {isMale && profile.militaryStatus && <span className={styles.heroChip}>🎖️ {profile.militaryStatus}</span>}
+                            {profile.skinType && <span className={styles.heroChip}>🧴 {profile.skinType}</span>}
+                            {profile.bodyType && <span className={styles.heroChip}>🏃 {profile.bodyType}</span>}
+                            {profile.religion && <span className={styles.heroChip}>🙏 {profile.religion}</span>}
+                            {isMale && (profile.militaryStatus || isUnderageMale) && (
+                                <span className={styles.heroChip}>
+                                    🎖️ {isUnderageMale ? MILITARY_UNDERAGE_VALUE : profile.militaryStatus}
+                                </span>
+                            )}
                         </div>
                         {!editing && (
                             <button type="button" className={styles.editBtn} onClick={startEdit}>
@@ -501,7 +560,7 @@ function Profile() {
                     </div>
                 </div>
 
-                {/* ===================== 보기 모드 ===================== */}
+                {/* ===================== 보기 모드 (✅ [권형석] 온보딩 항목 전부 표시) ===================== */}
                 {!editing && (
                     <>
                         <Section title="자기소개" icon="💬">
@@ -510,11 +569,14 @@ function Profile() {
 
                         <div className={styles.grid}>
                             <Section title="기본 정보" icon="📋">
+                                <InfoRow label="닉네임" value={show(basic.nickname)} />
+                                <InfoRow label="성별" value={genderLabel(basic.gender)} />
+                                <InfoRow label="나이" value={basic.age != null ? `만 ${basic.age}세` : '-'} />
                                 <InfoRow label="키" value={show(profile.height, 'cm')} />
                                 <InfoRow label="몸무게" value={show(profile.weight, 'kg')} />
                                 <InfoRow label="직업" value={show(profile.job)} />
                                 <InfoRow label="MBTI" value={show(profile.mbti)} />
-                                {isMale && <InfoRow label="병역" value={show(profile.militaryStatus)} />}
+                                {isMale && <InfoRow label="병역" value={militaryText} />}
                             </Section>
 
                             <Section title="생활 습관" icon="🍷">
@@ -527,6 +589,7 @@ function Profile() {
                             <Section title="외모 · 연애 성향" icon="💄">
                                 <InfoRow label="얼굴상" value={show(profile.faceType)} />
                                 <InfoRow label="피부 타입" value={show(profile.skinType)} />
+                                <InfoRow label="체형" value={show(profile.bodyType)} />
                                 <InfoRow label="연애 스타일" value={show(profile.loveType)} />
                             </Section>
 
@@ -547,7 +610,7 @@ function Profile() {
                                     <TagRow label="체형" value={ideal.bodyType} />
                                     <TagRow label="MBTI" value={ideal.mbtiPref} />
                                     {isFemale && <TagRow label="병역" value={ideal.militaryPref} />}
-                                    {ideal.memo && <p className={styles.memo}>“{ideal.memo}”</p>}
+                                    <InfoRow label="하고 싶은 말" value={ideal.memo ? `“${ideal.memo}”` : '-'} />
                                 </div>
                             ) : (
                                 <p className={styles.empty}>
@@ -568,25 +631,32 @@ function Profile() {
                         <Field label="직업">
                             <Chips options={JOB_LIST} value={form.profile.job} onSelect={(v) => setProfileValue('job', v)} />
                         </Field>
+                        {/* ✅ [권형석] 키 · 몸무게: 범위를 벗어나면 칸 아래에 안내 */}
                         <div className={ob.row}>
-                            <Field label="키 (cm)">
-                                <input type="number" className={ob.input} min={HEIGHT_MIN} max={HEIGHT_MAX}
-                                    value={form.profile.height}
-                                    onChange={(e) => setProfileValue('height', e.target.value)}
-                                    onBlur={(e) => setProfileValue('height', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+                            <Field label={`키 (cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                <NumberText value={form.profile.height} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm"
+                                    onChange={(v) => setProfileValue('height', v)} />
                             </Field>
-                            <Field label="몸무게 (kg)">
-                                <input type="number" className={ob.input} min={WEIGHT_MIN} max={WEIGHT_MAX}
-                                    value={form.profile.weight}
-                                    onChange={(e) => setProfileValue('weight', e.target.value)}
-                                    onBlur={(e) => setProfileValue('weight', clamp(e.target.value, WEIGHT_MIN, WEIGHT_MAX))} />
+                            <Field label={`몸무게 (kg, ${WEIGHT_MIN}~${WEIGHT_MAX})`}>
+                                <NumberText value={form.profile.weight} min={WEIGHT_MIN} max={WEIGHT_MAX} unit="kg"
+                                    onChange={(v) => setProfileValue('weight', v)} />
                             </Field>
                         </div>
+                        {/* ✅ [권형석] 만 18세 미만 남성은 병역 미필 고정 */}
                         {isMale && (
-                            <Field label="병역">
-                                <OptionCards options={MILITARY_LIST} value={form.profile.militaryStatus}
-                                    onSelect={(v) => setProfileValue('militaryStatus', v)} />
-                            </Field>
+                            isUnderageMale ? (
+                                <Field
+                                    label="병역"
+                                    hint={`만 ${MILITARY_MIN_AGE}세 미만은 병역 의무 나이가 아니라서 '${MILITARY_UNDERAGE_VALUE}'로 고정되며 변경할 수 없어요.`}
+                                >
+                                    <p className={styles.editHint}>🔒 {MILITARY_UNDERAGE_VALUE} (자동 등록)</p>
+                                </Field>
+                            ) : (
+                                <Field label="병역">
+                                    <OptionCards options={MILITARY_LIST} value={form.profile.militaryStatus}
+                                        onSelect={(v) => setProfileValue('militaryStatus', v)} />
+                                </Field>
+                            )
                         )}
 
                         <h3 className={styles.editTitle}>🍷 생활 습관</h3>
@@ -609,6 +679,10 @@ function Profile() {
                         </Field>
                         <Field label="피부 타입">
                             <Chips options={SKIN_TYPE_LIST} value={form.profile.skinType} onSelect={(v) => setProfileValue('skinType', v)} />
+                        </Field>
+                        {/* ✅ [권형석] 내 체형 */}
+                        <Field label="체형">
+                            <Chips options={MY_BODY_TYPE_LIST} value={form.profile.bodyType} onSelect={(v) => setProfileValue('bodyType', v)} />
                         </Field>
                         <Field label="연애 스타일">
                             <Chips options={LOVE_TYPE_LIST} value={form.profile.loveType} onSelect={(v) => setProfileValue('loveType', v)} />
@@ -633,35 +707,26 @@ function Profile() {
 
                         <h3 className={styles.editTitle}>💖 나의 이상형 (선택)</h3>
                         <p className={styles.editHint}>모두 비우고 저장하면 이상형이 삭제돼요.</p>
+                        {/* ✅ [권형석] 이상형 나이: 만 14세 이상 (최대 제한 없음) */}
                         <div className={ob.row}>
-                            <Field label={`나이 (최소, ${IDEAL_AGE_MIN}세 이상)`}>
-                                <select className={`${ob.input} ${styles.select}`} value={form.ideal.ageMin}
-                                    onChange={(e) => setIdealValue('ageMin', e.target.value)}>
-                                    <option value="">선택 안 함</option>
-                                    {AGE_OPTIONS.map((age) => <option key={age} value={age}>{age}세</option>)}
-                                </select>
+                            <Field label={`나이 (최소, 만 ${IDEAL_AGE_MIN}세 이상)`}>
+                                <NumberText value={form.ideal.ageMin} min={IDEAL_AGE_MIN} unit="세" placeholder="예: 25"
+                                    onChange={(v) => setIdealValue('ageMin', v)} />
                             </Field>
-                            <Field label="나이 (최대)">
-                                <select className={`${ob.input} ${styles.select}`} value={form.ideal.ageMax}
-                                    onChange={(e) => setIdealValue('ageMax', e.target.value)}>
-                                    <option value="">선택 안 함</option>
-                                    {AGE_OPTIONS.filter((age) => !form.ideal.ageMin || age >= Number(form.ideal.ageMin))
-                                        .map((age) => <option key={age} value={age}>{age}세</option>)}
-                                </select>
+                            <Field label={`나이 (최대, 만 ${IDEAL_AGE_MIN}세 이상)`}>
+                                <NumberText value={form.ideal.ageMax} min={IDEAL_AGE_MIN} unit="세" placeholder="예: 32"
+                                    onChange={(v) => setIdealValue('ageMax', v)} />
                             </Field>
                         </div>
+                        {/* ✅ [권형석] 이상형 키: 100~250cm */}
                         <div className={ob.row}>
-                            <Field label="키 (최소 cm)">
-                                <input type="number" className={ob.input} min={HEIGHT_MIN} max={HEIGHT_MAX}
-                                    value={form.ideal.minHeight}
-                                    onChange={(e) => setIdealValue('minHeight', e.target.value)}
-                                    onBlur={(e) => setIdealValue('minHeight', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+                            <Field label={`키 (최소 cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                <NumberText value={form.ideal.minHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm" placeholder="예: 160"
+                                    onChange={(v) => setIdealValue('minHeight', v)} />
                             </Field>
-                            <Field label="키 (최대 cm)">
-                                <input type="number" className={ob.input} min={HEIGHT_MIN} max={HEIGHT_MAX}
-                                    value={form.ideal.maxHeight}
-                                    onChange={(e) => setIdealValue('maxHeight', e.target.value)}
-                                    onBlur={(e) => setIdealValue('maxHeight', clamp(e.target.value, HEIGHT_MIN, HEIGHT_MAX))} />
+                            <Field label={`키 (최대 cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                <NumberText value={form.ideal.maxHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm" placeholder="예: 185"
+                                    onChange={(v) => setIdealValue('maxHeight', v)} />
                             </Field>
                         </div>
                         <Field label="체형" hint="여러 개 선택할 수 있어요.">
