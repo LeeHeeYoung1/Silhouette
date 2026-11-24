@@ -1,6 +1,7 @@
 package com.app.silhouette.matching;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.mybatis.spring.SqlSessionTemplate;
@@ -44,6 +45,11 @@ public class IdealMatchingDAO {
     // 대기 취소 (이미 매칭됐으면 0)
     public int deleteWaitingQueue(int memberSeq) {
         return mybatis.delete(NS + "deleteWaitingQueue", memberSeq);
+    }
+    
+    // 대기 중(WAITING)인 회원 번호 전체 (나간 대기자 정리용)
+    public List<Integer> selectWaitingMembers() {
+        return mybatis.selectList(NS + "selectWaitingMembers");
     }
 
     // 매칭 결과를 받은 뒤 내 대기열 행 제거
