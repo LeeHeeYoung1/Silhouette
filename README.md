@@ -159,7 +159,7 @@ dongjin0503/Silhouette (원본)
 - 기능별 브랜치에서 작업 후 Pull Request 생성
 - PR 제목은 `[타입] 작업 내용` 형식으로 작성
 - 최소 1명 이상의 코드 리뷰 및 승인 후 병합
-- 병합 방식은 Squash and merge 사용
+- 병합 방식은 Create a merge commit(일반 머지) 사용
 
 PR 제목 작성 예시:
 
