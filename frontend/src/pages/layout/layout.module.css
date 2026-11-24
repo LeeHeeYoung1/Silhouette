@@ -1,3 +1,4 @@
+
 .appContainer {
   width: 100%;
   min-height: 100vh;
@@ -159,53 +160,241 @@
 }
 
 /* 종 아이콘과 알림 드롭다운의 위치 기준 및 스타일 */
-.notificationArea { position: relative; flex-shrink: 0; }
+.notificationArea {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .notificationBell {
-  position: relative; width: 40px; height: 40px; border: 1px solid var(--card-border);
-  border-radius: 13px; background: var(--card-bg); color: var(--text-main);
-  font-size: 20px; cursor: pointer; box-shadow: var(--glass-reflect); transition: transform .2s ease;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--card-border);
+  border-radius: 13px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--glass-reflect);
+  transition: transform .2s ease;
 }
-.notificationBell:hover { transform: translateY(-2px); border-color: var(--accent-pink); }
+
+.notificationBell:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-pink);
+}
+
 .notificationCount {
-  position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px;
-  display: grid; place-items: center; padding: 0 4px; border-radius: 20px;
-  background: #ff315f; color: #fff; border: 2px solid var(--header-bg);
-  font-size: 10px; font-weight: 900;
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border-radius: 20px;
+  background: #ff315f;
+  color: #fff;
+  border: 2px solid var(--header-bg);
+  font-size: 10px;
+  font-weight: 900;
 }
+
 /* 종 아이콘을 눌렀을 때 표시되는 알림 패널 */
 .notificationDropdown {
-  position: absolute; top: calc(100% + 13px); right: 0; z-index: 100;
-  width: 360px; max-width: calc(100vw - 28px); max-height: 540px;
-  display: flex; flex-direction: column; overflow: hidden;
-  border: 1px solid var(--card-border); border-radius: 18px;
-  background: var(--card-bg); box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  position: absolute;
+  top: calc(100% + 13px);
+  right: 0;
+  z-index: 100;
+  width: 360px;
+  max-width: calc(100vw - 28px);
+  max-height: 540px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  background: var(--card-bg);
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
   backdrop-filter: blur(24px);
 }
-.notificationHeader { display: flex; align-items: center; justify-content: space-between; padding: 17px 18px; border-bottom: 1px solid var(--cell-border); }
-.notificationHeader div { display: flex; flex-direction: column; gap: 4px; }
-.notificationHeader strong { color: var(--text-main); font-size: 16px; }
-.notificationHeader span { color: var(--text-muted); font-size: 11px; }
-.notificationHeader button { border: 0; background: transparent; color: var(--text-muted); font-size: 24px; cursor: pointer; }
-.notificationList { overflow-y: auto; }
-.notificationEmpty { padding: 42px 15px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+.notificationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--cell-border);
+}
+
+.notificationHeader div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notificationHeader strong {
+  color: var(--text-main);
+  font-size: 16px;
+}
+
+.notificationHeader span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.notificationHeader button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.notificationList {
+  overflow-y: auto;
+}
+
+.notificationEmpty {
+  padding: 42px 15px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* 알림 한 건의 행과 읽지 않은 알림 강조 표시 */
-.notificationItem { position: relative; display: flex; gap: 11px; padding: 15px 16px; border-bottom: 1px solid var(--cell-border); }
-.notificationUnread { background: rgba(255,77,136,.055); }
-.notificationIcon { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: rgba(255,77,136,.12); font-size: 17px; }
-.notificationBody { min-width: 0; flex: 1; }
-.notificationBody strong { color: var(--text-main); font-size: 13px; }
-.notificationBody p { margin: 4px 0; color: var(--text-sub); font-size: 12px; line-height: 1.45; }
-.notificationBody small { color: var(--text-muted); font-size: 11px; }
-.notificationActions { display: flex; gap: 7px; margin-top: 10px; }
-.notificationActions button { flex: 1; border: 0; border-radius: 8px; padding: 7px; background: var(--primary-gradient); color: white; font-size: 11px; font-weight: 800; cursor: pointer; }
-.notificationActions button:last-child { background: var(--profile-card-bg); color: var(--text-sub); border: 1px solid var(--card-border); }
-.readButton { margin-top: 7px; padding: 5px 9px; border: 1px solid var(--card-border); border-radius: 8px; background: transparent; color: var(--text-sub); font-size: 10px; cursor: pointer; }
-.unreadDot { width: 7px; height: 7px; flex-shrink: 0; margin-top: 5px; border-radius: 50%; background: #ff4d88; }
+.notificationItem {
+  position: relative;
+  display: flex;
+  gap: 11px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--cell-border);
+}
+
+.notificationUnread {
+  background: rgba(255,77,136,.055);
+}
+
+.notificationIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255,77,136,.12);
+  font-size: 17px;
+}
+
+.notificationBody {
+  min-width: 0;
+  flex: 1;
+  padding-right: 20px;
+}
+
+.notificationBody strong {
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.notificationBody p {
+  margin: 4px 0;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notificationBody small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.notificationActions {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.notificationActions button {
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px;
+  background: var(--primary-gradient);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.notificationActions button:last-child {
+  background: var(--profile-card-bg);
+  color: var(--text-sub);
+  border: 1px solid var(--card-border);
+}
+
+.readButton {
+  margin-top: 7px;
+  padding: 5px 9px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #ff4d88;
+}
+
+/* 알림 하나만 화면에서 숨기는 X 버튼 */
+.notificationDelete {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 23px;
+  height: 23px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+}
+
+.notificationDelete:hover {
+  background: rgba(255, 77, 136, 0.12);
+  color: #ff4d88;
+}
+
 /* 화면 폭이 줄어들면 상단 메뉴를 여러 줄로 배치합니다. */
 @media (max-width: 1050px) {
-  .header { flex-wrap: wrap; gap: 12px; }
-  .headerRight { flex-wrap: wrap; justify-content: flex-end; }
+  .header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .headerRight {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
+
 @media (max-width: 700px) {
-  .notificationDropdown { position: fixed; top: 80px; right: 12px; }
+  .notificationDropdown {
+    position: fixed;
+    top: 80px;
+    right: 12px;
+  }
 }
