@@ -30,14 +30,14 @@ public class LiveMessageDTO {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public Long getLive_room_seq() { return live_room_seq; }
-    public void setLive_room_seq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
+    public Long getLiveRoomSeq() { return live_room_seq; }
+    public void setLiveRoomSeq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
 
-    public Long getLive_chat_seq() { return live_chat_seq; }
-    public void setLive_chat_seq(Long live_chat_seq) { this.live_chat_seq = live_chat_seq; }
+    public Long getLiveChatSeq() { return live_chat_seq; }
+    public void setLiveChatSeq(Long live_chat_seq) { this.live_chat_seq = live_chat_seq; }
 
-    public Long getMember_seq() { return member_seq; }
-    public void setMember_seq(Long member_seq) { this.member_seq = member_seq; }
+    public Long getMemberSeq() { return member_seq; }
+    public void setMemberSeq(Long member_seq) { this.member_seq = member_seq; }
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
@@ -45,11 +45,11 @@ public class LiveMessageDTO {
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
 
-    public String getHost_yn() { return host_yn; }
-    public void setHost_yn(String host_yn) { this.host_yn = host_yn; }
+    public String getHostYn() { return host_yn; }
+    public void setHostYn(String host_yn) { this.host_yn = host_yn; }
 
-    public Date getCreated_at() { return created_at; }
-    public void setCreated_at(Date created_at) { this.created_at = created_at; }
+    public Date getCreatedAt() { return created_at; }
+    public void setCreatedAt(Date created_at) { this.created_at = created_at; }
 
     public LiveRoomDTO getRoom() { return room; }
     public void setRoom(LiveRoomDTO room) { this.room = room; }

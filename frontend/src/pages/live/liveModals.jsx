@@ -39,7 +39,7 @@ export function ReportModal({ liveRoomSeq, chat, onClose }) {
     setSending(true);
     try {
       await reportLive(liveRoomSeq, {
-        live_chat_seq: chat?.live_chat_seq ?? null,
+        liveChatSeq: chat?.liveChatSeq ?? null,
         reason,
         detail: detail.trim() || null,
       });
@@ -117,7 +117,7 @@ export function ProfileModal({ memberSeq, myMemberSeq, onClose }) {
       const { data } = await Client.post('/api/chat/room', {
         room_name: `${profile.nickname}님과의 대화`,
         room_type: '1:1',
-        invitee_seqs: [profile.member_seq],
+        invitee_seqs: [profile.memberSeq],
       });
       // 방송이 끊기지 않도록 새 탭에서 열기
       window.open(`/chatting/${data.chat_room_seq}`, '_blank');
@@ -161,7 +161,7 @@ export function ProfileModal({ memberSeq, myMemberSeq, onClose }) {
             <p className={styles.muted}>등록된 프로필 정보가 없어요.</p>
           )}
           {message && <p className={styles.notice}>{message}</p>}
-          {Number(profile.member_seq) !== Number(myMemberSeq) && (
+          {Number(profile.memberSeq) !== Number(myMemberSeq) && (
             <button className={styles.primaryButton} onClick={contact}>💌 연락 보내기</button>
           )}
         </>
@@ -193,7 +193,7 @@ export function BanListModal({ onClose }) {
   const unban = async (b) => {
     if (!window.confirm(`${b.nickname}님의 차단을 해제할까요?`)) return;
     try {
-      await unbanMember(b.member_seq);
+      await unbanMember(b.memberSeq);
       load();
     } catch (e) {
       setError(errorMessage(e, '차단을 해제하지 못했어요.'));
@@ -207,11 +207,11 @@ export function BanListModal({ onClose }) {
       {bans && bans.length > 0 && (
         <ul className={styles.simpleList}>
           {bans.map((b) => (
-            <li key={b.member_seq}>
+            <li key={b.memberSeq}>
               <span>
-                {b.nickname || b.login_id}
+                {b.nickname || b.loginId}
                 <small className={styles.muted}>
-                  {' '}· {new Date(b.banned_at).toLocaleDateString('ko-KR')}
+                  {' '}· {new Date(b.bannedAt).toLocaleDateString('ko-KR')}
                 </small>
               </span>
               <button className={styles.ghostButton} onClick={() => unban(b)}>해제</button>

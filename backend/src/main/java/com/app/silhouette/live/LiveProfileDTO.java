@@ -14,8 +14,8 @@ public class LiveProfileDTO {
 
     public LiveProfileDTO() {}
 
-    public Long getMember_seq() { return member_seq; }
-    public void setMember_seq(Long member_seq) { this.member_seq = member_seq; }
+    public Long getMemberSeq() { return member_seq; }
+    public void setMemberSeq(Long member_seq) { this.member_seq = member_seq; }
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }

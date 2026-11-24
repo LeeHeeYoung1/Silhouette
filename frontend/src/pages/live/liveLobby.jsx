@@ -33,8 +33,8 @@ function LiveLobby({ myId, notice, onStart, onWatch }) {
         setItems((prev) => {
           if (page === 1) return data;
           // 시청자 수 순서가 바뀌어 겹칠 수 있어서 중복 제거
-          const seen = new Set(prev.map((r) => r.live_room_seq));
-          return [...prev, ...data.filter((r) => !seen.has(r.live_room_seq))];
+          const seen = new Set(prev.map((r) => r.liveRoomSeq));
+          return [...prev, ...data.filter((r) => !seen.has(r.liveRoomSeq))];
         });
         setHasMore(data.length === PAGE_SIZE);
         setError('');
@@ -131,28 +131,28 @@ function LiveLobby({ myId, notice, onStart, onWatch }) {
       ) : (
         <ul className={styles.grid}>
           {items.map((live) => {
-            const mine = live.host_login_id === myId;
+            const mine = live.hostLoginId === myId;
             return (
-              <li key={live.live_room_seq}>
+              <li key={live.liveRoomSeq}>
                 <button
                   className={styles.card}
-                  onClick={() => !mine && onWatch(live.live_room_seq)}
+                  onClick={() => !mine && onWatch(live.liveRoomSeq)}
                   disabled={mine}
                 >
                   <div className={styles.thumb}>
-                    {live.thumbnail_url ? (
-                      <img src={live.thumbnail_url} alt="" loading="lazy" />
+                    {live.thumbnailUrl ? (
+                      <img src={live.thumbnailUrl} alt="" loading="lazy" />
                     ) : (
                       <span className={styles.thumbPlaceholder}>{categoryLabel(live.category)}</span>
                     )}
                     <span className={styles.liveBadge}>LIVE</span>
-                    <span className={styles.viewerBadge}>👀 {live.viewer_count ?? 0}</span>
+                    <span className={styles.viewerBadge}>👀 {live.viewerCount ?? 0}</span>
                     {mine && <span className={styles.mineBadge}>내 방송</span>}
                   </div>
                   <div className={styles.cardBody}>
                     <strong className={styles.cardTitle}>{live.title}</strong>
                     <span className={styles.muted}>
-                      {live.host_nickname || live.host_login_id} · {categoryLabel(live.category)}
+                      {live.hostNickname || live.hostLoginId} · {categoryLabel(live.category)}
                     </span>
                     {live.hashtags?.length > 0 && (
                       <div className={styles.tags}>

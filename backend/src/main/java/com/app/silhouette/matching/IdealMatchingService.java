@@ -88,7 +88,7 @@ public class IdealMatchingService {
     // 매칭 확정 + 채팅방 생성 (하나의 트랜잭션)
     private IdealMatchResultDTO confirm(int me, IdealCandidateDTO cand, TransactionStatus status) {
 
-        int target = cand.getCandidate_Seq();
+        int target = cand.getCandidateSeq();
 
         // 두 사람 모두 WAITING일 때만 성공 → 2건이 아니면 롤백
         if (dao.updateQueueMatched(me, target) != 2) {
@@ -97,16 +97,16 @@ public class IdealMatchingService {
         }
 
         IdealMatchingDTO dto = new IdealMatchingDTO();
-        dto.setMember_Seq_1(me);
-        dto.setMember_Seq_2(target);
-        dto.setScore(cand.getMutual_Score());
-        dto.setScore_1_To_2(cand.getScore_Me_To_Cand());
-        dto.setScore_2_To_1(cand.getScore_Cand_To_Me());
+        dto.setMemberSeq1(me);
+        dto.setMemberSeq2(target);
+        dto.setScore(cand.getMutualScore());
+        dto.setScore1To2(cand.getScoreMeToCand());
+        dto.setScore2To1(cand.getScoreCandToMe());
 
         dao.insertMatching(dto);    // dto.ideal_Matching_Seq 채워짐
         dao.insertChatRoom(dto);    // dto.chat_Room_Seq 채워짐
 
-        int room = dto.getChat_Room_Seq();
+        int room = dto.getChatRoomSeq();
         dao.insertParticipant(room, me, "OWNER");
         dao.insertParticipant(room, target, "MEMBER");
         dao.insertChatRoomList(room, me);
@@ -120,7 +120,7 @@ public class IdealMatchingService {
         dao.deleteMyQueue(me);
 
         return new IdealMatchResultDTO("MATCHED", target,
-                dto.getIdeal_Matching_Seq(), room, dto.getScore());
+                dto.getIdealMatchingSeq(), room, dto.getScore());
     }
 
     // =========================================================
@@ -188,9 +188,9 @@ public class IdealMatchingService {
             return IdealMatchResultDTO.idle();
         }
 
-        int partner = (m.getMember_Seq_1() == me) ? m.getMember_Seq_2() : m.getMember_Seq_1();
+        int partner = (m.getMemberSeq1() == me) ? m.getMemberSeq2() : m.getMemberSeq1();
         return new IdealMatchResultDTO("MATCHED", partner,
-                m.getIdeal_Matching_Seq(), m.getChat_Room_Seq(), m.getScore());
+                m.getIdealMatchingSeq(), m.getChatRoomSeq(), m.getScore());
     }
 
     // 대기한 시간(초). 기록이 없으면(서버 재시작 등) 지금부터 잰다

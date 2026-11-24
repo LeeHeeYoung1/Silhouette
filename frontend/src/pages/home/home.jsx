@@ -289,7 +289,7 @@ function Home() {
   const handleIdealMatched = useCallback((result) => {
     isIdealWaitingRef.current = false;
     setIsIdealMatching(false);
-    navi(`/chatting/${result.chat_Room_Seq}`);
+    navi(`/chatting/${result.chatRoomSeq}`);
   }, [navi]);
 
   // 이상형 매칭 신청

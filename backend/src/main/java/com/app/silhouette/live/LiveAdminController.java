@@ -26,12 +26,12 @@ public class LiveAdminController {
         this.service = service;
     }
 
-    // 방송 강제 종료  body: { end_reason }
+    // 방송 강제 종료  body: { endReason }
     @PostMapping("/{liveRoomSeq}/end")
     public ResponseEntity<String> forceEnd(@RequestAttribute("id") String loginId,
             @PathVariable long liveRoomSeq,
             @RequestBody(required = false) Map<String, String> body) {
-        service.forceEnd(loginId, liveRoomSeq, body == null ? null : body.get("end_reason"));
+        service.forceEnd(loginId, liveRoomSeq, body == null ? null : body.get("endReason"));
         return ResponseEntity.ok("방송을 강제 종료했어요.");
     }
 

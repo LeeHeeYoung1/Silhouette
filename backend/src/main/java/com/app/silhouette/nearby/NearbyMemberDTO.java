@@ -4,11 +4,11 @@ package com.app.silhouette.nearby;
 // 개인정보 보호를 위해 전체 주소 대신 "시·도 + 시·군·구"까지만 내려준다
 public class NearbyMemberDTO {
 
-    private Long memberSeq;
+    private Long member_seq;
     private String nickname;
     private Integer age;
     private String region;        // 예: "서울 강남구"
-    private Integer nearRank;     // 1: 같은 시·군·구, 2: 같은 시·도
+    private Integer near_rank;     // 1: 같은 시·군·구, 2: 같은 시·도
     private String introduction;
     private String mbti;
     private String job;
@@ -16,8 +16,8 @@ public class NearbyMemberDTO {
     public NearbyMemberDTO() {
     }
 
-    public Long getMemberSeq() { return memberSeq; }
-    public void setMemberSeq(Long memberSeq) { this.memberSeq = memberSeq; }
+    public Long getMemberSeq() { return member_seq; }
+    public void setMemberSeq(Long member_seq) { this.member_seq = member_seq; }
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
@@ -28,8 +28,8 @@ public class NearbyMemberDTO {
     public String getRegion() { return region; }
     public void setRegion(String region) { this.region = region; }
 
-    public Integer getNearRank() { return nearRank; }
-    public void setNearRank(Integer nearRank) { this.nearRank = nearRank; }
+    public Integer getNearRank() { return near_rank; }
+    public void setNearRank(Integer near_rank) { this.near_rank = near_rank; }
 
     public String getIntroduction() { return introduction; }
     public void setIntroduction(String introduction) { this.introduction = introduction; }

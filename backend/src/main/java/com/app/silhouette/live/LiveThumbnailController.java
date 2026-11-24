@@ -20,7 +20,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 
 // 방송 썸네일 업로드 → GCS live/thumbnail/ 폴더
-// 받은 URL을 방송 시작·수정 API의 thumbnail_url로 보낸다
+// 받은 URL을 방송 시작·수정 API의 thumbnailUrl로 보낸다
 @RestController
 @RequestMapping("/api/upload")
 public class LiveThumbnailController {
@@ -38,7 +38,7 @@ public class LiveThumbnailController {
         this.dao = dao;
     }
 
-    // multipart/form-data, 필드명 file → { thumbnail_url }
+    // multipart/form-data, 필드명 file → { thumbnailUrl }
     @PostMapping("/thumbnail")
     public ResponseEntity<Map<String, String>> upload(@RequestAttribute("id") String loginId,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -63,7 +63,7 @@ public class LiveThumbnailController {
         storage.create(info, bytes);
 
         String url = "https://storage.googleapis.com/" + bucket + "/" + objectName;
-        return ResponseEntity.ok(Map.of("thumbnail_url", url));
+        return ResponseEntity.ok(Map.of("thumbnailUrl", url));
     }
 
     // 파일 앞부분(매직 넘버)으로 이미지 형식 판별 → { 확장자, Content-Type } / 아니면 null

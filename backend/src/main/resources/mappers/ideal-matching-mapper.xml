@@ -218,24 +218,24 @@
 
     <!-- 매칭 이력 저장 (번호는 dto.ideal_Matching_Seq에 채워짐) -->
     <insert id="insertMatching" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
-        <selectKey keyProperty="ideal_Matching_Seq" resultType="int" order="BEFORE">
+        <selectKey keyProperty="idealMatchingSeq" resultType="int" order="BEFORE">
             SELECT SEQ_IDEAL_MATCHING.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO IDEAL_MATCHING
             (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2, SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS)
         VALUES
-            (#{ideal_Matching_Seq}, #{member_Seq_1}, #{member_Seq_2}, #{score}, #{score_1_To_2}, #{score_2_To_1}, 'MATCHED')
+            (#{idealMatchingSeq}, #{memberSeq1}, #{memberSeq2}, #{score}, #{score1To2}, #{score2To1}, 'MATCHED')
     </insert>
 
     <!-- 채팅방 생성 (ROOM_NAME이 없으면 채팅 목록에 상대 닉네임이 표시됨) -->
     <insert id="insertChatRoom" parameterType="com.app.silhouette.matching.IdealMatchingDTO">
-        <selectKey keyProperty="chat_Room_Seq" resultType="int" order="BEFORE">
+        <selectKey keyProperty="chatRoomSeq" resultType="int" order="BEFORE">
             SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO CHAT_ROOM
             (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT)
         VALUES
-            (#{chat_Room_Seq}, NULL, 'IDEAL', #{ideal_Matching_Seq}, #{member_Seq_1}, 'Y', SYSDATE)
+            (#{chatRoomSeq}, NULL, 'IDEAL', #{idealMatchingSeq}, #{memberSeq1}, 'Y', SYSDATE)
     </insert>
 
     <!-- 채팅방 참여자 등록 (role: OWNER / MEMBER) -->
@@ -278,7 +278,7 @@
     <!-- ===================================================== -->
     <select id="selectPartnerProfile" resultType="com.app.silhouette.matching.IdealPartnerProfileDTO">
     <![CDATA[
-        SELECT r.ROOM_TYPE                                       AS roomType,
+        SELECT r.ROOM_TYPE                                       AS room_type,
                NVL(p.NICKNAME, m.NICKNAME)                       AS nickname,
                TRUNC(MONTHS_BETWEEN(SYSDATE, m.BIRTH_DATE) / 12)  AS age,
                p.MBTI                                            AS mbti,
