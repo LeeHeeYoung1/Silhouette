@@ -1,7 +1,7 @@
 import Client from './client';
 
-// 이상형 매칭 신청 → { status: 'MATCHED' | 'WAITING', partner_Seq, ideal_Matching_Seq, chat_Room_Seq, score }
-// MATCHED면 채팅방이 이미 만들어져 있음 → /chatting/{chat_Room_Seq}로 이동
+// 이상형 매칭 신청 → { status: 'MATCHED' | 'WAITING', partnerSeq, idealMatchingSeq, chatRoomSeq, score }
+// MATCHED면 채팅방이 이미 만들어져 있음 → /chatting/{chatRoomSeq}로 이동
 export const startIdealMatch = () => Client.post('/matching/ideal/start');
 
 // 매칭 상태 확인 (대기 중일 때 주기적으로 호출) → status: 'WAITING' | 'MATCHED' | 'IDLE'(대기열에 없음)

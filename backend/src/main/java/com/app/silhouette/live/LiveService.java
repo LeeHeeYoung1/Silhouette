@@ -72,16 +72,16 @@ public class LiveService {
 
 	// ========================= 방송 시작 =========================
 
-	// → { live_room_seq, token, url }
+	// → { liveRoomSeq, token, url }
 	public Map<String, Object> start(String loginId, LiveRoomDTO req) {
 		long me = getMemberSeq(loginId);
 
 		LiveRoomDTO room = new LiveRoomDTO();
-		room.setHost_seq(me);
+		room.setHostSeq(me);
 		room.setTitle(validateTitle(req.getTitle()));
 		room.setDescription(validateDescription(req.getDescription()));
 		room.setCategory(validateCategory(req.getCategory()));
-		room.setThumbnail_url(validateThumbnail(req.getThumbnail_url()));
+		room.setThumbnailUrl(validateThumbnail(req.getThumbnailUrl()));
 		List<String> tags = normalizeHashtags(req.getHashtags());
 
 		// 이전 방송이 제대로 안 끝났으면(창 닫기 등) 정리
@@ -94,7 +94,7 @@ public class LiveService {
 			tx.executeWithoutResult(status -> {
 				dao.insertLiveRoom(room);
 				for (String tag : tags) {
-					dao.insertHashtag(room.getLive_room_seq(), tag);
+					dao.insertHashtag(room.getLiveRoomSeq(), tag);
 				}
 			});
 		} catch (DuplicateKeyException e) {
@@ -102,23 +102,23 @@ public class LiveService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 방송 중입니다.");
 		}
 
-		long seq = room.getLive_room_seq();
+		long seq = room.getLiveRoomSeq();
 		String token = tokenService.createToken(
 				LiveKitRoomService.roomName(seq), me, displayName(me, loginId), true);
 
 		Map<String, Object> result = new HashMap<>();
-		result.put("live_room_seq", seq);
+		result.put("liveRoomSeq", seq);
 		result.put("token", token);
 		result.put("url", livekitUrl);
-		result.put("my_member_seq", me);
+		result.put("myMemberSeq", me);
 		return result;
 	}
 
 	// 방송자가 LiveKit에 없고 시작한 지 좀 지났으면 버려진 방송으로 보고 종료
 	private void endIfAbandoned(LiveRoomDTO prev, long me) {
-		long seq = prev.getLive_room_seq();
-		boolean justStarted = prev.getStarted_at() != null
-				&& System.currentTimeMillis() - prev.getStarted_at().getTime() < CONNECT_GRACE_MILLIS;
+		long seq = prev.getLiveRoomSeq();
+		boolean justStarted = prev.getStartedAt() != null
+				&& System.currentTimeMillis() - prev.getStartedAt().getTime() < CONNECT_GRACE_MILLIS;
 		Boolean connected = roomService.isConnected(LiveKitRoomService.roomName(seq), String.valueOf(me));
 
 		if (Boolean.FALSE.equals(connected) && !justStarted) {
@@ -135,14 +135,14 @@ public class LiveService {
 		long me = getMemberSeq(loginId);
 		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
 
-		if (room.getHost_seq() == me) {
+		if (room.getHostSeq() == me) {
 			// 같은 identity로 들어가면 LiveKit이 방송자 연결을 끊어버림
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "내 방송은 시청할 수 없어요.");
 		}
 		if (dao.isKicked(liveRoomSeq, me)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "강퇴되어 이 방송에 입장할 수 없어요.");
 		}
-		if (dao.isBanned(room.getHost_seq(), me)) {
+		if (dao.isBanned(room.getHostSeq(), me)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "방송자에 의해 입장이 제한되었어요.");
 		}
 		if (dao.countActiveViewers(liveRoomSeq) >= maxViewers) {
@@ -157,7 +157,37 @@ public class LiveService {
 		result.put("token", token);
 		result.put("url", livekitUrl);
 		result.put("room", room);
-		result.put("my_member_seq", me);   // KICKED 메시지가 나인지 확인용
+		result.put("myMemberSeq", me);   // KICKED 메시지가 나인지 확인용
+		return result;
+	}
+
+	// ========================= 방송자 재입장 =========================
+
+	// 방송자가 다른 화면으로 이동해 연결이 끊긴 뒤 내 방송으로 돌아올 때
+	// 방송은 LIVE 그대로 두고 방송자 토큰만 다시 발급
+	// → { token, url, room, liveRoomSeq, myMemberSeq }
+	public Map<String, Object> resume(String loginId, long liveRoomSeq) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+
+		if (room.getHostSeq() != me) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "내 방송만 이어서 할 수 있어요.");
+		}
+
+		// 끊김 표시를 지워서 다시 연결되는 동안 30초 TIMEOUT 종료가 되지 않게 함
+		// (webhook이 오면 participant_joined에서 한 번 더 지워도 문제없음)
+		dao.clearHostDisconnected(liveRoomSeq);
+
+		room.setHashtags(dao.selectHashtags(liveRoomSeq));
+		String token = tokenService.createToken(
+				LiveKitRoomService.roomName(liveRoomSeq), me, displayName(me, loginId), true);
+
+		Map<String, Object> result = new HashMap<>();
+		result.put("token", token);
+		result.put("url", livekitUrl);
+		result.put("room", room);
+		result.put("liveRoomSeq", liveRoomSeq);
+		result.put("myMemberSeq", me);
 		return result;
 	}
 
@@ -173,9 +203,9 @@ public class LiveService {
 
 		List<LiveRoomDTO> list = dao.selectLiveList(params);
 		for (LiveRoomDTO room : list) {
-			String text = room.getHashtag_text();
+			String text = room.getHashtagText();
 			room.setHashtags(text == null ? List.of() : Arrays.asList(text.split(",")));
-			room.setHashtag_text(null);
+			room.setHashtagText(null);
 		}
 		return list;
 	}
@@ -198,11 +228,11 @@ public class LiveService {
 		checkHost(before, me);
 
 		LiveRoomDTO room = new LiveRoomDTO();
-		room.setLive_room_seq(liveRoomSeq);
+		room.setLiveRoomSeq(liveRoomSeq);
 		room.setTitle(validateTitle(req.getTitle()));
 		room.setDescription(validateDescription(req.getDescription()));
 		room.setCategory(validateCategory(req.getCategory()));
-		room.setThumbnail_url(validateThumbnail(req.getThumbnail_url()));
+		room.setThumbnailUrl(validateThumbnail(req.getThumbnailUrl()));
 		List<String> tags = normalizeHashtags(req.getHashtags());
 
 		tx.executeWithoutResult(status -> {
@@ -216,8 +246,8 @@ public class LiveService {
 		});
 
 		// 썸네일이 바뀌었으면 이전 파일 삭제
-		String oldThumb = before.getThumbnail_url();
-		if (oldThumb != null && !oldThumb.equals(room.getThumbnail_url())) {
+		String oldThumb = before.getThumbnailUrl();
+		if (oldThumb != null && !oldThumb.equals(room.getThumbnailUrl())) {
 			deleteThumbnail(oldThumb);
 		}
 
@@ -268,7 +298,7 @@ public class LiveService {
 
 		LiveRoomDTO onAir = dao.selectMyOnAir(me);
 		if (onAir != null) {
-			long seq = onAir.getLive_room_seq();
+			long seq = onAir.getLiveRoomSeq();
 			if (kickInternal(seq, target) == 0) {
 				// 시청 기록이 아직 없어도(webhook 지연) 접속돼 있으면 내보냄
 				roomService.removeParticipant(LiveKitRoomService.roomName(seq), String.valueOf(target));
@@ -284,7 +314,7 @@ public class LiveService {
 		// 차단할 때 지금 방송에서 같이 강퇴했으므로, 방송 중이면 강퇴 표시도 해제
 		LiveRoomDTO onAir = dao.selectMyOnAir(me);
 		if (onAir != null) {
-			dao.unkickViewer(onAir.getLive_room_seq(), target);
+			dao.unkickViewer(onAir.getLiveRoomSeq(), target);
 		}
 	}
 
@@ -301,7 +331,7 @@ public class LiveService {
 		roomService.removeParticipant(LiveKitRoomService.roomName(liveRoomSeq), String.valueOf(target));
 
 		LiveMessageDTO kicked = LiveMessageDTO.of("KICKED", liveRoomSeq, null);
-		kicked.setMember_seq(target);
+		kicked.setMemberSeq(target);
 		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq, kicked);
 		sendSystem(liveRoomSeq, nickname(target) + "님이 강퇴되었어요.");
 		return rows;
@@ -351,7 +381,7 @@ public class LiveService {
 		}
 
 		// ④ ~ ⑥ 외부 처리는 커밋 후 (실패해도 방송 종료 자체는 유지)
-		deleteThumbnail(room.getThumbnail_url());
+		deleteThumbnail(room.getThumbnailUrl());
 		messagingTemplate.convertAndSend("/sub/live/" + liveRoomSeq,
 				LiveMessageDTO.of("END", liveRoomSeq, endedBy));
 		roomService.deleteRoom(LiveKitRoomService.roomName(liveRoomSeq));
@@ -384,18 +414,18 @@ public class LiveService {
 		if (room == null || !"LIVE".equals(room.getStatus())) {
 			return;
 		}
-		boolean isHost = room.getHost_seq().longValue() == memberSeq;
+		boolean isHost = room.getHostSeq().longValue() == memberSeq;
 
 		if ("participant_joined".equals(type)) {
 			if (isHost) {
 				dao.clearHostDisconnected(liveRoomSeq);     // 재접속 → 방송 이어감
-				if (room.getDisconnected_at() != null) {
+				if (room.getDisconnectedAt() != null) {
 					sendSystem(liveRoomSeq, "방송자가 다시 연결됐어요.");
 				}
 				return;
 			}
 			// 토큰 발급 후 강퇴·차단된 경우 (토큰은 유효기간이 남아 있음)
-			if (dao.isKicked(liveRoomSeq, memberSeq) || dao.isBanned(room.getHost_seq(), memberSeq)) {
+			if (dao.isKicked(liveRoomSeq, memberSeq) || dao.isBanned(room.getHostSeq(), memberSeq)) {
 				roomService.removeParticipant(roomName, String.valueOf(memberSeq));
 				return;
 			}
@@ -449,7 +479,7 @@ public class LiveService {
 
 	// 방송자 전용 기능은 항상 서버에서 HOST_SEQ 확인
 	private void checkHost(LiveRoomDTO room, long me) {
-		if (room.getHost_seq().longValue() != me) {
+		if (room.getHostSeq().longValue() != me) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "방송자만 할 수 있어요.");
 		}
 	}

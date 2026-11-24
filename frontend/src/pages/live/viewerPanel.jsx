@@ -49,14 +49,14 @@ function ViewerPanel({ liveRoomSeq, onProfile }) {
       {viewers.length === 0 && <p className={styles.muted}>아직 시청자가 없어요.</p>}
       <ul>
         {viewers.map((v) => (
-          <li key={v.member_seq}>
-            <button className={styles.chatNick} onClick={() => onProfile?.(v.member_seq)}>
-              {v.nickname || v.login_id}
+          <li key={v.memberSeq}>
+            <button className={styles.chatNick} onClick={() => onProfile?.(v.memberSeq)}>
+              {v.nickname || v.loginId}
             </button>
             <button
               className={styles.ghostButton}
               onClick={() =>
-                act(() => kickViewer(liveRoomSeq, v.member_seq),
+                act(() => kickViewer(liveRoomSeq, v.memberSeq),
                   `${v.nickname}님을 이번 방송에서 강퇴할까요?`)
               }
             >
@@ -65,7 +65,7 @@ function ViewerPanel({ liveRoomSeq, onProfile }) {
             <button
               className={styles.dangerButton}
               onClick={() =>
-                act(() => banMember(v.member_seq),
+                act(() => banMember(v.memberSeq),
                   `${v.nickname}님을 차단할까요? 내 모든 방송에 입장할 수 없어요.`)
               }
             >

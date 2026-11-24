@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Client as StompClient } from '@stomp/stompjs';
 import useAuthStore from '../../stores/useAuthStore';
+import { wsUrl } from '../../api/ws'; 
 import styles from './live.module.css';
 
 const CONTENT_MAX = 100;
@@ -26,7 +27,7 @@ function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate, onP
 
   useEffect(() => {
     const client = new StompClient({
-      brokerURL: 'ws://localhost:80/live',
+      brokerURL: wsUrl('/live'),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
@@ -39,7 +40,7 @@ function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate, onP
               h.onEnd?.(msg.content);
               return;
             case 'KICKED':
-              if (h.myMemberSeq != null && Number(msg.member_seq) === Number(h.myMemberSeq)) {
+              if (h.myMemberSeq != null && Number(msg.memberSeq) === Number(h.myMemberSeq)) {
                 h.onKicked?.();
               }
               return;
@@ -87,7 +88,7 @@ function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate, onP
 
     clientRef.current.publish({
       destination: '/pub/live/chat',
-      body: JSON.stringify({ live_room_seq: liveRoomSeq, content }),
+      body: JSON.stringify({ liveRoomSeq, content }),
     });
     setInput('');
   };
@@ -100,13 +101,13 @@ function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate, onP
           m.type === 'SYSTEM' ? (
             <li key={`s${i}`} className={styles.chatSystem}>{m.content}</li>
           ) : (
-            <li key={m.live_chat_seq ?? `c${i}`} className={styles.chatItem}>
-              {m.host_yn === 'Y' && <span className={styles.hostBadge}>방송자</span>}
-              <button className={styles.chatNick} onClick={() => onProfile?.(m.member_seq)}>
+            <li key={m.liveChatSeq ?? `c${i}`} className={styles.chatItem}>
+              {m.hostYn === 'Y' && <span className={styles.hostBadge}>방송자</span>}
+              <button className={styles.chatNick} onClick={() => onProfile?.(m.memberSeq)}>
                 {m.nickname}
               </button>
               <span className={styles.chatContent}>{m.content}</span>
-              {Number(m.member_seq) !== Number(myMemberSeq) && (
+              {Number(m.memberSeq) !== Number(myMemberSeq) && (
                 <button
                   className={styles.chatReport}
                   onClick={() => onReport?.(m)}

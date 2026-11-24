@@ -26,17 +26,17 @@ public class LiveReportDTO {
 
     public LiveReportDTO() {}
 
-    public Long getLive_report_seq() { return live_report_seq; }
-    public void setLive_report_seq(Long live_report_seq) { this.live_report_seq = live_report_seq; }
+    public Long getLiveReportSeq() { return live_report_seq; }
+    public void setLiveReportSeq(Long live_report_seq) { this.live_report_seq = live_report_seq; }
 
-    public Long getLive_room_seq() { return live_room_seq; }
-    public void setLive_room_seq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
+    public Long getLiveRoomSeq() { return live_room_seq; }
+    public void setLiveRoomSeq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
 
-    public Long getLive_chat_seq() { return live_chat_seq; }
-    public void setLive_chat_seq(Long live_chat_seq) { this.live_chat_seq = live_chat_seq; }
+    public Long getLiveChatSeq() { return live_chat_seq; }
+    public void setLiveChatSeq(Long live_chat_seq) { this.live_chat_seq = live_chat_seq; }
 
-    public Long getReporter_seq() { return reporter_seq; }
-    public void setReporter_seq(Long reporter_seq) { this.reporter_seq = reporter_seq; }
+    public Long getReporterSeq() { return reporter_seq; }
+    public void setReporterSeq(Long reporter_seq) { this.reporter_seq = reporter_seq; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
@@ -47,30 +47,30 @@ public class LiveReportDTO {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public Date getCreated_at() { return created_at; }
-    public void setCreated_at(Date created_at) { this.created_at = created_at; }
+    public Date getCreatedAt() { return created_at; }
+    public void setCreatedAt(Date created_at) { this.created_at = created_at; }
 
-    public String getRoom_title() { return room_title; }
-    public void setRoom_title(String room_title) { this.room_title = room_title; }
+    public String getRoomTitle() { return room_title; }
+    public void setRoomTitle(String room_title) { this.room_title = room_title; }
 
-    public String getRoom_status() { return room_status; }
-    public void setRoom_status(String room_status) { this.room_status = room_status; }
+    public String getRoomStatus() { return room_status; }
+    public void setRoomStatus(String room_status) { this.room_status = room_status; }
 
-    public Long getHost_seq() { return host_seq; }
-    public void setHost_seq(Long host_seq) { this.host_seq = host_seq; }
+    public Long getHostSeq() { return host_seq; }
+    public void setHostSeq(Long host_seq) { this.host_seq = host_seq; }
 
-    public String getHost_nickname() { return host_nickname; }
-    public void setHost_nickname(String host_nickname) { this.host_nickname = host_nickname; }
+    public String getHostNickname() { return host_nickname; }
+    public void setHostNickname(String host_nickname) { this.host_nickname = host_nickname; }
 
-    public String getReporter_nickname() { return reporter_nickname; }
-    public void setReporter_nickname(String reporter_nickname) { this.reporter_nickname = reporter_nickname; }
+    public String getReporterNickname() { return reporter_nickname; }
+    public void setReporterNickname(String reporter_nickname) { this.reporter_nickname = reporter_nickname; }
 
-    public String getChat_content() { return chat_content; }
-    public void setChat_content(String chat_content) { this.chat_content = chat_content; }
+    public String getChatContent() { return chat_content; }
+    public void setChatContent(String chat_content) { this.chat_content = chat_content; }
 
-    public Long getChat_member_seq() { return chat_member_seq; }
-    public void setChat_member_seq(Long chat_member_seq) { this.chat_member_seq = chat_member_seq; }
+    public Long getChatMemberSeq() { return chat_member_seq; }
+    public void setChatMemberSeq(Long chat_member_seq) { this.chat_member_seq = chat_member_seq; }
 
-    public String getChat_member_nickname() { return chat_member_nickname; }
-    public void setChat_member_nickname(String chat_member_nickname) { this.chat_member_nickname = chat_member_nickname; }
+    public String getChatMemberNickname() { return chat_member_nickname; }
+    public void setChatMemberNickname(String chat_member_nickname) { this.chat_member_nickname = chat_member_nickname; }
 }

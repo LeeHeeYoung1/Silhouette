@@ -55,11 +55,11 @@
                      OR (b.MEMBER_SEQ = m.MEMBER_SEQ  AND b.BLOCKED_MEMBER_SEQ = me.MEMBER_SEQ))
         )
         SELECT * FROM (
-            SELECT c.MEMBER_SEQ                                   AS memberSeq,
+            SELECT c.MEMBER_SEQ                                   AS member_seq,
                    c.NICKNAME                                     AS nickname,
                    c.AGE                                          AS age,
                    c.SIDO || ' ' || c.SIGUNGU                     AS region,
-                   CASE WHEN c.SIGUNGU = me.SIGUNGU THEN 1 ELSE 2 END AS nearRank,
+                   CASE WHEN c.SIGUNGU = me.SIGUNGU THEN 1 ELSE 2 END AS near_rank,
                    c.INTRODUCTION                                 AS introduction,
                    c.MBTI                                         AS mbti,
                    c.JOB                                          AS job

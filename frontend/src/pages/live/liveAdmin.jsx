@@ -42,7 +42,7 @@ function LiveAdmin() {
 
   const done = async (r) => {
     try {
-      await doneLiveReport(r.live_report_seq);
+      await doneLiveReport(r.liveReportSeq);
       reload();
     } catch (e) {
       setError(errorMessage(e, '처리하지 못했어요.'));
@@ -50,10 +50,10 @@ function LiveAdmin() {
   };
 
   const forceEnd = async (r) => {
-    const reason = window.prompt(`"${r.room_title}" 방송을 강제 종료할까요?\n종료 사유를 입력해주세요.`);
+    const reason = window.prompt(`"${r.roomTitle}" 방송을 강제 종료할까요?\n종료 사유를 입력해주세요.`);
     if (reason === null) return;
     try {
-      await adminEndLive(r.live_room_seq, reason.trim() || null);
+      await adminEndLive(r.liveRoomSeq, reason.trim() || null);
       reload();
     } catch (e) {
       setError(errorMessage(e, '종료하지 못했어요.'));
@@ -88,30 +88,30 @@ function LiveAdmin() {
 
       <ul className={styles.reportList}>
         {items.map((r) => (
-          <li key={r.live_report_seq} className={styles.reportItem}>
+          <li key={r.liveReportSeq} className={styles.reportItem}>
             <div className={styles.reportHead}>
-              <span className={styles.tag}>{r.live_chat_seq ? '채팅 신고' : '방송 신고'}</span>
+              <span className={styles.tag}>{r.liveChatSeq ? '채팅 신고' : '방송 신고'}</span>
               <strong>{reasonLabel(r.reason)}</strong>
               <small className={styles.muted}>
-                {new Date(r.created_at).toLocaleString('ko-KR')} · 신고자 {r.reporter_nickname}
+                {new Date(r.createdAt).toLocaleString('ko-KR')} · 신고자 {r.reporterNickname}
               </small>
             </div>
             <div>
-              방송: <strong>{r.room_title}</strong> ({r.host_nickname}){' '}
-              <span className={r.room_status === 'LIVE' ? styles.liveBadge : styles.tag}>
-                {r.room_status === 'LIVE' ? 'LIVE' : '종료'}
+              방송: <strong>{r.roomTitle}</strong> ({r.hostNickname}){' '}
+              <span className={r.roomStatus === 'LIVE' ? styles.liveBadge : styles.tag}>
+                {r.roomStatus === 'LIVE' ? 'LIVE' : '종료'}
               </span>
             </div>
-            {r.live_chat_seq && (
+            {r.liveChatSeq && (
               <p className={styles.quote}>
-                <strong>{r.chat_member_nickname}</strong> {r.chat_content ?? '(삭제된 채팅)'}
+                <strong>{r.chatMemberNickname}</strong> {r.chatContent ?? '(삭제된 채팅)'}
               </p>
             )}
             {r.detail && <p className={styles.muted}>사유: {r.detail}</p>}
             {r.status === 'WAIT' && (
               <div className={styles.lobbyActions}>
                 <button className={styles.ghostButton} onClick={() => done(r)}>처리 완료</button>
-                {r.room_status === 'LIVE' && (
+                {r.roomStatus === 'LIVE' && (
                   <button className={styles.dangerButton} onClick={() => forceEnd(r)}>방송 강제 종료</button>
                 )}
               </div>

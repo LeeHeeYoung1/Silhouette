@@ -15,7 +15,7 @@ const DETAIL_REFRESH = 15000;
 // 방송 화면 (방송자·시청자 공용, 방송자에게만 수정·종료·시청자 패널)
 // onLeave(notice): 방송 화면을 떠날 때 (로비에 보여줄 안내 문구)
 function LiveRoom({ conn, isHost, onLeave }) {
-  const liveRoomSeq = conn.live_room_seq;
+  const liveRoomSeq = conn.liveRoomSeq;
   const [room, setRoom] = useState(conn.room ?? {});
   const [chatOpen, setChatOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -82,7 +82,7 @@ function LiveRoom({ conn, isHost, onLeave }) {
     setUnread(0);
   };
 
-  const hostName = room.host_nickname || room.host_login_id || '방송자';
+  const hostName = room.hostNickname || room.hostLoginId || '방송자';
 
   return (
     <LiveKitRoom
@@ -104,12 +104,12 @@ function LiveRoom({ conn, isHost, onLeave }) {
           <div className={styles.roomMeta}>
             <button
               className={styles.linkButton}
-              onClick={() => setModal({ type: 'profile', memberSeq: room.host_seq })}
+              onClick={() => setModal({ type: 'profile', memberSeq: room.hostSeq })}
             >
               {hostName}
             </button>
             <span>· {categoryLabel(room.category)}</span>
-            {room.viewer_count != null && <span>· 👀 {room.viewer_count}</span>}
+            {room.viewerCount != null && <span>· 👀 {room.viewerCount}</span>}
             {(room.hashtags ?? []).map((t) => (
               <span key={t} className={styles.tag}>#{t}</span>
             ))}
@@ -140,7 +140,7 @@ function LiveRoom({ conn, isHost, onLeave }) {
           {isHost ? (
             <HostStage nickname={hostName} />
           ) : (
-            <ViewerStage hostSeq={room.host_seq} nickname={hostName} />
+            <ViewerStage hostSeq={room.hostSeq} nickname={hostName} />
           )}
         </div>
 
@@ -154,7 +154,7 @@ function LiveRoom({ conn, isHost, onLeave }) {
           )}
           <LiveChat
             liveRoomSeq={liveRoomSeq}
-            myMemberSeq={conn.my_member_seq}
+            myMemberSeq={conn.myMemberSeq}
             onEnd={handleEnd}
             onKicked={() => leave('방송자에 의해 퇴장되었어요.')}
             onRoomUpdate={(updated) => setRoom((prev) => ({ ...prev, ...updated }))}
@@ -182,7 +182,7 @@ function LiveRoom({ conn, isHost, onLeave }) {
       {modal?.type === 'profile' && (
         <ProfileModal
           memberSeq={modal.memberSeq}
-          myMemberSeq={conn.my_member_seq}
+          myMemberSeq={conn.myMemberSeq}
           onClose={() => setModal(null)}
         />
       )}

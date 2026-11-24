@@ -15,8 +15,8 @@ public class LiveChatController {
         this.chatService = chatService;
     }
 
-    // STOMP 전송: /pub/live/chat  body: { live_room_seq, content }
-    // 구독: /sub/live/{live_room_seq}
+    // STOMP 전송: /pub/live/chat  body: { liveRoomSeq, content }
+    // 구독: /sub/live/{liveRoomSeq}
     @MessageMapping("/live/chat")
     public void send(LiveMessageDTO message, SimpMessageHeaderAccessor headerAccessor) {
         Map<String, Object> session = headerAccessor.getSessionAttributes();
@@ -24,6 +24,6 @@ public class LiveChatController {
         if (userId == null || message == null) {
             return;
         }
-        chatService.send(userId.toString(), message.getLive_room_seq(), message.getContent());
+        chatService.send(userId.toString(), message.getLiveRoomSeq(), message.getContent());
     }
 }
