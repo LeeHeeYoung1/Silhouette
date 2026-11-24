@@ -173,11 +173,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             if (memberSeq == null || room == null || !"LIVE".equals(room.getStatus())) {
                 return false;
             }
-            if (room.getHost_seq().longValue() == memberSeq) {
+            if (room.getHostSeq().longValue() == memberSeq) {
                 return true;
             }
             return !liveDAO.isKicked(liveRoomSeq, memberSeq)
-                    && !liveDAO.isBanned(room.getHost_seq(), memberSeq);
+                    && !liveDAO.isBanned(room.getHostSeq(), memberSeq);
         } catch (NumberFormatException e) {
             return false;
         }

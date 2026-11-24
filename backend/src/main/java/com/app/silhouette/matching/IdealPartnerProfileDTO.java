@@ -3,7 +3,7 @@ package com.app.silhouette.matching;
 // 이상형 매칭 / 블라인드(둘 다 GO) 채팅방 사이드에 보여줄 상대 프로필
 public class IdealPartnerProfileDTO {
 
-    private String roomType;       // IDEAL / BLIND
+    private String room_type;       // IDEAL / BLIND
     private String nickname;
     private Integer age;
     private String mbti;
@@ -14,8 +14,8 @@ public class IdealPartnerProfileDTO {
     public IdealPartnerProfileDTO() {
     }
 
-    public String getRoomType() { return roomType; }
-    public void setRoomType(String roomType) { this.roomType = roomType; }
+    public String getRoomType() { return room_type; }
+    public void setRoomType(String room_type) { this.room_type = room_type; }
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }

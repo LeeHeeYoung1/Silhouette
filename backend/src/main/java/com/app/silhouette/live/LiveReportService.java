@@ -28,7 +28,7 @@ public class LiveReportService {
 
     // ========================= 신고 =========================
 
-    // body: { live_chat_seq(채팅 신고일 때만), reason, detail }
+    // body: { liveChatSeq(채팅 신고일 때만), reason, detail }
     public void report(String loginId, long liveRoomSeq, LiveReportDTO req) {
         Long me = loginId == null ? null : dao.selectMemberSeqByLoginId(loginId);
         if (me == null) {
@@ -52,17 +52,17 @@ public class LiveReportService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "신고 내용은 150자까지 가능해요.");
         }
 
-        Long chatSeq = req.getLive_chat_seq();
+        Long chatSeq = req.getLiveChatSeq();
         if (chatSeq == null) {
-            if (room.getHost_seq().longValue() == me) {
+            if (room.getHostSeq().longValue() == me) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "내 방송은 신고할 수 없어요.");
             }
         } else {
             LiveMessageDTO chat = dao.selectChat(chatSeq);
-            if (chat == null || chat.getLive_room_seq().longValue() != liveRoomSeq) {
+            if (chat == null || chat.getLiveRoomSeq().longValue() != liveRoomSeq) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "없는 채팅이에요.");
             }
-            if (chat.getMember_seq().longValue() == me) {
+            if (chat.getMemberSeq().longValue() == me) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "내 채팅은 신고할 수 없어요.");
             }
         }
@@ -72,9 +72,9 @@ public class LiveReportService {
         }
 
         LiveReportDTO report = new LiveReportDTO();
-        report.setLive_room_seq(liveRoomSeq);
-        report.setLive_chat_seq(chatSeq);
-        report.setReporter_seq(me);
+        report.setLiveRoomSeq(liveRoomSeq);
+        report.setLiveChatSeq(chatSeq);
+        report.setReporterSeq(me);
         report.setReason(reason);
         report.setDetail(detail);
         dao.insertReport(report);

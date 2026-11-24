@@ -3,6 +3,8 @@
 팀원 모두가 같은 규칙으로 작업하기 위한 문서입니다.  
 규칙을 바꾸고 싶으면 팀원과 합의 후 이 문서를 먼저 수정합니다.
 
+> 💡 규칙이 왜 이렇게 정해졌는지, 실제로 겪은 문제와 해결 과정은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 정리되어 있습니다.
+
 ## 목차
 1. [기본 원칙](#1-기본-원칙)
 2. [브랜치 전략](#2-브랜치-전략)
@@ -115,7 +117,8 @@ type: 제목
 - 작업이 끝나기 전에도 의미 단위로 자주 커밋한다.
 - `수정`, `ㅇㅇ`, `fix`, `test`, `asdf` 같은 의미 없는 메시지 금지.
 - 빌드/실행이 **깨지는 상태로 커밋하지 않는다.**
-- **push한 커밋은 `--amend`로 고치지 않는다.** 고칠 게 있으면 새 커밋을 추가한다. (squash되므로 커밋이 늘어나도 괜찮다)
+- **push한 커밋은 `--amend`로 고치지 않는다.** 고칠 게 있으면 새 커밋을 추가한다.
+- 일반 머지(Merge commit)라서 **내 브랜치의 커밋이 모두 `main` 히스토리에 그대로 남는다.** 커밋 메시지를 규칙대로 쓴다.
 
 > ❌ `수정`, `feat: 이것저것 추가함`  
 > ⭕ `feat: 채팅방 시간제한 타이머 구현`
@@ -164,25 +167,26 @@ type: 제목
 - 머지는 **GIT 담당자 서현수**가 진행한다. (승인 1명 이상 확인 후)
 - GIT 담당자 본인의 PR은 **다른 팀원 1명 이상의 승인**을 받은 뒤 본인이 머지한다.
 - 충돌(Conflict)이 있으면 PR 작성자가 **머지 전에 해결**한다.
-- 머지 방식은 **Squash and merge**로 통일한다. (아래 설명 참고)
+- 머지 방식은 **Create a merge commit(일반 머지)**으로 통일한다. (아래 설명 참고)
 - 머지 후 내 fork의 작업 브랜치를 삭제하고, **내 fork의 `main`을 원본과 동기화**한다.
 
-#### 💡 Squash and merge란?
+#### 💡 일반 머지(Create a merge commit)란?
 
-PR 안에 커밋이 여러 개여도 **하나로 합쳐서** `main`에 넣는 방식이다.
+PR 안의 커밋을 **그대로 `main`에 붙이고**, 합친 지점에 머지 커밋을 하나 더 만드는 방식이다.
 
 ```text
-내 브랜치 커밋: feat: 매칭 구현 / 오타 수정 / 수정 / 로직 수정   (4개)
-       ↓ Squash and merge
-원본 main:     [Feat] 블라인드 랜덤 매칭 구현                  (1개)
+내 브랜치 커밋: feat: 매칭 구현 / fix: 점수 계산 오류 수정   (2개)
+       ↓ Create a merge commit
+원본 main:     feat: 매칭 구현
+               fix: 점수 계산 오류 수정
+               Merge pull request #00 from .../feat/C1-blind-matching
 ```
 
-- `main` 히스토리가 "기능 1개 = 커밋 1개"로 깔끔해진다.
-- 작업 중 커밋이 다소 지저분해도 괜찮다. (작업 중 `git merge main`으로 생긴 머지 커밋도 squash되므로 상관없다)
-- 개별 커밋 기록은 `main`에서는 사라지지만, PR 페이지에는 그대로 남는다.
+- 작업한 커밋이 하나하나 `main`에 남아서, 나중에 **어떤 커밋에서 무엇이 바뀌었는지** 추적하기 쉽다.
+- 대신 커밋이 그대로 남으므로 `수정`, `ㅇㅇ` 같은 메시지를 쓰지 않는다. (3장 커밋 규칙)
+- PR 전에 `git merge main`으로 생긴 머지 커밋도 함께 남는다. (작업 흐름상 정상)
 - 머지한 브랜치를 계속 재사용하면 충돌이 생기기 쉬우므로, **머지 후에는 브랜치를 삭제**한다.
-- 선택 위치: PR 하단 초록 머지 버튼 옆 **▼** → **Squash and merge**
-
+- 선택 위치: PR 하단 초록 머지 버튼 옆 **▼** → **Create a merge commit**
 ### PR 크기
 
 - 한 PR은 **기능 하나**만 담는다.
@@ -205,7 +209,7 @@ cd Silhouette
 ### 전체 흐름
 
 ```text
-Sync fork → 브랜치 생성 → 작업/커밋 → 내 fork로 push → 원본에 PR → 리뷰 → 머지 → Sync fork → 브랜치 삭제
+Sync fork → 브랜치 생성 → 작업/커밋 → 최신 main pull 후 내 브랜치에 merge → 내 fork로 push → 원본에 PR → 리뷰 → 머지 → Sync fork → 브랜치 삭제
 ```
 
 ### 🔄 Sync fork (원본 최신 내용 받아오기)
@@ -240,16 +244,22 @@ git checkout -b feat/C1-blind-matching
 git add .
 git commit -m "feat: 블라인드 랜덤 매칭 구현"
 
-# 4. 내 fork로 push
+# 4. PR 올리기 전에 최신 main을 받아 내 브랜치에 합치기 (아래 '작업 중에 원본이 바뀌었다면'과 같음)
+git checkout main
+git pull origin main
+git checkout feat/C1-blind-matching
+git merge main
+
+# 5. 내 fork로 push
 git push origin feat/C1-blind-matching
 
-# 5. GitHub에서 PR 생성
+# 6. GitHub에서 PR 생성
 #    내 fork의 feat/C1-blind-matching → 원본의 main
 ```
 
-### 작업 중에 원본이 바뀌었다면
+### 작업 중에 원본이 바뀌었다면 (PR 올리기 전에는 항상)
 
-다른 팀원의 PR이 머지되어 원본 `main`이 바뀌면, 내 브랜치에도 그 내용을 합쳐서 **PR 올리기 전에 충돌을 미리 해결**한다.
+다른 팀원의 PR이 머지되어 원본 `main`이 바뀌면, 내 브랜치에도 그 내용을 합쳐서 **PR 올리기 전에 충돌을 미리 해결**한다. 바뀌었는지 모르겠으면 PR 올리기 전에 항상 한 번 한다.
 
 ```bash
 # 1. GitHub에서 Sync fork → Update branch
@@ -279,7 +289,7 @@ git push origin --delete feat/C1-blind-matching
 ```
 
 > 💡 PR 머지 직후 PR 페이지에 뜨는 **`Delete branch`** 버튼으로 fork의 브랜치를 지워도 된다. 이 경우 로컬 브랜치(`git branch -D`)만 지우면 된다.  
-> ⚠️ Squash and merge는 커밋이 새로 만들어지는 방식이라 `git branch -d`는 "머지 안 됨"으로 거부될 수 있다. PR이 머지된 걸 확인했다면 `-D`로 삭제한다.
+> ⚠️ `git branch -d`는 로컬 `main`을 pull 받기 전이면 "머지 안 됨"으로 거부될 수 있다. PR이 머지된 걸 확인했다면 `-D`로 삭제한다.
 
 ### 하루 작업 루틴
 
@@ -314,7 +324,7 @@ git push origin --delete feat/C1-blind-matching
 - 테이블, 컬럼: **snake_case, 소문자**
 - 테이블명은 **단수형** 통일 → `member`, `post_file`
 - PK는 `테이블명_seq`, FK는 `대상테이블_seq` (예: `post_file` 테이블의 PK `post_file_seq`, FK `post_seq`)
-- 시퀀스 이름은 `seq_테이블명`으로 통일 (예: `seq_member`, `seq_match_history`)
+- 시퀀스 이름은 `seq_테이블명`으로 통일 (예: `seq_member`, `seq_match_history`) → 배경: [트러블슈팅 1번](./TROUBLESHOOTING.md#1-시퀀스-이름-접두사접미사-혼용으로-인한-충돌)
 - 시퀀스를 새로 만들거나 이름을 바꿀 때 테이블에 데이터가 있으면 `START WITH (PK 최댓값 + 1)`로 만든다. (1부터 시작하면 기존 PK와 겹쳐 `ORA-00001`)
 - DB는 팀이 함께 쓰므로, 테이블·시퀀스를 바꾸는 작업은 미리 공지하고 PR 본문에 SQL 스크립트(`ALTER TABLE` 등)를 함께 적는다.
 - 생성/수정 시간 컬럼: `created_at`, `updated_at`
@@ -356,6 +366,7 @@ public class LiveRoomDTO {
 - DTO 필드명이나 getter/setter 이름을 바꿀 때는 **매퍼 XML(컬럼·별칭·`#{}`)과 프론트 코드를 같은 커밋에서 함께** 바꾼다.
 - 새 DTO·매퍼를 만들거나 필드명을 바꾸면, 조회 결과와 요청 값이 **null로 들어오지 않는지 꼭 확인**한다.
   - 이름이 안 맞으면 에러 없이 조용히 null이 되거나, `There is no getter for property ...` 예외가 난다.
+- 이 규칙을 정하게 된 배경은 [트러블슈팅 2번](./TROUBLESHOOTING.md#2-dto-필드-네이밍camelcase--snake_case-혼용으로-인한-충돌)을 참고한다.
 
 ### 6-5. API·서버 주소
 
@@ -386,7 +397,7 @@ public class LiveRoomDTO {
 | 상황 | 해결 |
 |---|---|
 | 커밋 메시지를 잘못 썼다 (아직 push 전) | `git commit --amend -m "새 메시지"` |
-| push한 커밋을 고치고 싶다 | amend 금지. 새 커밋을 추가한다 (squash되므로 OK) |
+| push한 커밋을 고치고 싶다 | amend 금지. 새 커밋을 추가한다 |
 | 마지막 커밋을 취소하고 싶다 (변경 내용 유지) | `git reset --soft HEAD~1` |
 | 엉뚱한 브랜치에서 작업했다 | `git stash` → 올바른 브랜치로 이동 → `git stash pop` |
 | 작업하던 걸 잠깐 치워두고 싶다 | `git stash` / 복구는 `git stash pop` |
@@ -397,6 +408,8 @@ public class LiveRoomDTO {
 
 > ⚠️ **`git push --force`는 사용 금지.** 팀원의 작업이 날아갈 수 있다.  
 > ⚠️ **`git reset --hard`**는 변경 내용이 완전히 사라지니 신중하게.
+
+> 💡 개발 중 겪은 문제와 해결 과정은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록한다. 비슷한 문제가 생기면 먼저 찾아보고, 새로 해결한 문제는 목차와 본문 맨 위에 추가한다.
 
 ---
 
@@ -413,3 +426,4 @@ public class LiveRoomDTO {
 | 2026.11.20 | 시퀀스 생성 시 시작 번호·DB 변경 스크립트 규칙, MyBatis 매핑(6-4), API·서버 주소(6-5), JWT 회원 판단·업로드 검사(보안), PR 범위·빌드 확인 규칙 추가 | 서현수 |
 | 2026.11.24 | DTO 멤버 필드 snake_case 통일, getter/setter·`#{}`·JSON 키는 camelCase(6-3, 6-4 개정), camelCase 별칭 금지, 이름 변경 시 매퍼·프론트 동시 수정 규칙 추가 | 서현수 |
 | 2026.11.24 | 6-4 코드 블록 닫힘 누락 수정, PK 규칙(`테이블명_seq`)·테이블명 예시·접미사 표기·커밋 예시(Oracle) 정정, `#{}` 규칙 범위 명확화 | 서현수 |
+| 2026.11.24 | TROUBLESHOOTING.md 참조 안내 추가(문서 상단, 6-2, 6-4, 8), PR 전 최신 main merge 단계를 작업 흐름에 명시 | 서현수 |

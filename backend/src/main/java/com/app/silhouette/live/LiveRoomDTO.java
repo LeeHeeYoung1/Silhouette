@@ -29,11 +29,11 @@ public class LiveRoomDTO {
 
     public LiveRoomDTO() {}
 
-    public Long getLive_room_seq() { return live_room_seq; }
-    public void setLive_room_seq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
+    public Long getLiveRoomSeq() { return live_room_seq; }
+    public void setLiveRoomSeq(Long live_room_seq) { this.live_room_seq = live_room_seq; }
 
-    public Long getHost_seq() { return host_seq; }
-    public void setHost_seq(Long host_seq) { this.host_seq = host_seq; }
+    public Long getHostSeq() { return host_seq; }
+    public void setHostSeq(Long host_seq) { this.host_seq = host_seq; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -41,8 +41,8 @@ public class LiveRoomDTO {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getThumbnail_url() { return thumbnail_url; }
-    public void setThumbnail_url(String thumbnail_url) { this.thumbnail_url = thumbnail_url; }
+    public String getThumbnailUrl() { return thumbnail_url; }
+    public void setThumbnailUrl(String thumbnail_url) { this.thumbnail_url = thumbnail_url; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -50,35 +50,35 @@ public class LiveRoomDTO {
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
-    public Date getStarted_at() { return started_at; }
-    public void setStarted_at(Date started_at) { this.started_at = started_at; }
+    public Date getStartedAt() { return started_at; }
+    public void setStartedAt(Date started_at) { this.started_at = started_at; }
 
-    public Date getEnded_at() { return ended_at; }
-    public void setEnded_at(Date ended_at) { this.ended_at = ended_at; }
+    public Date getEndedAt() { return ended_at; }
+    public void setEndedAt(Date ended_at) { this.ended_at = ended_at; }
 
-    public Date getCreated_at() { return created_at; }
-    public void setCreated_at(Date created_at) { this.created_at = created_at; }
+    public Date getCreatedAt() { return created_at; }
+    public void setCreatedAt(Date created_at) { this.created_at = created_at; }
 
-    public Date getDisconnected_at() { return disconnected_at; }
-    public void setDisconnected_at(Date disconnected_at) { this.disconnected_at = disconnected_at; }
+    public Date getDisconnectedAt() { return disconnected_at; }
+    public void setDisconnectedAt(Date disconnected_at) { this.disconnected_at = disconnected_at; }
 
-    public String getEnded_by() { return ended_by; }
-    public void setEnded_by(String ended_by) { this.ended_by = ended_by; }
+    public String getEndedBy() { return ended_by; }
+    public void setEndedBy(String ended_by) { this.ended_by = ended_by; }
 
-    public String getEnd_reason() { return end_reason; }
-    public void setEnd_reason(String end_reason) { this.end_reason = end_reason; }
+    public String getEndReason() { return end_reason; }
+    public void setEndReason(String end_reason) { this.end_reason = end_reason; }
 
-    public String getHost_login_id() { return host_login_id; }
-    public void setHost_login_id(String host_login_id) { this.host_login_id = host_login_id; }
+    public String getHostLoginId() { return host_login_id; }
+    public void setHostLoginId(String host_login_id) { this.host_login_id = host_login_id; }
 
-    public String getHost_nickname() { return host_nickname; }
-    public void setHost_nickname(String host_nickname) { this.host_nickname = host_nickname; }
+    public String getHostNickname() { return host_nickname; }
+    public void setHostNickname(String host_nickname) { this.host_nickname = host_nickname; }
 
-    public Integer getViewer_count() { return viewer_count; }
-    public void setViewer_count(Integer viewer_count) { this.viewer_count = viewer_count; }
+    public Integer getViewerCount() { return viewer_count; }
+    public void setViewerCount(Integer viewer_count) { this.viewer_count = viewer_count; }
 
-    public String getHashtag_text() { return hashtag_text; }
-    public void setHashtag_text(String hashtag_text) { this.hashtag_text = hashtag_text; }
+    public String getHashtagText() { return hashtag_text; }
+    public void setHashtagText(String hashtag_text) { this.hashtag_text = hashtag_text; }
 
     public List<String> getHashtags() { return hashtags; }
     public void setHashtags(List<String> hashtags) { this.hashtags = hashtags; }

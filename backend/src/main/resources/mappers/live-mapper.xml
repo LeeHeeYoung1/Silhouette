@@ -100,15 +100,15 @@
 
     <!-- 방송 시작 -->
     <insert id="insertLiveRoom" parameterType="com.app.silhouette.live.LiveRoomDTO">
-        <selectKey keyProperty="live_room_seq" resultType="long" order="BEFORE">
+        <selectKey keyProperty="liveRoomSeq" resultType="long" order="BEFORE">
             SELECT SEQ_LIVE_ROOM.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO LIVE_ROOM (
             LIVE_ROOM_SEQ, HOST_SEQ, TITLE, DESCRIPTION, THUMBNAIL_URL,
             STATUS, CATEGORY, STARTED_AT, CREATED_AT
         ) VALUES (
-            #{live_room_seq}, #{host_seq}, #{title}, #{description, jdbcType=VARCHAR},
-            #{thumbnail_url, jdbcType=VARCHAR},
+            #{liveRoomSeq}, #{hostSeq}, #{title}, #{description, jdbcType=VARCHAR},
+            #{thumbnailUrl, jdbcType=VARCHAR},
             'LIVE', #{category}, SYSTIMESTAMP, SYSTIMESTAMP
         )
     </insert>
@@ -130,8 +130,8 @@
         SET TITLE = #{title},
             DESCRIPTION = #{description, jdbcType=VARCHAR},
             CATEGORY = #{category},
-            THUMBNAIL_URL = #{thumbnail_url, jdbcType=VARCHAR}
-        WHERE LIVE_ROOM_SEQ = #{live_room_seq}
+            THUMBNAIL_URL = #{thumbnailUrl, jdbcType=VARCHAR}
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
           AND STATUS = 'LIVE'
     </update>
 
@@ -345,7 +345,7 @@
             LIVE_REPORT_SEQ, LIVE_ROOM_SEQ, LIVE_CHAT_SEQ, REPORTER_SEQ,
             REASON, DETAIL, STATUS, CREATED_AT
         ) VALUES (
-            SEQ_LIVE_REPORT.NEXTVAL, #{live_room_seq}, #{live_chat_seq, jdbcType=NUMERIC}, #{reporter_seq},
+            SEQ_LIVE_REPORT.NEXTVAL, #{liveRoomSeq}, #{liveChatSeq, jdbcType=NUMERIC}, #{reporterSeq},
             #{reason}, #{detail, jdbcType=VARCHAR}, 'WAIT', SYSTIMESTAMP
         )
     </insert>

@@ -349,7 +349,7 @@ useEffect(() => {
   const handleIdealMatched = useCallback((result) => {
     isIdealWaitingRef.current = false;
     setIsIdealMatching(false);
-    navi(`/chatting/${result.chat_Room_Seq}`);
+    navi(`/chatting/${result.chatRoomSeq}`);
   }, [navi]);
 
   // 이상형 매칭 신청
@@ -386,10 +386,12 @@ useEffect(() => {
           clearInterval(timer);
           handleIdealMatched(data);
         } else if (data.status === 'IDLE') {
+          // 대기열에서 빠짐 (오래 확인이 없어 서버가 정리한 경우)        ← 추가
           stopped = true;
           clearInterval(timer);
           isIdealWaitingRef.current = false;
           setIsIdealMatching(false);
+          alert('연결이 오래 끊겨 매칭 대기가 취소됐어요. 다시 신청해 주세요.');   // ← 추가
         }
       } catch {
         // 일시적인 오류는 다음 주기에 다시 확인
@@ -489,7 +491,7 @@ useEffect(() => {
               if (response.status === 'MATCHED' && response.roomSeq) {
                 isBlindWaitingRef.current = false;
                 setIsBlindMatching(false);
-                navi(`/chatting/${response.roomSeq}`);
+                navi(`/chat/${response.roomSeq}`);   // 블라인드 채팅방 (일반 채팅방 /chatting 아님)
               }
             } catch (err) {
               console.error('응답 메시지 파싱 에러:', err);
