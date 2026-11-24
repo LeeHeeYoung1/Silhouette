@@ -1,5 +1,8 @@
 package com.app.silhouette.matching;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,10 @@ public class IdealMatchingService {
 
     private final IdealMatchingDAO dao;
     private final TransactionTemplate tx;
+
+    // 회원별 대기 시작 시각(ms). 대기가 길수록 매칭 기준점을 낮추는 데 사용
+    // 서버가 재시작되면 비워지고, 그 뒤 처음 확인한 시각부터 다시 잰다
+    private final Map<Integer, Long> waitStartedAt = new ConcurrentHashMap<>();
 
     IdealMatchingService(IdealMatchingDAO dao, TransactionTemplate tx) {
         this.dao = dao;
@@ -49,6 +56,7 @@ public class IdealMatchingService {
             } catch (DuplicateKeyException e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 매칭이 진행 중이에요.");
             }
+            waitStartedAt.put(me, System.currentTimeMillis());
         }
 
         return tryMatch(me);
@@ -63,7 +71,7 @@ public class IdealMatchingService {
                 return receiveMatched(me);
             }
 
-            IdealCandidateDTO cand = dao.selectCandidate(me);
+            IdealCandidateDTO cand = dao.selectCandidate(me, waitedSec(me));
             if (cand == null) {
                 return IdealMatchResultDTO.waiting();   // 후보 없음 → 대기
             }
@@ -104,6 +112,9 @@ public class IdealMatchingService {
         dao.insertChatRoomList(room, me);
         dao.insertChatRoomList(room, target);
 
+        waitStartedAt.remove(me);
+        waitStartedAt.remove(target);
+
         // 나는 바로 채팅방으로 가므로 대기열에서 제거
         // 상대는 MATCHED로 남겨 두고, 상대가 상태를 확인할 때 결과를 받고 제거됨
         dao.deleteMyQueue(me);
@@ -124,8 +135,11 @@ public class IdealMatchingService {
             return receiveMatched(me);
         }
         if (QUEUE_WAITING.equals(queue)) {
-            return IdealMatchResultDTO.waiting();
+            // 대기 시간이 늘어 기준점이 낮아졌을 수 있으니 다시 찾아본다
+            // (새로 들어오는 사람이 없어도 기존 대기자끼리 매칭되도록)
+            return tryMatch(me);
         }
+        waitStartedAt.remove(me);
         return IdealMatchResultDTO.idle();
     }
 
@@ -135,6 +149,7 @@ public class IdealMatchingService {
     public void cancel(String loginId) {
         int me = getMemberSeq(loginId);
 
+        waitStartedAt.remove(me);
         if (dao.deleteWaitingQueue(me) == 0) {
             // 지워진 게 없음 → 이미 매칭됐거나 대기 중이 아님
             if (QUEUE_MATCHED.equals(dao.selectQueueStatus(me))) {
@@ -164,6 +179,7 @@ public class IdealMatchingService {
 
     // 다른 사람이 나를 매칭한 결과를 받아가고 대기열에서 빠짐
     private IdealMatchResultDTO receiveMatched(int me) {
+        waitStartedAt.remove(me);
         IdealMatchingDTO m = dao.selectLatestMatching(me);
         dao.deleteMyQueue(me);
 
@@ -175,6 +191,12 @@ public class IdealMatchingService {
         int partner = (m.getMember_Seq_1() == me) ? m.getMember_Seq_2() : m.getMember_Seq_1();
         return new IdealMatchResultDTO("MATCHED", partner,
                 m.getIdeal_Matching_Seq(), m.getChat_Room_Seq(), m.getScore());
+    }
+
+    // 대기한 시간(초). 기록이 없으면(서버 재시작 등) 지금부터 잰다
+    private long waitedSec(int me) {
+        long started = waitStartedAt.computeIfAbsent(me, k -> System.currentTimeMillis());
+        return Math.max(0, (System.currentTimeMillis() - started) / 1000);
     }
 
     // 로그인 아이디 → 회원 번호

@@ -325,20 +325,34 @@ git push origin --delete feat/C1-blind-matching
 ### 6-3. 자바 코드 기본 규칙
 
 - 클래스: `PascalCase` / 변수, 메서드: `camelCase`
+- **단, DTO의 멤버 필드는 예외로 `snake_case`를 쓴다.** (6-4 참고)
 - 패키지: 소문자만 (예: `com.silhouette.match`)
 - 들여쓰기는 팀 IDE 설정에 맞추고, 임의로 포맷터를 바꾸지 않는다. (포맷만 바뀐 큰 변경은 `style:` 커밋으로 따로 올린다)
 
-### 6-4. MyBatis 매핑
+### 6-4. DTO 필드 네이밍과 MyBatis 매핑
 
-이 프로젝트는 `map-underscore-to-camel-case`를 **쓰지 않는다.** 그래서 `MEMBER_SEQ` 컬럼은 `memberSeq` 필드에 자동으로 들어가지 않는다(null).
-DTO마다 아래 두 방법 중 하나를 골라 쓰고, 한 번 정하면 바꾸지 않는다.
+**DTO의 멤버 필드는 DB 컬럼과 같은 `snake_case`(소문자)로 통일한다.**
 
-| 방법 | 예시 |
-|---|---|
-| DTO 필드를 컬럼과 같은 snake_case로 | `private Long live_room_seq;` + `SELECT LIVE_ROOM_SEQ ...` |
-| SELECT에서 별칭으로 맞추기 (권장) | `SELECT member_seq AS memberSeq ...` + `private Long memberSeq;` |
+```java
+public class LiveRoomDTO {
+    private Long live_room_seq;   // ⭕
+    private Long host_seq;        // ⭕
+    private Long liveRoomSeq;     // ❌ camelCase 금지
+}
+```
 
-- 새 DTO·매퍼를 만들면 조회 결과 필드가 null로 나오지 않는지 꼭 확인한다.
+- 이 프로젝트는 `map-underscore-to-camel-case`를 **쓰지 않는다.** 필드명이 컬럼명과 같아야 조회 결과가 자동으로 들어간다.
+- SELECT에서 camelCase 별칭(`AS memberSeq`)을 쓰지 않는다. 컬럼명을 그대로 쓴다.
+  - ⭕ `SELECT member_seq, created_at FROM member`
+  - ❌ `SELECT member_seq AS memberSeq FROM member`
+- 조인 등으로 컬럼명이 겹치거나 계산 컬럼을 쓸 때는 **snake_case 별칭**을 쓴다.
+  - 예: `SELECT COUNT(*) AS viewer_count`, `m.nickname AS host_nickname`
+- INSERT/UPDATE 파라미터도 필드명 그대로 쓴다. → `#{member_seq}`
+- DTO 필드명이 곧 **API JSON 키**가 되므로, 프론트에서도 같은 이름을 쓴다. → `room.live_room_seq`
+- getter/setter는 IDE 자동 생성 이름을 그대로 쓴다. (예: `getLive_room_seq()`)
+- DTO 필드명을 바꿀 때는 **매퍼 XML(컬럼·별칭·`#{}`)과 프론트 코드를 같은 커밋에서 함께** 바꾼다.
+- 새 DTO·매퍼를 만들거나 필드명을 바꾸면, 조회 결과와 요청 값이 **null로 들어오지 않는지 꼭 확인**한다.
+  - 이름이 안 맞으면 에러 없이 조용히 null이 되거나, `There is no getter for property ...` 예외가 난다.
 
 ### 6-5. API·서버 주소
 
@@ -394,3 +408,4 @@ DTO마다 아래 두 방법 중 하나를 골라 쓰고, 한 번 정하면 바�
 | 2026.11.16 | 이슈 생성 및 연결 규칙 제거, PR 제목 형식 변경, 작업 흐름 수정 | 서현수 |
 | 2026.11.16 | 커밋 및 PR 타입 통일, `update` 타입 추가, `style`과 `design` 통합 | 서현수 |
 | 2026.11.20 | 시퀀스 생성 시 시작 번호·DB 변경 스크립트 규칙, MyBatis 매핑(6-4), API·서버 주소(6-5), JWT 회원 판단·업로드 검사(보안), PR 범위·빌드 확인 규칙 추가 | 서현수 |
+| 2026.11.24 | DTO 멤버 필드 snake_case 통일(6-3 예외, 6-4 개정), camelCase 별칭 금지, 필드명 변경 시 매퍼·프론트 동시 수정 규칙 추가 | 작성자 이름 |
