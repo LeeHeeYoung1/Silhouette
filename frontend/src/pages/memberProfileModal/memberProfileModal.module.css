@@ -1,0 +1,149 @@
+
+/* ===== 다른 회원 프로필 팝업 ===== */
+
+/* 화면 전체 어두운 배경 */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+}
+
+/* 팝업 전체 */
+.panel {
+    position: relative;
+    width: 100%;
+    max-width: 920px;
+    max-height: 90vh;
+    background: #16161f;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    animation: modalOpen 0.2s ease;
+}
+
+/* 팝업 등장 애니메이션 */
+@keyframes modalOpen {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 닫기 버튼 */
+.closeBtn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 10;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    background: #292938;
+    color: #e8e8f0;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.closeBtn:hover {
+    background: #a855f7;
+    border-color: #a855f7;
+    color: #fff;
+}
+
+/* 내부 스크롤 */
+.scroll {
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: #6b21a8 #1d1d28;
+}
+
+.scroll::-webkit-scrollbar {
+    width: 7px;
+}
+
+.scroll::-webkit-scrollbar-track {
+    background: #1d1d28;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+    background: #6b21a8;
+    border-radius: 10px;
+}
+
+.scroll::-webkit-scrollbar-thumb:hover {
+    background: #a855f7;
+}
+
+/* 친구 추가 버튼 */
+.friendBtn {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 9px 18px;
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    border-radius: 8px;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.friendBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(168, 85, 247, 0.3);
+}
+
+.friendBtn:disabled {
+    background: #30303d;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #aaaabb;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* ===== 모바일 ===== */
+@media (max-width: 640px) {
+    .overlay {
+        padding: 10px;
+    }
+
+    .panel {
+        max-height: 94vh;
+        border-radius: 14px;
+    }
+
+    .scroll {
+        max-height: 94vh;
+        padding: 16px;
+    }
+
+    .closeBtn {
+        top: 10px;
+        right: 10px;
+    }
+
+    .friendBtn {
+        align-self: center;
+    }
+}

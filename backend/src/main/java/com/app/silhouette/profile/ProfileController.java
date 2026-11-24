@@ -1,9 +1,9 @@
 package com.app.silhouette.profile;
-
+ 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
+ 
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
+ 
 import com.app.silhouette.commons.TokenReader;
-
+ 
 /* =========================================================
    프로필 · 온보딩 API
    ✅ 로그인 아이디는 화면이 보낸 loginId가 아니라
@@ -28,31 +28,31 @@ import com.app.silhouette.commons.TokenReader;
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {
-
+ 
 	private static final String AUTH = "Authorization";
-
+ 
 	private final ProfileService profileService;
 	private final TokenReader tokenReader;
-
+ 
 	public ProfileController(ProfileService profileService, TokenReader tokenReader) {
 		this.profileService = profileService;
 		this.tokenReader = tokenReader;
 	}
-
+ 
 	// 회원 기본 정보: GET /api/profile/basic
 	@GetMapping("/basic")
 	public ProfileDTO selectMemberBasic(
 			@RequestHeader(value = AUTH, required = false) String authorization) {
 		return profileService.selectMemberBasic(tokenReader.loginId(authorization));
 	}
-
+ 
 	// 온보딩 완료 여부: GET /api/profile/status
 	@GetMapping("/status")
 	public Map<String, Object> selectOnboardingStatus(
 			@RequestHeader(value = AUTH, required = false) String authorization) {
 		return profileService.selectOnboardingStatus(tokenReader.loginId(authorization));
 	}
-
+ 
 	// 온보딩 저장: POST /api/profile  { profile, ideal }
 	@PostMapping
 	public Map<String, Object> saveOnboarding(
@@ -62,14 +62,22 @@ public class ProfileController {
 		profileService.saveOnboarding(dto);
 		return Map.of("completed", true);
 	}
-
+ 
 	// 내 프로필 전체 조회: GET /api/profile/me
 	@GetMapping("/me")
 	public Map<String, Object> selectMyProfile(
 			@RequestHeader(value = AUTH, required = false) String authorization) {
 		return profileService.selectMyProfile(tokenReader.loginId(authorization));
 	}
-
+ 
+	// 다른 회원 프로필 조회 (팝업): GET /api/profile/member/15  (이상형 제외)
+	@GetMapping("/member/{memberSeq}")
+	public Map<String, Object> selectMemberProfile(
+			@PathVariable("memberSeq") Long memberSeq,
+			@RequestHeader(value = AUTH, required = false) String authorization) {
+		return profileService.selectMemberProfile(tokenReader.loginId(authorization), memberSeq);
+	}
+ 
 	// 내 프로필 수정: PUT /api/profile  { profile, ideal }
 	@PutMapping
 	public Map<String, Object> updateProfile(
@@ -79,9 +87,9 @@ public class ProfileController {
 		profileService.updateProfile(dto);
 		return Map.of("updated", true);
 	}
-
+ 
 	// ===================== 프로필 사진 (1장) =====================
-
+ 
 	// 사진 1장 등록 (온보딩): POST /api/profile/images  (files 1개)
 	@PostMapping("/images")
 	public List<ProfileImageDTO> uploadImages(
@@ -89,7 +97,7 @@ public class ProfileController {
 			@RequestHeader(value = AUTH, required = false) String authorization) throws IOException {
 		return profileService.saveProfileImages(tokenReader.loginId(authorization), files);
 	}
-
+ 
 	// 사진 교체 (프로필 화면): PUT /api/profile/images/1  (file 1개)
 	@PutMapping("/images/{sortOrder}")
 	public ProfileImageDTO replaceImage(
@@ -98,23 +106,23 @@ public class ProfileController {
 			@RequestHeader(value = AUTH, required = false) String authorization) throws IOException {
 		return profileService.replaceProfileImage(tokenReader.loginId(authorization), sortOrder, file);
 	}
-
+ 
 	// 내 사진 목록: GET /api/profile/images
 	@GetMapping("/images")
 	public List<ProfileImageDTO> selectImages(
 			@RequestHeader(value = AUTH, required = false) String authorization) {
 		return profileService.selectProfileImages(tokenReader.loginId(authorization));
 	}
-
+ 
 	// 사진 보여주기: GET /api/profile/image/15  (화면은 Client로 blob 요청)
 	@GetMapping("/image/{profileImageSeq}")
 	public ResponseEntity<byte[]> showImage(@PathVariable("profileImageSeq") Long profileImageSeq) {
 		ProfileImageDTO image = profileService.selectProfileImageOne(profileImageSeq);
 		byte[] bytes = profileService.readImageBytes(image.getStoredName());
-
+ 
 		MediaType type = MediaTypeFactory.getMediaType(image.getOriginalName())
 				.orElse(MediaType.IMAGE_JPEG);
-
+ 
 		return ResponseEntity.ok().contentType(type).body(bytes);
 	}
 }

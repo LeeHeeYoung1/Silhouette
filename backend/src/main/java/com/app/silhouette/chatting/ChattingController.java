@@ -10,6 +10,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -356,6 +358,56 @@ public class ChattingController {
 
             return ResponseEntity.ok("채팅방에서 나왔습니다.");
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/room/{chat_room_seq}/messages/{chat_message_seq}")
+    public ResponseEntity<?> updateMessage(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            @PathVariable("chat_message_seq") Long messageSeq,
+            @RequestBody Map<String, Object> data,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        try {
+            String content = data.get("message_content") == null ? "" : data.get("message_content").toString();
+            ChattingMessageDTO updated = chattingService.updateMessage(roomSeq, messageSeq, memberSeq, content);
+            Object payload = Map.of(
+                    "type", "CHAT_MESSAGE_UPDATED",
+                    "message", updated
+            );
+
+            messagingTemplate.convertAndSend(
+                    "/sub/chat/" + roomSeq,
+                    payload
+            );
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/room/{chat_room_seq}/messages/{chat_message_seq}")
+    public ResponseEntity<?> deleteMessage(
+            @PathVariable("chat_room_seq") Long roomSeq,
+            @PathVariable("chat_message_seq") Long messageSeq,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        try {
+            chattingService.deleteMessage(roomSeq, messageSeq, memberSeq);
+            Object payload = Map.of(
+                    "type", "CHAT_MESSAGE_DELETED",
+                    "chat_message_seq", messageSeq
+            );
+
+            messagingTemplate.convertAndSend(
+                    "/sub/chat/" + roomSeq,
+                    payload
+            );
+            return ResponseEntity.ok("메시지를 삭제했습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
