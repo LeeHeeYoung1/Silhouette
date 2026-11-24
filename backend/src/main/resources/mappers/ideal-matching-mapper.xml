@@ -54,7 +54,7 @@
 		AND MATCH_TYPE = 'IDEAL'
 		AND STATUS = 'WAITING'
 	</delete>
-	
+
 	<!-- 대기 중인 회원 전체 (나간 대기자 정리용) -->
 	<select id="selectWaitingMembers" resultType="int">
 		SELECT MEMBER_SEQ
@@ -85,7 +85,7 @@
 	<!-- 이상형은 온보딩에서 저장하는 IDEAL_TYPE(LOGIN_ID 기준)을 사용 -->
 	<!-- 이상형을 입력하지 않았거나 비어 있는 항목은 "상관없음"으로 본다 -->
 	<!--   필수 조건 : 이성 / 서로의 나이 범위 / 서로 차단 X / 최근 7일 내 매칭 X -->
-	<!--   점수 항목 : 키, MBTI, 흡연, 음주, 병역 (가중치는 SYS_MATCHING_CONFIG) -->
+	<!--   점수 항목 : 키, MBTI, 흡연, 음주, 병역, 체형 (가중치는 SYS_MATCHING_CONFIG) -->
 	<!--   상호 점수 = √(나→상대 × 상대→나) 가 기준점 이상                  -->
 	<!--   기준점 : 대기가 길어질수록 낮춤 (사용자가 적을 때도 매칭되도록)     -->
 	<!--     IDEAL_MIN_SCORE - IDEAL_RELAX_STEP × (대기초 / IDEAL_RELAX_SEC) -->
@@ -103,6 +103,7 @@
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_HEIGHT'   THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_HEIGHT,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_MBTI'     THEN TO_NUMBER(CONFIG_VALUE) END), 1) AS W_MBTI,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'W_MILITARY' THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_MILITARY,
+                NVL(MAX(CASE CONFIG_KEY WHEN 'W_BODY'     THEN TO_NUMBER(CONFIG_VALUE) END), 2) AS W_BODY,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_MIN_SCORE_FLOOR' THEN TO_NUMBER(CONFIG_VALUE) END), 40) AS FLOOR_SCORE,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_RELAX_STEP'      THEN TO_NUMBER(CONFIG_VALUE) END), 10) AS RELAX_STEP,
                 NVL(MAX(CASE CONFIG_KEY WHEN 'IDEAL_RELAX_SEC'       THEN TO_NUMBER(CONFIG_VALUE) END), 30) AS RELAX_SEC
@@ -183,8 +184,14 @@
                 CASE WHEN it.MILITARY_PREF IS NOT NULL
                       AND INSTR(',' || REPLACE(it.MILITARY_PREF, ' ') || ',', ',상관없음,') = 0
                      THEN c.W_MILITARY ELSE 0 END AS A_MILITARY,
-                CASE WHEN INSTR(',' || REPLACE(it.MILITARY_PREF, ' ') || ',', ',' || REPLACE(tp.MILITARY_STATUS, ' ') || ',') > 0
-                     THEN 1 ELSE 0 END AS H_MILITARY
+                                CASE WHEN INSTR(',' || REPLACE(it.MILITARY_PREF, ' ') || ',', ',' || REPLACE(tp.MILITARY_STATUS, ' ') || ',') > 0
+                     THEN 1 ELSE 0 END AS H_MILITARY,
+
+                /* 체형: 이상형(여러 개, 'A, B') ↔ 프로필(1개). 상대가 체형을 입력하지 않았으면 반영 안 함 */
+                CASE WHEN it.BODY_TYPE IS NOT NULL AND tp.BODY_TYPE IS NOT NULL
+                     THEN c.W_BODY ELSE 0 END AS A_BODY,
+                CASE WHEN INSTR(',' || REPLACE(it.BODY_TYPE, ' ') || ',', ',' || REPLACE(tp.BODY_TYPE, ' ') || ',') > 0
+                     THEN 1 ELSE 0 END AS H_BODY
             FROM dir d
             JOIN MEMBER fm          ON fm.MEMBER_SEQ = d.FROM_SEQ
             LEFT JOIN IDEAL_TYPE it ON it.LOGIN_ID   = fm.LOGIN_ID
@@ -194,9 +201,9 @@
         dir_score AS (
             /* 반영할 항목이 하나도 없으면(전부 상관없음) 100점 */
             SELECT FROM_SEQ, TO_SEQ,
-                NVL( (A_HEIGHT*H_HEIGHT + A_MBTI*H_MBTI + A_SMOKING*H_SMOKING + A_DRINKING*H_DRINKING
-                      + A_MILITARY*H_MILITARY)
-                   / NULLIF(A_HEIGHT + A_MBTI + A_SMOKING + A_DRINKING + A_MILITARY, 0) * 100
+                                NVL( (A_HEIGHT*H_HEIGHT + A_MBTI*H_MBTI + A_SMOKING*H_SMOKING + A_DRINKING*H_DRINKING
+                      + A_MILITARY*H_MILITARY + A_BODY*H_BODY)
+                   / NULLIF(A_HEIGHT + A_MBTI + A_SMOKING + A_DRINKING + A_MILITARY + A_BODY, 0) * 100
                    , 100) AS SCORE
             FROM item
         )
@@ -229,22 +236,21 @@
 		<selectKey keyProperty="idealMatchingSeq" resultType="int"
 			order="BEFORE">
 			SELECT SEQ_IDEAL_MATCHING.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO IDEAL_MATCHING (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1,
-		MEMBER_SEQ_2, SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS) VALUES
-		(#{idealMatchingSeq}, #{memberSeq1}, #{memberSeq2}, #{score},
-		#{score1To2}, #{score2To1}, 'MATCHED') </insert>
+		</selectKey> INSERT
+		INTO IDEAL_MATCHING (IDEAL_MATCHING_SEQ, MEMBER_SEQ_1, MEMBER_SEQ_2,
+		SCORE, SCORE_1_TO_2, SCORE_2_TO_1, STATUS) VALUES (#{idealMatchingSeq},
+		#{memberSeq1}, #{memberSeq2}, #{score}, #{score1To2}, #{score2To1},
+		'MATCHED') </insert>
 
 	<!-- 채팅방 생성 (ROOM_NAME이 없으면 채팅 목록에 상대 닉네임이 표시됨) -->
 	<insert id="insertChatRoom"
 		parameterType="com.app.silhouette.matching.IdealMatchingDTO">
 		<selectKey keyProperty="chatRoomSeq" resultType="int" order="BEFORE">
 		SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO CHAT_ROOM (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE,
-		MATCHING_SEQ, CREATED_BY, ROOM_STATUS, CREATED_AT) VALUES
-		(#{chatRoomSeq}, NULL, 'IDEAL', #{idealMatchingSeq}, #{memberSeq1}, 'Y',
-		SYSDATE) </insert>
+		</selectKey> INSERT INTO
+		CHAT_ROOM (CHAT_ROOM_SEQ, ROOM_NAME, ROOM_TYPE, MATCHING_SEQ,
+		CREATED_BY, ROOM_STATUS, CREATED_AT) VALUES (#{chatRoomSeq}, NULL,
+		'IDEAL', #{idealMatchingSeq}, #{memberSeq1}, 'Y', SYSDATE) </insert>
 
 	<!-- 채팅방 참여자 등록 (role: OWNER / MEMBER) -->
 	<insert id="insertParticipant">
