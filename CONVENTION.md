@@ -207,7 +207,7 @@ cd Silhouette
 ### 전체 흐름
 
 ```text
-Sync fork → 브랜치 생성 → 작업/커밋 → 내 fork로 push → 원본에 PR → 리뷰 → 머지 → Sync fork → 브랜치 삭제
+Sync fork → 브랜치 생성 → 작업/커밋 → 최신 main pull 후 내 브랜치에 merge → 내 fork로 push → 원본에 PR → 리뷰 → 머지 → Sync fork → 브랜치 삭제
 ```
 
 ### 🔄 Sync fork (원본 최신 내용 받아오기)
@@ -242,16 +242,22 @@ git checkout -b feat/C1-blind-matching
 git add .
 git commit -m "feat: 블라인드 랜덤 매칭 구현"
 
-# 4. 내 fork로 push
+# 4. PR 올리기 전에 최신 main을 받아 내 브랜치에 합치기 (아래 '작업 중에 원본이 바뀌었다면'과 같음)
+git checkout main
+git pull origin main
+git checkout feat/C1-blind-matching
+git merge main
+
+# 5. 내 fork로 push
 git push origin feat/C1-blind-matching
 
-# 5. GitHub에서 PR 생성
+# 6. GitHub에서 PR 생성
 #    내 fork의 feat/C1-blind-matching → 원본의 main
 ```
 
-### 작업 중에 원본이 바뀌었다면
+### 작업 중에 원본이 바뀌었다면 (PR 올리기 전에는 항상)
 
-다른 팀원의 PR이 머지되어 원본 `main`이 바뀌면, 내 브랜치에도 그 내용을 합쳐서 **PR 올리기 전에 충돌을 미리 해결**한다.
+다른 팀원의 PR이 머지되어 원본 `main`이 바뀌면, 내 브랜치에도 그 내용을 합쳐서 **PR 올리기 전에 충돌을 미리 해결**한다. 바뀌었는지 모르겠으면 PR 올리기 전에 항상 한 번 한다.
 
 ```bash
 # 1. GitHub에서 Sync fork → Update branch
@@ -418,4 +424,4 @@ public class LiveRoomDTO {
 | 2026.11.20 | 시퀀스 생성 시 시작 번호·DB 변경 스크립트 규칙, MyBatis 매핑(6-4), API·서버 주소(6-5), JWT 회원 판단·업로드 검사(보안), PR 범위·빌드 확인 규칙 추가 | 서현수 |
 | 2026.11.24 | DTO 멤버 필드 snake_case 통일, getter/setter·`#{}`·JSON 키는 camelCase(6-3, 6-4 개정), camelCase 별칭 금지, 이름 변경 시 매퍼·프론트 동시 수정 규칙 추가 | 서현수 |
 | 2026.11.24 | 6-4 코드 블록 닫힘 누락 수정, PK 규칙(`테이블명_seq`)·테이블명 예시·접미사 표기·커밋 예시(Oracle) 정정, `#{}` 규칙 범위 명확화 | 서현수 |
-| 2026.11.24 | TROUBLESHOOTING.md 참조 안내 추가(문서 상단, 6-2, 6-4, 8) | 서현수 |
+| 2026.11.24 | TROUBLESHOOTING.md 참조 안내 추가(문서 상단, 6-2, 6-4, 8), PR 전 최신 main merge 단계를 작업 흐름에 명시 | 서현수 |
