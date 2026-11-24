@@ -8,7 +8,7 @@ import styles from './live.module.css';
 const PAGE_SIZE = 20;
 
 // 방송 목록 (검색·카테고리·무한스크롤) + 방송 시작
-function LiveLobby({ myId, notice, onStart, onWatch }) {
+function LiveLobby({ myId, notice, onStart, onWatch, onResume }) {
   const [keywordInput, setKeywordInput] = useState('');
   const [query, setQuery] = useState({ keyword: '', category: '', version: 0 });
   const [page, setPage] = useState(1);
@@ -136,8 +136,8 @@ function LiveLobby({ myId, notice, onStart, onWatch }) {
               <li key={live.liveRoomSeq}>
                 <button
                   className={styles.card}
-                  onClick={() => !mine && onWatch(live.liveRoomSeq)}
-                  disabled={mine}
+                  onClick={() => (mine ? onResume(live.liveRoomSeq) : onWatch(live.liveRoomSeq))}
+                  title={mine ? '눌러서 내 방송으로 돌아가기' : undefined}
                 >
                   <div className={styles.thumb}>
                     {live.thumbnailUrl ? (
@@ -147,7 +147,7 @@ function LiveLobby({ myId, notice, onStart, onWatch }) {
                     )}
                     <span className={styles.liveBadge}>LIVE</span>
                     <span className={styles.viewerBadge}>👀 {live.viewerCount ?? 0}</span>
-                    {mine && <span className={styles.mineBadge}>내 방송</span>}
+                    {mine && <span className={styles.mineBadge}>내 방송 · 이어하기</span>}
                   </div>
                   <div className={styles.cardBody}>
                     <strong className={styles.cardTitle}>{live.title}</strong>

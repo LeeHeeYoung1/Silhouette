@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import '@livekit/components-styles';
 import useAuthStore from '../../stores/useAuthStore';
-import { getLiveDetail, joinLive, startLive } from '../../api/live';
+import { getLiveDetail, joinLive, resumeLive, startLive } from '../../api/live';
 import { errorMessage } from './liveConstants';
 import LiveLobby from './liveLobby';
 import LiveRoom from './liveRoom';
@@ -43,6 +43,18 @@ function Live() {
     }
   };
 
+  // 내 방송 이어하기 (다른 화면에 갔다가 돌아온 방송자)
+  const handleResume = async (liveRoomSeq) => {
+    try {
+      const { data } = await resumeLive(liveRoomSeq);
+      setNotice('');
+      setIsHost(true);
+      setConn(data);
+    } catch (e) {
+      setNotice(errorMessage(e, '방송에 다시 들어가지 못했어요.'));
+    }
+  };
+
   const handleLeave = (text) => {
     setConn(null);
     setIsHost(false);
@@ -50,7 +62,7 @@ function Live() {
   };
 
   if (!conn) {
-    return <LiveLobby myId={id} notice={notice} onStart={handleStart} onWatch={handleWatch} />;
+    return <LiveLobby myId={id} notice={notice} onStart={handleStart} onWatch={handleWatch} onResume={handleResume} />;
   }
   return <LiveRoom key={conn.liveRoomSeq} conn={conn} isHost={isHost} onLeave={handleLeave} />;
 }
