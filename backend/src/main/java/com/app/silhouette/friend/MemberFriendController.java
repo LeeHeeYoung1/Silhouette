@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +36,30 @@ public class MemberFriendController {
         Long memberSeq = getLoginMemberSeq(request);
         if (memberSeq == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
         return ResponseEntity.ok(memberFriendService.getFriendList(memberSeq));
+    }
+
+    // 친구가 아닌 회원을 로그인 아이디로 검색합니다.
+    @GetMapping("/friends/search")
+    public ResponseEntity<?> searchNonFriends(@RequestParam("keyword") String keyword,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        if (keyword == null || keyword.trim().isEmpty()) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(memberFriendService.searchNonFriendsByLoginId(keyword.trim(), memberSeq));
+    }
+
+    @DeleteMapping("/friends/{friend_member_seq}")
+    public ResponseEntity<?> deleteFriend(
+            @PathVariable("friend_member_seq") Long friendSeq,
+            HttpServletRequest request) {
+        Long memberSeq = getLoginMemberSeq(request);
+        if (memberSeq == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        try {
+            memberFriendService.deleteFriend(memberSeq, friendSeq);
+            return ResponseEntity.ok("친구를 삭제했습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 채팅방 초대 등에 사용할 수락된 친구를 닉네임으로 검색합니다.

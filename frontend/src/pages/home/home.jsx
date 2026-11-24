@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
@@ -10,6 +9,7 @@ import {
   getNearbyMembers
 } from '../../api/matching';
 import Client from '../../api/client';
+import MemberProfileModal from '../memberProfileModal/memberProfileModal';
 import { Client as StompClient } from '@stomp/stompjs';
 
 // 커뮤니티 인기글 목데이터
@@ -119,8 +119,13 @@ function Home() {
   // 친구 목록 및 채팅방 사이드바
   const [sidebarTab, setSidebarTab] = useState('friends');
   const [friendList, setFriendList] = useState([]);
+  const [memberSeq, setMemberSeq] = useState(null);
+  const [friendSearchKeyword, setFriendSearchKeyword] = useState('');
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [friendSearchMessage, setFriendSearchMessage] = useState('');
   const [myRoomList, setMyRoomList] = useState([]);
   const [friendImageUrls, setFriendImageUrls] = useState({});
+  const [profileTargetSeq, setProfileTargetSeq] = useState(null);   // 프로필 팝업으로 볼 회원 번호
 
   // AI 챗봇 상태
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -184,6 +189,19 @@ function Home() {
     };
   }, [token]);
 
+  // 내 회원 번호 가져오기
+  useEffect(() => {
+    if (!token) return;
+
+    Client.get('/api/chat/member-seq')
+      .then((response) => {
+        setMemberSeq(Number(response.data));
+      })
+      .catch((error) => {
+        console.error('회원 번호 조회 실패:', error);
+      });
+  }, [token]);
+
   // 친구 요청 수락 후 친구 목록 갱신
   useEffect(() => {
     const refreshFriends = async () => {
@@ -203,6 +221,48 @@ function Home() {
       window.removeEventListener('silhouette-friends-updated', refreshFriends);
     };
   }, [token]);
+
+  // 친구 목록 실시간 갱신 STOMP 연결
+useEffect(() => {
+  if (!token || !memberSeq) return;
+
+  const wsHost = window.location.hostname || 'localhost';
+  const wsPort = window.location.port === '5173'
+    ? ':80'
+    : (window.location.port ? `:${window.location.port}` : '');
+
+  const brokerURL = `ws://${wsHost}${wsPort}/chat`;
+
+  const client = new StompClient({
+    brokerURL,
+    connectHeaders: {
+      Authorization: `Bearer ${token}`
+    },
+    reconnectDelay: 5000,
+
+    onConnect: () => {
+      console.log('친구 목록 실시간 갱신 웹소켓 연결 성공');
+
+      client.subscribe(`/sub/friends/${memberSeq}`, () => {
+        window.dispatchEvent(new Event('silhouette-friends-updated'));
+      });
+    },
+
+    onStompError: (frame) => {
+      console.error('친구 목록 STOMP 오류:', frame.headers['message'], frame.body);
+    },
+
+    onWebSocketError: (error) => {
+      console.error('친구 목록 WebSocket 오류:', error);
+    }
+  });
+
+  client.activate();
+
+  return () => {
+    client.deactivate();
+  };
+}, [token, memberSeq]);
 
   // 친구 프로필 이미지 불러오기
   useEffect(() => {
@@ -365,7 +425,7 @@ function Home() {
   useEffect(() => {
     return () => {
       if (isIdealWaitingRef.current) {
-        cancelIdealMatch().catch(() => {});
+        cancelIdealMatch().catch(() => { });
       }
     };
   }, []);
@@ -537,6 +597,39 @@ function Home() {
     setMyRegion(region);
     setLocationProfiles(members);
     setIsLocationLoading(false);
+  };
+
+  // 친구가 아닌 회원을 로그인 아이디로 검색합니다.
+  const searchNonFriends = async () => {
+    if (!friendSearchKeyword.trim()) {
+      setFriendSearchResults([]);
+      setFriendSearchMessage('로그인 아이디를 입력해 주세요.');
+      return;
+    }
+    try {
+      const response = await Client.get('/api/chat/friends/search', {
+        params: { keyword: friendSearchKeyword.trim() }
+      });
+      setFriendSearchResults(response.data || []);
+      setFriendSearchMessage(response.data?.length ? '' : '친구 추가할 수 있는 회원이 없습니다.');
+    } catch (error) {
+      console.error('친구 검색 실패:', error);
+      setFriendSearchMessage(error.response?.data || '회원 검색에 실패했습니다.');
+    }
+  };
+
+  const addSearchedFriend = async (member) => {
+    try {
+      await Client.post('/api/chat/friends/request', {
+        friend_member_seq: Number(member.member_seq)
+      });
+      setFriendSearchResults((prev) => prev.filter(
+        (item) => Number(item.member_seq) !== Number(member.member_seq)
+      ));
+      setFriendSearchMessage(`${member.login_id}님에게 친구 요청을 보냈습니다.`);
+    } catch (error) {
+      alert(error.response?.data || '친구 요청을 보내지 못했습니다.');
+    }
   };
 
   // 주변 회원에게 친구 요청 보내기
@@ -789,13 +882,38 @@ function Home() {
               {sidebarTab === 'friends' && (
                 <>
                   <h3 className={styles.sidebarListTitle}>내 친구</h3>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                    <input
+                      type="text"
+                      value={friendSearchKeyword}
+                      onChange={(e) => setFriendSearchKeyword(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') searchNonFriends(); }}
+                      placeholder="로그인 아이디로 친구 검색"
+                      style={{ minWidth: 0, flex: 1, padding: '8px', borderRadius: '8px' }}
+                    />
+                    <button type="button" onClick={searchNonFriends}>검색</button>
+                  </div>
+                  {friendSearchMessage && <p className={styles.sidebarEmpty}>{friendSearchMessage}</p>}
+                  {friendSearchResults.map((member) => (
+                    <div key={member.member_seq} className={styles.sidebarPerson}>
+                      <span>{member.nickname || member.login_id} ({member.login_id})</span>
+                      <button type="button" onClick={() => addSearchedFriend(member)}>친구 추가</button>
+                    </div>
+                  ))}
+
 
                   {friendList.length === 0 && (
                     <p className={styles.sidebarEmpty}>등록된 친구가 없습니다.</p>
                   )}
 
                   {friendList.map((friend) => (
-                    <div className={styles.sidebarPerson} key={friend.member_seq}>
+                    <div
+                      className={styles.sidebarPerson}
+                      key={friend.member_seq}
+                      onClick={() => setProfileTargetSeq(friend.member_seq)}
+                      style={{ cursor: 'pointer' }}
+                      title="프로필 보기"
+                    >
                       {friendImageUrls[Number(friend.member_seq)] ? (
                         <img
                           src={friendImageUrls[Number(friend.member_seq)]}
@@ -972,6 +1090,14 @@ function Home() {
             </button>
           </form>
         </div>
+      )}
+
+      {/* 친구 프로필 팝업 */}
+      {profileTargetSeq && (
+        <MemberProfileModal
+          memberSeq={profileTargetSeq}
+          onClose={() => setProfileTargetSeq(null)}
+        />
       )}
     </div>
   );
