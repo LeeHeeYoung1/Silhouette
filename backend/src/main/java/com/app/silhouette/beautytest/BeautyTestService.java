@@ -39,8 +39,8 @@ public class BeautyTestService {
 	@Autowired
 	private BeautyTestDAO beautyTestDAO;
 
-	// application.properties의 ai.server.url 값 (http://localhost:8000)
-	@Value("${ai.server.url}")
+	// application.properties의 ai.server.url 값 (없으면 빈 값 → 외모 테스트만 503 안내)
+	@Value("${ai.server.url:}")
 	private String aiServerUrl;
 
 	// 파이썬 서버 호출 도구
@@ -137,6 +137,11 @@ public class BeautyTestService {
 
 	// 파이썬 서버 /predict 호출 (사진 여러 장을 multipart로 한 번에 전달)
 	private Map<String, Object> callAiServer(List<MultipartFile> photos) {
+		// AI 서버 주소 설정이 없으면 외모 테스트만 안내 (스프링 서버는 정상 실행)
+		if (aiServerUrl == null || aiServerUrl.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "AI 서버 주소가 설정되지 않았습니다. 관리자에게 문의해 주세요.");
+		}
+
 		MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
 		for (int i = 0; i < photos.size(); i++) {

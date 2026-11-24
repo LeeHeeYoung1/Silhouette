@@ -45,13 +45,10 @@
 		  join member m on mp.member_seq = m.member_seq
 		 where m.login_id = #{loginId}
 	</select>
-<<<<<<< HEAD
 
-	<!-- 나의 정보 저장 (온보딩) ✅ body_type 추가 -->
-=======
  
 	<!-- 나의 정보 저장 (온보딩) -->
->>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
+
 	<insert id="insertProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		insert into member_profile (
 			member_profile_seq, member_seq, nickname, mbti, job, height, weight,
@@ -64,13 +61,10 @@
 			#{militaryStatus, jdbcType=VARCHAR}, sysdate
 		)
 	</insert>
-<<<<<<< HEAD
 
-	<!-- 나의 정보 조회 (프로필 화면, 없으면 null) ✅ body_type 추가 -->
-=======
  
 	<!-- ✅ 나의 정보 조회 (프로필 화면, 없으면 null) -->
->>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
+
 	<select id="selectProfileByMember" parameterType="long" resultType="com.app.silhouette.profile.ProfileDTO">
 		select member_profile_seq, member_seq, nickname, mbti, job, height, weight,
 		       introduction, love_type, hobby, favorite, dislike, drinking, smoking,
@@ -78,13 +72,10 @@
 		  from member_profile
 		 where member_seq = #{memberSeq}
 	</select>
-<<<<<<< HEAD
 
-	<!-- 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) ✅ body_type 추가 -->
-=======
  
 	<!-- ✅ 나의 정보 수정 (프로필 화면, 닉네임·생성일은 그대로) -->
->>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
+
 	<update id="updateProfile" parameterType="com.app.silhouette.profile.ProfileDTO">
 		update member_profile
 		   set mbti            = #{mbti},
@@ -113,13 +104,10 @@
 	<select id="countIdealType" parameterType="string" resultType="int">
 		select count(*) from ideal_type where login_id = #{loginId}
 	</select>
-<<<<<<< HEAD
 
-	<!-- 이상형 조회 (프로필 화면, 없으면 null) -->
-=======
  
 	<!-- ✅ 이상형 조회 (프로필 화면, 없으면 null) -->
->>>>>>> 49a71e71ae00d6aef0457eae6a236c5ca4f79966
+
 	<select id="selectIdealType" parameterType="string" resultType="com.app.silhouette.profile.IdealTypeDTO">
 		select ideal_type_seq, login_id, age_min, age_max, min_height, max_height,
 		       body_type, mbti_pref, smoking_pref, drinking_pref, military_pref, memo,
