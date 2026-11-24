@@ -23,7 +23,7 @@
 - [ ] PR 제목이 규칙을 따른다 (`[Feat] 내용`, `[Fix] 내용` 등)
 - [ ] base는 원본 `main`, compare는 내 fork의 작업 브랜치다
 - [ ] Sync fork로 최신화했고, 충돌(Conflict)을 해결했다
-- [ ] 네이밍 규칙(DAO/DTO, 테이블 단수형, PK `seq` 등)을 지켰다
+- [ ] 네이밍 규칙(DAO/DTO, 테이블 단수형, PK `대상테이블_seq` 등)을 지켰다
 - [ ] 불필요한 코드, 주석, `System.out.println`을 제거했다
 - [ ] 비밀번호, API 키, DB 접속 정보가 포함되지 않았다
 - [ ] Reviewer와 Assignee를 지정했다
