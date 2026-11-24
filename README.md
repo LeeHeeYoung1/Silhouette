@@ -20,8 +20,8 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 | 회원 | 회원가입 및 인증 | 회원가입, 중복 확인, 휴대전화·이메일 본인인증 |
 | 회원 | 프로필 관리 | 프로필 사진, MBTI, 직업, 취향 등 개인정보 관리 |
 | 매칭 | 블라인드 랜덤 매칭 | 실시간 대기열 기반 1:1 랜덤 매칭 |
-| 매칭 | 알고리즘 매칭 | 위치, 이상형 체크리스트, MBTI, 취향 기반 프로필 추천 |
-| 매칭 | 프로필 탐색 | 위치 기반 회원 탐색 및 추천 프로필 조회 |
+| 매칭 | 알고리즘 매칭 | 이상형 체크리스트(나이·키·MBTI·흡연·음주·병역)와 상대 프로필을 서로 비교한 상호 점수 기반 1:1 매칭 |
+| 매칭 | 프로필 탐색 | 주소지 기반 내 주변 이성 추천 (같은 시·군·구 → 같은 시·도 순) |
 | 채팅 | 블라인드 채팅 | 시간제한 채팅 및 Go/Stop 상호 선택에 따른 프로필 공개 |
 | 채팅 | AI 추천 답변 | 대화 맥락을 기반으로 답변 후보 제공 |
 | 채팅 | 실시간 채팅 | 매칭 이후 상대방과 실시간 대화 |
@@ -54,7 +54,8 @@ Silhouette/
 ├── frontend/                 # React 프론트엔드
 ├── .gitignore
 ├── README.md
-└── CONVENTION.md             # 협업 규칙
+├── CONVENTION.md             # 협업 규칙
+└── TROUBLESHOOTING.md        # 트러블슈팅 기록
 ```
 
 ## 👥 팀원
@@ -88,7 +89,9 @@ cd Silhouette
 | `gcp.credentials.location`, `gcp.project.id`, `gcp.bucket` | GCS 업로드 |
 | `livekit.url`, `livekit.api-key`, `livekit.api-secret` | LiveKit Cloud 프로젝트 |
 | `live.max-viewers` | 방송당 최대 시청자 수 (기본 50) |
-| `spring.servlet.multipart.max-file-size` / `max-request-size` | 업로드 크기 (5MB / 10MB) |
+| `spring.servlet.multipart.max-file-size` / `max-request-size` | 업로드 크기 (20MB / 25MB) |
+| `spring.ai.model.chat`, `spring.ai.google.genai.*` | 블라인드 채팅 AI 추천 답변(Gemini). 키가 없으면 `none`으로 두면 서버는 정상 실행 |
+| `blind.time-limit-min`, `blind.vote-seconds` | 블라인드 채팅 시간 (기본 15분) / GO·STOP 선택 시간 (기본 30초) |
 
 #### 라이브 webhook (로컬 개발)
 
@@ -165,7 +168,7 @@ PR 제목 작성 예시:
 - `[Refactor] 회원 서비스 구조 개선`
 - `[Docs] README 협업 규칙 수정`
 
-자세한 협업 방법은 [CONVENTION.md](./CONVENTION.md)를 참고하세요.
+자세한 협업 방법은 [CONVENTION.md](./CONVENTION.md)를, 개발 중 겪은 문제와 해결 과정은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)를 참고하세요.
 
 ## 🔒 보안 규칙
 
@@ -176,3 +179,4 @@ PR 제목 작성 예시:
 ## 📝 참고 문서
 
 - [협업 컨벤션](./CONVENTION.md)
+- [트러블슈팅 기록](./TROUBLESHOOTING.md)
