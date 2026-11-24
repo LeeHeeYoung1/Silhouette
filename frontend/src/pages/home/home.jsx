@@ -10,6 +10,7 @@ import {
   getNearbyMembers
 } from '../../api/matching';
 import Client from '../../api/client';
+import { wsUrl } from '../../api/ws';
 import { Client as StompClient } from '@stomp/stompjs';
 
 // 커뮤니티 인기글 목데이터
@@ -408,7 +409,7 @@ function Home() {
       ? ':80'
       : (window.location.port ? `:${window.location.port}` : '');
 
-    const brokerURL = `ws://${wsHost}${wsPort}/blind`;
+        const brokerURL = wsUrl('/blind');
 
     const client = new StompClient({
       brokerURL: brokerURL,

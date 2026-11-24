@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Client as StompClient } from '@stomp/stompjs';
 import useAuthStore from '../../stores/useAuthStore';
+import { wsUrl } from '../../api/ws'; 
 import styles from './live.module.css';
 
 const CONTENT_MAX = 100;
@@ -26,7 +27,7 @@ function LiveChat({ liveRoomSeq, myMemberSeq, onEnd, onKicked, onRoomUpdate, onP
 
   useEffect(() => {
     const client = new StompClient({
-      brokerURL: 'ws://localhost:80/live',
+      brokerURL: wsUrl('/live'),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {

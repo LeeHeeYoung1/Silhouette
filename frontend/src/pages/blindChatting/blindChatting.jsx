@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
 import useAuthStore from '../../stores/useAuthStore';
+import { wsUrl } from '../../api/ws';
 import {
     getBlindRoom, getBlindMessages, sendBlindMessage, voteBlind, leaveBlind,
     getBlindAiStatus, getBlindSuggestions,
@@ -151,11 +152,9 @@ const BlindChatting = () => {
     useEffect(() => {
         if (!token || !roomSeq) return;
 
-        const wsHost = window.location.hostname || 'localhost';
-        const wsPort = window.location.port === '5173' ? ':80' : (window.location.port ? `:${window.location.port}` : '');
 
         const client = new StompClient({
-            brokerURL: `ws://${wsHost}${wsPort}/blind`,
+            brokerURL: wsUrl('/blind'),
             connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             onConnect: () => {
