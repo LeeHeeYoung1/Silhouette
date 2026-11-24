@@ -7,52 +7,52 @@ import java.util.List;
 public class PostCommentDTO {
 
 	// ===== POST_COMMENT 테이블 컬럼 =====
-	private Long postCommentSeq;          // 댓글 번호 (PK)
-	private Long postSeq;                 // 어떤 글에
-	private Long memberSeq;               // 누가
-	private Long parentPostCommentSeq;    // 부모 댓글 번호 (null이면 일반 댓글)
-	private String content;               // 내용
-	private String isDeleted;             // 삭제 여부 ('N' / 'Y')
-	private LocalDateTime createdAt;      // 작성일
-	private LocalDateTime updatedAt;      // 수정일
+	private Long post_comment_seq;          // 댓글 번호 (PK)
+	private Long post_seq;                  // 어떤 글에
+	private Long member_seq;                // 누가
+	private Long parent_post_comment_seq;   // 부모 댓글 번호 (null이면 일반 댓글)
+	private String content;                 // 내용
+	private String is_deleted;              // 삭제 여부 ('N' / 'Y')
+	private LocalDateTime created_at;       // 작성일
+	private LocalDateTime updated_at;       // 수정일
 
 	// ===== DB 컬럼이 아닌 값 =====
-	private String loginId;               // 화면에서 받는 작성자 아이디
-	private String writerName;            // 화면에 보여줄 작성자 닉네임
+	private String login_id;                // 화면에서 받는 작성자 아이디
+	private String writer_name;             // 화면에 보여줄 작성자 닉네임
 	private List<PostCommentDTO> replies = new ArrayList<>();   // 대댓글 목록
 
 	public PostCommentDTO() {}
 
 	public Long getPostCommentSeq() {
-		return postCommentSeq;
+		return post_comment_seq;
 	}
 
-	public void setPostCommentSeq(Long postCommentSeq) {
-		this.postCommentSeq = postCommentSeq;
+	public void setPostCommentSeq(Long post_comment_seq) {
+		this.post_comment_seq = post_comment_seq;
 	}
 
 	public Long getPostSeq() {
-		return postSeq;
+		return post_seq;
 	}
 
-	public void setPostSeq(Long postSeq) {
-		this.postSeq = postSeq;
+	public void setPostSeq(Long post_seq) {
+		this.post_seq = post_seq;
 	}
 
 	public Long getMemberSeq() {
-		return memberSeq;
+		return member_seq;
 	}
 
-	public void setMemberSeq(Long memberSeq) {
-		this.memberSeq = memberSeq;
+	public void setMemberSeq(Long member_seq) {
+		this.member_seq = member_seq;
 	}
 
 	public Long getParentPostCommentSeq() {
-		return parentPostCommentSeq;
+		return parent_post_comment_seq;
 	}
 
-	public void setParentPostCommentSeq(Long parentPostCommentSeq) {
-		this.parentPostCommentSeq = parentPostCommentSeq;
+	public void setParentPostCommentSeq(Long parent_post_comment_seq) {
+		this.parent_post_comment_seq = parent_post_comment_seq;
 	}
 
 	public String getContent() {
@@ -64,43 +64,43 @@ public class PostCommentDTO {
 	}
 
 	public String getIsDeleted() {
-		return isDeleted;
+		return is_deleted;
 	}
 
-	public void setIsDeleted(String isDeleted) {
-		this.isDeleted = isDeleted;
+	public void setIsDeleted(String is_deleted) {
+		this.is_deleted = is_deleted;
 	}
 
 	public LocalDateTime getCreatedAt() {
-		return createdAt;
+		return created_at;
 	}
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
+	public void setCreatedAt(LocalDateTime created_at) {
+		this.created_at = created_at;
 	}
 
 	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
+		return updated_at;
 	}
 
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
+	public void setUpdatedAt(LocalDateTime updated_at) {
+		this.updated_at = updated_at;
 	}
 
 	public String getLoginId() {
-		return loginId;
+		return login_id;
 	}
 
-	public void setLoginId(String loginId) {
-		this.loginId = loginId;
+	public void setLoginId(String login_id) {
+		this.login_id = login_id;
 	}
 
 	public String getWriterName() {
-		return writerName;
+		return writer_name;
 	}
 
-	public void setWriterName(String writerName) {
-		this.writerName = writerName;
+	public void setWriterName(String writer_name) {
+		this.writer_name = writer_name;
 	}
 
 	public List<PostCommentDTO> getReplies() {
