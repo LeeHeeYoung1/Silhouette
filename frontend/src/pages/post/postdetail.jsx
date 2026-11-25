@@ -4,7 +4,8 @@ import styles from './postdetail.module.css';
 import Client from '../../api/client';
 import useAuthStore from '../../stores/useAuthStore';
 import ReportButton from './reportbutton';   // 🚨 신고 버튼 (게시글 · 댓글 공통)
-
+import MemberAvatar from '../profile/memberavater';
+import MemberProfileModal from '../memberProfileModal/memberProfileModal';
 /* =========================================================
    실루엣 게시글 상세 컴포넌트 (PostDetail) - 담당: 권형석
    - 경로: /post/detail/:id  (자유 · 익명 게시판 공용)
@@ -51,6 +52,7 @@ function PostDetail() {
     const [editingId, setEditingId] = useState(null);        // 수정 중인 댓글 번호
     const [editText, setEditText] = useState('');            // 수정 입력
     const [submitting, setSubmitting] = useState(false);     // 중복 클릭 방지
+    const [profileMemberSeq, setProfileMemberSeq] = useState(null);
 
     // 익명게시판 글인지 (CATEGORY가 아니라 BOARD_TYPE으로 판단)
     const isAnonPost = post?.boardType === 'ANON';
@@ -112,6 +114,9 @@ function PostDetail() {
 
     /* ===================== 공통 ===================== */
 
+    
+
+
     // 로그인 안 했으면 알림 후 로그인 페이지로
     const requireLogin = (message) => {
         if (token) return true;
@@ -119,6 +124,14 @@ function PostDetail() {
         navigate('/login');
         return false;
     };
+
+    const openProfile = (memberSeq)=>{
+        if (isAnonPost || !memberSeq) return;
+        if (!requireLogin('로그인한 회원만 프로필을 볼 수 있습니다.')) return;
+        setProfileMemberSeq(memberSeq);
+    };
+
+    const closeProfile = ()=> setProfileMemberSeq(null);
 
     // 서버 에러 상태코드별 안내
     const handleError = (err, fallback) => {
@@ -448,7 +461,25 @@ function PostDetail() {
                     </span>
                     <h1 className={styles.detailTitle}>{post.title}</h1>
                     <div className={styles.detailMeta}>
-                        <span>작성자: <strong>{postWriterName}</strong></span>
+                        <span className={styles.writerBox}>
+                            {/* 익명 글이면 사진 없음 */}
+                            <MemberAvatar
+                                fileUrl={isAnonPost? null : post.profileImageUrl}
+                                size={28}
+                                alt={'${postWriterName} 프로플 사진'}
+                                onClick={isAnonPost ? undefined : () => openProfile(post.memberSeq)}
+                                />
+                                작성자: {isAnonPost ? (
+                                    <strong>{postWriterName}</strong>
+                                ) : (
+                                    <strong
+                                    className={styles.writerLink}
+                                    onClick={()=> openProfile(post.memberSeq)}
+                                    title='프로플 보기'>
+                                        {postWriterName}
+                                    </strong>
+                                )}
+                        </span>
                         <span>·</span>
                         <span>
                             등록일시: <strong>{formatDate(post.createdAt)}</strong>
@@ -608,6 +639,11 @@ function PostDetail() {
                     </button>
                 </div>
             </div>
+            {/* 작성자 프로필 팝업 (친구추가) */}
+            {profileMemberSeq && (
+                <MemberProfileModal memberSeq={profileMemberSeq} onClose={closeProfile}/>
+
+            )}
         </div>
     );
 }

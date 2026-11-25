@@ -442,3 +442,19 @@
 .emptyBackBtn {
     margin-top: 14px;
 }
+
+.writerBox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 작성자 닉네임: 마우스 올리면 손가락 + 밑줄 */
+.writerLink {
+    cursor: pointer;
+}
+
+.writerLink:hover {
+    text-decoration: underline;
+    color: #a78bfa;
+}

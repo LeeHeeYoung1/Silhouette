@@ -118,7 +118,12 @@
 		       p.comment_count,
 		       p.created_at,
 		       p.updated_at,
-		       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name
+		       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name,
+		       case when p.board_type= 'ANON' then null
+		       	else (select max(pi.file_url) keep (dense_rank first order by pi.sort_order)
+		       		from profile_image pi
+		       		where pi.member_seq = p.member_seq)
+		       end as profile_image_url
 		  from post p
 		  join member m on p.member_seq = m.member_seq
 		 where p.post_seq = #{postSeq}
