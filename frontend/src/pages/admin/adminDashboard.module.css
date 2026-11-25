@@ -1,0 +1,148 @@
+/* 관리자 메인 통계 대시보드 - index.css 테마 변수 사용 (해질녘 / 라이트 모드 모두 대응) */
+.page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    color: var(--text-main);
+}
+.notice { padding: 40px 0; text-align: center; color: var(--text-muted); }
+.error { margin: 0 0 14px; color: var(--error); font-size: 0.9rem; }
+
+/* ===== 상단 ===== */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.pageTitle { margin: 0 0 4px; font-size: 1.5rem; font-weight: 800; }
+.basis { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+
+.adminLinks { display: flex; gap: 8px; flex-wrap: wrap; }
+.adminLinks a {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-sub);
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+.adminLinks a:hover { color: var(--text-main); border-color: var(--accent-purple); }
+
+/* ===== 주 선택 ===== */
+.weekBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.weekRange {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.weekBtn, .weekBtnGhost {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.weekBtn:disabled { opacity: 0.4; cursor: default; }
+.weekBtnGhost { background: transparent; color: var(--accent-purple); border-color: var(--accent-purple); }
+.badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-purple);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* ===== 숫자 카드 ===== */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.kpiCard, .chartCard {
+    min-width: 0;
+    padding: 16px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    box-shadow: var(--glass-reflect);
+}
+.kpiTitle { margin: 0 0 6px; color: var(--text-sub); font-size: 0.85rem; }
+.kpiValue {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.kpiUnit { margin-left: 3px; font-size: 0.9rem; font-weight: 600; color: var(--text-sub); }
+.kpiSub { margin: 6px 0 0; font-size: 0.78rem; color: var(--text-muted); }
+.diffUp { color: var(--success); }
+.diffDown { color: var(--error); }
+.diffSame { color: var(--text-muted); }
+
+/* ===== 차트 카드 ===== */
+.chartGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.chartTitle { margin: 0 0 2px; font-size: 1rem; font-weight: 700; }
+.chartDesc { margin: 0 0 6px; color: var(--text-muted); font-size: 0.78rem; }
+.empty { padding: 48px 0; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+.countList {
+    margin: 10px 0 0;
+    padding: 10px 0 0;
+    list-style: none;
+    border-top: 1px solid var(--cell-border);
+    font-size: 0.85rem;
+}
+.countList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    color: var(--text-sub);
+    font-variant-numeric: tabular-nums;
+}
+.countList strong { color: var(--text-main); }
+.countLabel { display: flex; align-items: center; gap: 6px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+
+/* Recharts 내부 요소 색을 테마 변수에 맞춤 */
+.grid :global(line) { stroke: var(--cell-border); }
+.chartCard :global(.recharts-cartesian-axis-tick-value) { fill: var(--text-sub); font-size: 12px; }
+.chartCard :global(.recharts-cartesian-axis-line) { stroke: var(--cell-border); }
+.chartCard :global(.recharts-legend-item-text) { color: var(--text-sub) !important; font-size: 12px; }
+.chartCard :global(.recharts-default-tooltip) {
+    border-radius: 10px !important;
+    border: 1px solid var(--card-border) !important;
+    background: var(--terms-box-bg) !important;
+    backdrop-filter: blur(8px);
+    font-size: 12px;
+}
+.chartCard :global(.recharts-tooltip-label) { color: var(--text-main); }
+.chartCard :global(.recharts-surface:focus) { outline: none; }
+
+@media (max-width: 480px) {
+    .chartGrid { grid-template-columns: 1fr; }
+    .kpiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .kpiCard { padding: 12px 14px; }
+    .kpiValue { font-size: 1.5rem; }
+}
