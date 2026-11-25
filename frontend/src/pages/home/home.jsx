@@ -887,8 +887,8 @@ function Home() {
                     <button type="button" onClick={searchNonFriends}>검색</button>
                   </div>
                   {friendSearchMessage && <p className={styles.sidebarEmpty}>{friendSearchMessage}</p>}
-                  {friendSearchResults.map((member) => (
-                    <div key={member.member_seq} className={styles.sidebarPerson}>
+                  {friendSearchResults.map((member, idx) => (
+                    <div key={member.member_seq ?? member.memberSeq ?? idx} className={styles.sidebarPerson}>
                       <span>{member.nickname || member.login_id} ({member.login_id})</span>
                       <button type="button" onClick={() => addSearchedFriend(member)}>친구 추가</button>
                     </div>
@@ -899,11 +899,11 @@ function Home() {
                     <p className={styles.sidebarEmpty}>등록된 친구가 없습니다.</p>
                   )}
 
-                  {friendList.map((friend) => (
+                  {friendList.map((friend, idx) => (
                     <div
                       className={styles.sidebarPerson}
-                      key={friend.member_seq}
-                      onClick={() => setProfileTargetSeq(friend.member_seq)}
+                      key={friend.member_seq ?? friend.memberSeq ?? idx}
+                      onClick={() => setProfileTargetSeq(friend.member_seq ?? friend.memberSeq)}
                       style={{ cursor: 'pointer' }}
                       title="프로필 보기"
                     >
