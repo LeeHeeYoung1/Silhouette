@@ -15,7 +15,7 @@ import styles from './adminreport.module.css';
 
 function AdminMain() {
   const navigate = useNavigate();
-  const { token } = useAuthStore();
+  const { token, role } = useAuthStore();
 
   // 1. 관리자 권한 확인 상태
   const [isAdmin, setIsAdmin] = useState(false);
@@ -173,7 +173,7 @@ function AdminMain() {
   };
 
   // ========================================================
-  // 관리자 권한 확인 (기존 adminreport 로직 재활용)
+  // 관리자 권한 확인 (useAuthStore의 role로 즉시 확인)
   // ========================================================
   useEffect(() => {
     if (!token) {
@@ -182,21 +182,14 @@ function AdminMain() {
       return;
     }
 
-    Client.get('/api/members/me/role')
-      .then((res) => {
-        if (res.data.admin) {
-          setIsAdmin(true);
-        } else {
-          alert('관리자만 접근할 수 있습니다.');
-          navigate('/', { replace: true });
-        }
-      })
-      .catch((err) => {
-        console.error('관리자 권한 확인 실패:', err);
-        alert('관리자 권한 확인 실패 (백엔드 통신 오류): ' + (err.response?.data?.message || err.message));
-        navigate('/', { replace: true });
-      });
-  }, [token, navigate]);
+    if (role !== 'ROLE_ADMIN') {
+      alert('관리자만 접근할 수 있습니다.');
+      navigate('/', { replace: true });
+      return;
+    }
+
+    setIsAdmin(true);
+  }, [token, role, navigate]);
 
   // 탭 또는 사진 필터 변경 시 데이터 호출
   useEffect(() => {
