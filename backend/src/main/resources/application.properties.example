@@ -47,7 +47,3 @@ ai.server.url=
 sightengine.api.url=
 sightengine.api.user=
 sightengine.api.secret=
-
-sightengine.api.url=
-sightengine.api.user=
-sightengine.api.secret=
