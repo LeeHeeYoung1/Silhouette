@@ -1,8 +1,11 @@
 package com.app.silhouette.admin;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,10 +74,26 @@ public class AdminService {
 	public String filterText(String content) {
 		if (content == null || content.isBlank()) return content;
 		List<BannedWordDTO> words = adminDao.selectAllBannedWords();
+		if (words == null || words.isEmpty()) return content;
 		String filtered = content;
 		for (BannedWordDTO bw : words) {
-			if ("Y".equals(bw.getUseYn()) && bw.getWord() != null) {
-				filtered = filtered.replace(bw.getWord(), bw.getReplacement());
+			if ("Y".equals(bw.getUseYn()) && bw.getWord() != null && !bw.getWord().isBlank()) {
+				String replacement = (bw.getReplacement() != null && !bw.getReplacement().isBlank())
+						? bw.getReplacement() : "***";
+
+				// 공백 또는 특수문자(., _, -, ~ 등)를 섞어 우회하는 입력 방지
+				String trimmedWord = bw.getWord().trim();
+				String[] chars = trimmedWord.split("");
+				List<String> quotedChars = new ArrayList<>();
+				for (String ch : chars) {
+					if (!ch.isEmpty()) {
+						quotedChars.add(Pattern.quote(ch));
+					}
+				}
+				if (!quotedChars.isEmpty()) {
+					String flexibleRegex = String.join("[\\s._~-]*", quotedChars);
+					filtered = filtered.replaceAll("(?i)" + flexibleRegex, Matcher.quoteReplacement(replacement));
+				}
 			}
 		}
 		return filtered;

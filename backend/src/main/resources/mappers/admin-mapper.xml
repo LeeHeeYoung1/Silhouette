@@ -165,9 +165,9 @@
             SEQ_PHOTO_REVIEW.NEXTVAL,
             #{memberSeq},
             #{photoUrl},
-            #{aiScore, jdbcType=NUMERIC},
-            #{isAiSuspect, jdbcType=VARCHAR},
-            'WAITING',
+            NVL(#{aiScore, jdbcType=NUMERIC}, 0),
+            NVL(#{isAiSuspect, jdbcType=VARCHAR}, 'N'),
+            NVL(#{status, jdbcType=VARCHAR}, 'WAITING'),
             SYSDATE
         )
     </insert>
