@@ -42,3 +42,12 @@ blind.time-limit-min=15
 blind.vote-seconds=30
 
 ai.server.url=
+
+# Sightengine AI Image Detection
+sightengine.api.url=
+sightengine.api.user=
+sightengine.api.secret=
+
+sightengine.api.url=
+sightengine.api.user=
+sightengine.api.secret=
