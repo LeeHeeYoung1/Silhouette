@@ -81,8 +81,10 @@ function Layout() {
         try {
           const imgListRes = await Client.get('/api/profile/images');
           if (Array.isArray(imgListRes.data) && imgListRes.data.length > 0) {
-            const firstImgSeq =
-              imgListRes.data[0].profileImageSeq || imgListRes.data[0].profile_image_seq;
+            const firstImg = imgListRes.data[0];
+            const status = firstImg.reviewStatus || firstImg.review_status;
+            const firstImgSeq = firstImg.profileImageSeq || firstImg.profile_image_seq;
+            // 관리자 및 본인 계정은 승인 여부와 관계없이 상단 네비게이션 아바타 사진 표시
             if (firstImgSeq) {
               const imgBlobRes = await Client.get(`/api/profile/image/${firstImgSeq}`, {
                 responseType: 'blob'
