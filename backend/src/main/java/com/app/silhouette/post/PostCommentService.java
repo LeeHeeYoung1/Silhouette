@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.app.silhouette.admin.AdminService;
+
 @Service
 public class PostCommentService {
 
@@ -18,10 +20,12 @@ public class PostCommentService {
 
 	private final PostCommentDAO postCommentDAO;
 	private final PostDAO postDAO;   // 회원번호 조회 재사용
+	private final AdminService adminService;
 
-	public PostCommentService(PostCommentDAO postCommentDAO, PostDAO postDAO) {
+	public PostCommentService(PostCommentDAO postCommentDAO, PostDAO postDAO, AdminService adminService) {
 		this.postCommentDAO = postCommentDAO;
 		this.postDAO = postDAO;
+		this.adminService = adminService;
 	}
 
 	// ===================== 댓글 / 대댓글 등록 =====================
@@ -49,10 +53,10 @@ public class PostCommentService {
 			}
 		}
 
-		// 5) DTO에 서버가 정하는 값 채우기
+		// 5) DTO에 서버가 정하는 값 채우기 (금칙어 필터링 적용)
 		dto.setPostSeq(postSeq);
 		dto.setMemberSeq(memberSeq);
-		dto.setContent(content);
+		dto.setContent(adminService.filterText(content));
 
 		// 6) 저장 + 댓글 수 +1 (쓰기 2개 → 트랜잭션)
 		postCommentDAO.insertComment(dto);
@@ -110,6 +114,7 @@ public class PostCommentService {
 		String content = checkContent(dto.getContent());
 		checkActivePost(postSeq);
 
+		content = adminService.filterText(content);
 		int result = postCommentDAO.updateComment(postSeq, postCommentSeq, memberSeq, content);
 		if (result == 0) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인 댓글만 수정할 수 있습니다.");

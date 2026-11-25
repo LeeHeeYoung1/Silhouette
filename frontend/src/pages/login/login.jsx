@@ -60,7 +60,8 @@ function Login() {
 
       setAuth({
         token: resp.data.token,
-        id: resp.data.id
+        id: resp.data.id,
+        role: resp.data.role
       });
 
       navigate('/');

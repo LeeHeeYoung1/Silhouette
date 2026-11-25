@@ -22,6 +22,7 @@ function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const token = useAuthStore((state) => state.token);
+  const role = useAuthStore((state) => state.role);
   const logout = useAuthStore((state) => state.logout);
   useOnboardingGuard();
 
@@ -46,6 +47,19 @@ function Layout() {
     else document.body.classList.remove('theme-light');
     localStorage.setItem('silhouette_theme', theme);
   }, [theme]);
+
+  // 로그인 시 관리자 권한(role) 동기화 (항상 관리자 여부 검사)
+  useEffect(() => {
+    if (token && !role) {
+      Client.get('/api/members/me/role')
+        .then((res) => {
+          const userRole = res.data.admin ? 'ROLE_ADMIN' : 'ROLE_USER';
+          sessionStorage.setItem('role', userRole);
+          useAuthStore.setState({ role: userRole });
+        })
+        .catch(() => {});
+    }
+  }, [token, role]);
 
   // 로그인 회원 정보 및 프로필 사진 로드
   useEffect(() => {
@@ -131,7 +145,8 @@ function Layout() {
         Client.get('/api/notifications/unread-count')
       ]);
 
-      setNotifications(Array.isArray(listResult.data) ? listResult.data : []);
+      const list = Array.isArray(listResult.data) ? listResult.data.filter(Boolean) : [];
+      setNotifications(list);
       setUnreadCount(Number(countResult.data) || 0);
     } catch (error) {
       console.error('알림을 불러오지 못했습니다.', error);
@@ -279,9 +294,9 @@ function Layout() {
   };
 
   // 숨기지 않은 알림만 화면에 표시합니다.
-  const visibleNotifications = notifications.filter(
-    (item) => !hiddenNotificationIds.includes(item.notification_seq)
-  );
+  const visibleNotifications = (notifications || [])
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => !hiddenNotificationIds.includes(item.notification_seq ?? item.notificationSeq));
 
   return (
     <div className={styles.appContainer}>
@@ -303,12 +318,17 @@ function Layout() {
           {!isAuthPage && (
             <nav className={styles.navLinks}>
               {token ? (
-                /* 로그인 이후: 홈, 이벤트, 게시판, 라이브 */
+                /* 로그인 이후: 홈, 이벤트, 게시판, 라이브, (관리자일 때 관리자 메뉴) */
                 <>
                   <NavLink to="/" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>홈</NavLink>
                   <NavLink to="/event" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>이벤트</NavLink>
                   <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
                   <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
+                  {role === 'ROLE_ADMIN' && (
+                    <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`} style={{ color: '#f87171', fontWeight: 'bold' }}>
+                      🛡️ 관리자
+                    </NavLink>
+                  )}
                 </>
               ) : (
                 /* 비로그인 시: 홈, 이벤트, 게시판, 라이브, 로그인, 회원가입 */
