@@ -24,7 +24,9 @@ public class InterceptorConfig implements WebMvcConfigurer{
                 "/chat",
                 "/chat/**",
                 "/live",                   // 라이브 채팅 STOMP 엔드포인트
-                "/api/livekit/webhook");   // LiveKit 서명으로 따로 검증
+                "/api/livekit/webhook",   // LiveKit 서명으로 따로 검증
+                "/api/profile/image/**",  // 프로필 사진 이미지 바이너리 (img 태그 등)
+                "/api/posts/files/**");   // 게시글 첨부파일 다운로드
 	}
 
 }
