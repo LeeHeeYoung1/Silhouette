@@ -15,6 +15,7 @@ import QnaWrite from './pages/post/qnawrite';           // Q&A 작성·수정
 import QnaDetail from './pages/post/qnadetail';         // Q&A 상세
 import Live from './pages/live/live';
 import LiveAdmin from './pages/live/liveAdmin';
+import AdminMain from './pages/admin/adminmain';        // 🛡️ 관리자 통합 메인 대시보드 (A005 + A001)
 import AdminReport from './pages/admin/adminreport';    // 🛡️ 관리자 신고 · 블랙리스트
 import Chatting from './pages/chatting/chatting';
 import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
@@ -84,6 +85,7 @@ function App() {
 
         <Route path="/board/*" element={<Navigate to="/post/free" replace />} />
         <Route path="/live" element={<Live />} />
+        <Route path="/admin" element={<AdminMain />} />                    {/* 🛡️ 관리자 통합 대시보드 */}
         <Route path="/admin/live" element={<LiveAdmin />} />
         <Route path="/admin/reports" element={<AdminReport />} />          {/* 🛡️ 관리자 신고 · 블랙리스트 */}
         <Route path="/mypage" element={<MyPage />} />
