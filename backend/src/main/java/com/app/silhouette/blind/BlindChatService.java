@@ -62,6 +62,29 @@ public class BlindChatService {
     }
 
     // =========================================================
+    // 관리자 동적 설정 (제한 시간 / 투표 시간)
+    // =========================================================
+    public int getTimeLimitMin() {
+        return timeLimitMin;
+    }
+
+    public void setTimeLimitMin(int timeLimitMin) {
+        if (timeLimitMin > 0) {
+            this.timeLimitMin = timeLimitMin;
+        }
+    }
+
+    public int getVoteSeconds() {
+        return voteSeconds;
+    }
+
+    public void setVoteSeconds(int voteSeconds) {
+        if (voteSeconds > 0) {
+            this.voteSeconds = voteSeconds;
+        }
+    }
+
+    // =========================================================
     // 방 생성 (매칭 성공 시 BlindMatchService가 호출)
     // =========================================================
     public BlindRoomDTO createRoom(long memberSeq1, long memberSeq2) {
