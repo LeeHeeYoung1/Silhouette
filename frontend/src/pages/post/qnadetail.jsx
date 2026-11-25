@@ -4,6 +4,8 @@ import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 import styles from './qna.module.css';
 
+
+
 /* =========================================================
    1:1 Q&A 상세 - 담당: 권형석
    - 남의 비밀글: 비밀번호 입력 → 맞으면 열람 (작성자·관리자는 바로 열람)

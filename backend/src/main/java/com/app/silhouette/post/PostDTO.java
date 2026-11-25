@@ -23,6 +23,8 @@ public class PostDTO {
 	private String login_id;                // 작성자 아이디 (MEMBER.LOGIN_ID, 익명 글은 null로 보냄)
 	private String writer_name;             // 작성자 표시 이름 (닉네임 또는 '익명')
 	private Boolean mine;                   // ✅ 보는 사람의 글인지 (서버가 계산)
+	
+	private String profile_image_url;   // 작성자 대표 사진 주소 (익명 글이면 null)
 
 	public PostDTO() {}
 
@@ -157,4 +159,7 @@ public class PostDTO {
 	public void setMine(Boolean mine) {
 		this.mine = mine;
 	}
+	
+	public String getProfileImageUrl() { return profile_image_url; }
+	public void setProfileImageUrl(String profile_image_url) { this.profile_image_url = profile_image_url; }
 }

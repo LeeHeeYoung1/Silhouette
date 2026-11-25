@@ -4,15 +4,19 @@ import styles from './postdetail.module.css';
 import Client from '../../api/client';
 import useAuthStore from '../../stores/useAuthStore';
 import ReportButton from './reportbutton';   // 🚨 신고 버튼 (게시글 · 댓글 공통)
+import MemberAvatar from '../profile/memberavater';   // 동그란 프로필 사진
+import MemberProfileModal from '../memberProfileModal/memberProfileModal';   // 친구 추가 프로필 팝업
 
 /* =========================================================
    실루엣 게시글 상세 컴포넌트 (PostDetail) - 담당: 권형석
    - 경로: /post/detail/:id  (자유 · 익명 게시판 공용)
    - B001 게시글 상세 조회 (조회수 증가, 본문)
    - 추천 토글 (1인 1회)
+   - 🔖 북마크 토글 (토큰 방식, 마이페이지에서 목록 확인)
+   - 작성자 사진 · 닉네임 클릭 → 프로필 팝업 (친구 추가)
    - 댓글 / 대댓글 등록 · 수정 · 삭제
    - 본인 글 수정 · 삭제
-   - 익명게시판 글: 글 작성자 · 댓글 작성자 모두 '익명' 표시
+   - 익명게시판 글: 글 작성자 · 댓글 작성자 모두 '익명' 표시 (사진 · 프로필 팝업 없음)
    - 🚨 게시글 · 댓글 신고 (남의 글·댓글에만, 익명 게시판 포함)
    ========================================================= */
 
@@ -51,6 +55,11 @@ function PostDetail() {
     const [editingId, setEditingId] = useState(null);        // 수정 중인 댓글 번호
     const [editText, setEditText] = useState('');            // 수정 입력
     const [submitting, setSubmitting] = useState(false);     // 중복 클릭 방지
+
+    // 프로필 팝업 · 북마크 상태
+    const [profileMemberSeq, setProfileMemberSeq] = useState(null);   // 팝업에 띄울 회원 번호 (null이면 닫힘)
+    const [bookmarked, setBookmarked] = useState(false);              // 내가 북마크한 글인지
+    const [bookmarkBusy, setBookmarkBusy] = useState(false);          // 북마크 중복 클릭 방지
 
     // 익명게시판 글인지 (CATEGORY가 아니라 BOARD_TYPE으로 판단)
     const isAnonPost = post?.boardType === 'ANON';
@@ -103,12 +112,24 @@ function PostDetail() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, loginId]);
 
+    // 내가 추천했는지
     useEffect(() => {
         if (!loginId) return;
         Client.get(`/api/posts/${id}/recommend`, { params: { loginId } })
             .then((res) => setHasLiked(res.data.liked))
             .catch((err) => console.error(err));
     }, [id, loginId]);
+
+    // 🔖 내가 북마크했는지 (토큰 방식 → loginId 안 보냄)
+    useEffect(() => {
+        if (!token) {
+            setBookmarked(false);
+            return;
+        }
+        Client.get(`/api/bookmarks/posts/${id}`)
+            .then((res) => setBookmarked(res.data.bookmarked))
+            .catch((err) => console.error(err));
+    }, [id, token]);
 
     /* ===================== 공통 ===================== */
 
@@ -119,6 +140,15 @@ function PostDetail() {
         navigate('/login');
         return false;
     };
+
+    // 작성자 프로필 팝업 열기 (익명 글은 열지 않음)
+    const openProfile = (memberSeq) => {
+        if (isAnonPost || !memberSeq) return;
+        if (!requireLogin('로그인한 회원만 프로필을 볼 수 있습니다.')) return;
+        setProfileMemberSeq(memberSeq);
+    };
+
+    const closeProfile = () => setProfileMemberSeq(null);
 
     // 서버 에러 상태코드별 안내
     const handleError = (err, fallback) => {
@@ -257,7 +287,7 @@ function PostDetail() {
         }
     };
 
-    /* ===================== 게시글 수정 / 삭제 / 추천 / 다운로드 ===================== */
+    /* ===================== 게시글 수정 / 삭제 / 추천 / 북마크 / 다운로드 ===================== */
 
     // 게시글 수정 화면으로 이동 (익명 글이면 익명게시판 수정 화면)
     const handleEditPost = () => {
@@ -287,6 +317,30 @@ function PostDetail() {
         } catch (err) {
             console.error(err);
             alert('추천 처리에 실패했습니다.');
+        }
+    };
+
+    // 🔖 북마크 토글 (누르면 저장, 다시 누르면 취소)
+    const handleToggleBookmark = async () => {
+        if (!requireLogin('로그인한 회원만 북마크할 수 있습니다.')) return;
+        if (bookmarkBusy) return;
+        setBookmarkBusy(true);
+        try {
+            const res = await Client.post(`/api/bookmarks/posts/${id}`);
+            setBookmarked(res.data.bookmarked);
+        } catch (err) {
+            console.error(err);
+            const status = err.response?.status;
+            if (status === 401) {
+                alert('로그인 정보가 없습니다. 다시 로그인해 주세요.');
+                navigate('/login');
+            } else if (status === 404) {
+                alert('삭제되었거나 존재하지 않는 게시글입니다.');
+            } else {
+                alert('북마크 처리에 실패했습니다.');
+            }
+        } finally {
+            setBookmarkBusy(false);
         }
     };
 
@@ -441,6 +495,7 @@ function PostDetail() {
         <div className={styles.detailCard}>
             {/* 헤더 */}
             <div className={styles.detailHeader}>
+                {/* 왼쪽: 카테고리 · 제목 · 작성자 정보 */}
                 <div>
                     {/* 익명게시판이면 '🎭 익명 게시판' 배지 */}
                     <span className={styles.categoryBadge}>
@@ -448,7 +503,26 @@ function PostDetail() {
                     </span>
                     <h1 className={styles.detailTitle}>{post.title}</h1>
                     <div className={styles.detailMeta}>
-                        <span>작성자: <strong>{postWriterName}</strong></span>
+                        <span className={styles.writerBox}>
+                            {/* 익명 글이면 사진 없음 + 클릭 안 됨 */}
+                            <MemberAvatar
+                                fileUrl={isAnonPost ? null : post.profileImageUrl}
+                                size={28}
+                                alt={`${postWriterName} 프로필 사진`}
+                                onClick={isAnonPost ? undefined : () => openProfile(post.memberSeq)}
+                            />
+                            작성자: {isAnonPost ? (
+                                <strong>{postWriterName}</strong>
+                            ) : (
+                                <strong
+                                    className={styles.writerLink}
+                                    onClick={() => openProfile(post.memberSeq)}
+                                    title="프로필 보기"
+                                >
+                                    {postWriterName}
+                                </strong>
+                            )}
+                        </span>
                         <span>·</span>
                         <span>
                             등록일시: <strong>{formatDate(post.createdAt)}</strong>
@@ -461,10 +535,26 @@ function PostDetail() {
                     </div>
                 </div>
 
-                {/* 원래 게시판 목록으로 */}
-                <Link to={boardPath} className={styles.backToListBtn}>
-                    <i className="fa-solid fa-arrow-left"></i> 목록으로
-                </Link>
+                    {/* 오른쪽 위: ⭐ 북마크 + 목록으로 (가로 한 줄) */}
+                <div className={styles.headerActions}>
+                   <button
+                        type="button"
+                        className={`${styles.bookmarkBtn} ${bookmarked ? styles.bookmarkBtnActive : ''}`}
+                        onClick={handleToggleBookmark}
+                        disabled={bookmarkBusy}
+                        title={bookmarked ? '북마크 취소' : '북마크'}
+                        aria-label={bookmarked ? '북마크 취소' : '북마크'}
+                    >
+                        {/* 노란 책갈피 (북마크하면 꽉 참) */}
+                        <svg viewBox="0 0 24 24" className={styles.bookmarkIcon} aria-hidden="true">
+                            <path d="M6 2.5h12a1 1 0 0 1 1 1V21.5l-7-4.5-7 4.5V3.5a1 1 0 0 1 1-1z" />
+                        </svg>
+                    </button>
+
+                    <Link to={boardPath} className={styles.backToListBtn}>
+                        <i className="fa-solid fa-arrow-left"></i> 목록으로
+                    </Link>
+                </div>
             </div>
 
             {/* 본문 */}
@@ -608,6 +698,11 @@ function PostDetail() {
                     </button>
                 </div>
             </div>
+
+            {/* 작성자 프로필 팝업 (친구 추가) */}
+            {profileMemberSeq && (
+                <MemberProfileModal memberSeq={profileMemberSeq} onClose={closeProfile} />
+            )}
         </div>
     );
 }

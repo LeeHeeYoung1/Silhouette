@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PostBookmark">
+
+	<!-- 북마크할 수 있는 글인지 (삭제 안 된 글만) -->
+	<select id="countActivePost" parameterType="long" resultType="int">
+		select count(*) from post
+		 where post_seq = #{postSeq}
+		   and is_deleted = 'N'
+	</select>
+
+	<!-- 내가 이 글을 북마크했는지 -->
+	<select id="countBookmark" parameterType="map" resultType="int">
+		select count(*) from post_bookmark
+		 where member_seq = #{memberSeq}
+		   and post_seq = #{postSeq}
+	</select>
+
+	<!-- 북마크 추가 -->
+	<insert id="insertBookmark" parameterType="map">
+		insert into post_bookmark (post_bookmark_seq, member_seq, post_seq, created_at, updated_at)
+		values (seq_post_bookmark.nextval, #{memberSeq}, #{postSeq}, systimestamp, systimestamp)
+	</insert>
+
+	<!-- 북마크 취소 -->
+	<delete id="deleteBookmark" parameterType="map">
+		delete from post_bookmark
+		 where member_seq = #{memberSeq}
+		   and post_seq = #{postSeq}
+	</delete>
+
+	<!-- ===================== 마이페이지 목록 ===================== -->
+
+	<!-- 목록 조건: 내 북마크 + 삭제된 글 숨김 + 블랙리스트 회원 글 숨김 (개수·목록 공용) -->
+	<sql id="myBookmarkWhere">
+		 where b.member_seq = #{memberSeq}
+		   and p.is_deleted = 'N'
+		   and not exists (
+		         select 1 from blacklist bl
+		          where bl.member_seq = p.member_seq
+		            and bl.released_at is null
+		            and bl.start_at &lt;= systimestamp
+		            and (bl.end_at is null or bl.end_at &gt; systimestamp))
+	</sql>
+
+	<!-- 보이는 북마크 개수 (페이지 수 계산용) -->
+	<select id="countMyBookmarks" parameterType="map" resultType="int">
+		select count(*)
+		  from post_bookmark b
+		  join post p on p.post_seq = b.post_seq
+		<include refid="myBookmarkWhere"/>
+	</select>
+
+	<!-- 해당 페이지 북마크만 (최근에 북마크한 순) -->
+	<select id="selectMyBookmarks" parameterType="map" resultType="com.app.silhouette.bookmark.PostBookmarkDTO">
+		select post_bookmark_seq, post_seq, created_at, board_type, category, title, writer_name,
+		       view_count, recommend_count, comment_count, post_created_at
+		  from (
+			select rownum as rnum, t.*
+			  from (
+				select b.post_bookmark_seq,
+				       b.post_seq,
+				       b.created_at,
+				       p.board_type,
+				       p.category,
+				       p.title,
+				       case when p.board_type = 'ANON' then '익명' else m.nickname end as writer_name,
+				       p.view_count,
+				       p.recommend_count,
+				       p.comment_count,
+				       p.created_at as post_created_at
+				  from post_bookmark b
+				  join post p   on p.post_seq = b.post_seq
+				  join member m on m.member_seq = p.member_seq
+				<include refid="myBookmarkWhere"/>
+				 order by b.post_bookmark_seq desc
+			  ) t
+			 where rownum &lt;= #{endRow}
+		  )
+		 where rnum &gt;= #{startRow}
+	</select>
+</mapper>
