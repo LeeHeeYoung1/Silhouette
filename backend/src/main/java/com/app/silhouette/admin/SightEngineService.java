@@ -1,5 +1,7 @@
 package com.app.silhouette.admin;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -11,6 +13,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,13 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class SightEngineService {
 	
-	@Value("${sightengine.api.url}")
+	@Value("${sightengine.api.url:}")
 	private String apiUrl;
 	
-	@Value("${sightengine.api.user}")
+	@Value("${sightengine.api.user:}")
 	private String apiUser;
 	
-	@Value("${sightengine.api.secret}")
+	@Value("${sightengine.api.secret:}")
 	private String apiSecret;
 	
 	private final RestTemplate restTemplate = new RestTemplate();
@@ -64,9 +67,15 @@ public class SightEngineService {
 	
 	public double detectAiGeneratedScoreByUrl(String imageUrl) {
 		try {
-			String requestUrl = apiUrl + "?models=genai" + "&api_user=" + apiUser + "&api_secret=" + apiSecret + "&url=" + imageUrl;
+			URI requestUri = UriComponentsBuilder.fromHttpUrl(apiUrl)
+					.queryParam("models", "genai")
+					.queryParam("api_user", apiUser)
+					.queryParam("api_secret", apiSecret)
+					.queryParam("url", imageUrl)
+					.build()
+					.toUri();
 			
-			ResponseEntity<String> response = restTemplate.getForEntity(requestUrl,String.class);
+			ResponseEntity<String> response = restTemplate.getForEntity(requestUri, String.class);
 			JsonNode root = objectMapper.readTree(response.getBody());
 			
 			if("success".equals(root.path("status").asText())) {

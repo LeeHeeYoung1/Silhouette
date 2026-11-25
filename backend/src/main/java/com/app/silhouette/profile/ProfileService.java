@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
  
+import com.app.silhouette.admin.AdminDAO;
+import com.app.silhouette.admin.PhotoReviewDTO;
 import com.app.silhouette.friend.MemberFriendService;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -37,14 +39,16 @@ public class ProfileService {
 	private final ProfileDAO profileDAO;
 	private final Storage storage;
 	private final MemberFriendService memberFriendService;
+	private final AdminDAO adminDAO;
  
 	@Value("${gcp.bucket}")
 	private String bucketName;
  
-	public ProfileService(ProfileDAO profileDAO, Storage storage, MemberFriendService memberFriendService) {
+	public ProfileService(ProfileDAO profileDAO, Storage storage, MemberFriendService memberFriendService, AdminDAO adminDAO) {
 		this.profileDAO = profileDAO;
 		this.storage = storage;
 		this.memberFriendService = memberFriendService;
+		this.adminDAO = adminDAO;
 	}
  
 	// ===================== 회원 기본 정보 =====================
@@ -234,6 +238,12 @@ public class ProfileService {
 		profileDAO.deleteProfileImages(memberSeq);
 		for (ProfileImageDTO img : newImages) {
 			profileDAO.insertProfileImage(img);
+
+			// 관리자 사진 심사(PHOTO_REVIEW)에 대기 상태로 등록
+			PhotoReviewDTO review = new PhotoReviewDTO();
+			review.setMemberSeq(memberSeq);
+			review.setPhotoUrl(img.getFileUrl());
+			adminDAO.insertPhotoReview(review);
 		}
  
 		// 5) 예전 사진 파일은 저장소에서 정리
