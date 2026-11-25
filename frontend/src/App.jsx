@@ -15,7 +15,7 @@ import QnaWrite from './pages/post/qnawrite';           // Q&A 작성·수정
 import QnaDetail from './pages/post/qnadetail';         // Q&A 상세
 import Live from './pages/live/live';
 import LiveAdmin from './pages/live/liveAdmin';
-//import AdminMain from './pages/admin/adminmain';        // 🛡️ 관리자 통합 메인 대시보드 (A005 + A001)
+import AdminMain from './pages/admin/adminmain';        // 🛡️ 관리자 회원 · 금칙어 · 사진 심사 (A001)
 import AdminReport from './pages/admin/adminreport';    // 🛡️ 관리자 신고 · 블랙리스트
 import AdminDashboard from './pages/admin/adminDashboard';   // 📊 관리자 메인 통계 대시보드
 import Chatting from './pages/chatting/chatting';
@@ -83,7 +83,7 @@ function App() {
         <Route path="/board/*" element={<Navigate to="/post/free" replace />} />
         <Route path="/live" element={<Live />} />
 
-        {/* <Route path="/admin" element={<AdminMain />} />                    🛡️ 관리자 통합 대시보드 */}
+       <Route path="/admin/manage" element={<AdminMain />} />             {/* 🛡️ 회원 · 금칙어 · 사진 심사 */}
 
         <Route path="/admin" element={<AdminDashboard />} />               {/* 📊 관리자 메인 통계 대시보드 */}
 
