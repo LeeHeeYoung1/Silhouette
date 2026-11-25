@@ -32,6 +32,9 @@ public class MembersServices {
     public int login(String id, String password) {
         return dao.login(id, password);
     }
-    
- 
+
+    // 회원 권한 조회
+    public String selectRole(String loginId) {
+        return dao.selectRole(loginId);
+    }
 }
