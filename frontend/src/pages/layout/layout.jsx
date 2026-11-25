@@ -40,7 +40,8 @@ function Layout() {
         Client.get('/api/notifications/unread-count')
       ]);
 
-      setNotifications(Array.isArray(listResult.data) ? listResult.data : []);
+      const list = Array.isArray(listResult.data) ? listResult.data.filter(Boolean) : [];
+      setNotifications(list);
       setUnreadCount(Number(countResult.data) || 0);
     } catch (error) {
       console.error('알림을 불러오지 못했습니다.', error);
@@ -154,9 +155,9 @@ function Layout() {
   };
 
   // 숨기지 않은 알림만 화면에 표시합니다.
-  const visibleNotifications = notifications.filter(
-    (item) => !hiddenNotificationIds.includes(item.notification_seq)
-  );
+  const visibleNotifications = (notifications || [])
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => !hiddenNotificationIds.includes(item.notification_seq ?? item.notificationSeq));
 
   return (
     <div className={styles.appContainer}>
