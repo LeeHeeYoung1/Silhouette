@@ -71,8 +71,8 @@ public class AdminDAO {
 	public int updatePhotoReviewDecision(PhotoReviewDTO photoReviewDto) {
 		return mybatis.update("Admin.updatePhotoReviewDecision", photoReviewDto);
 	}
-	
-	
-	
-	
+
+	public int insertPhotoReview(PhotoReviewDTO dto) {
+		return mybatis.insert("Admin.insertPhotoReview", dto);
+	}
 }

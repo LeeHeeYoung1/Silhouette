@@ -10,7 +10,7 @@
             M.EMAIL,
             M.NICKNAME,
             M.GENDER,
-            M.STATUS,
+            M.MEMBER_STATUS       AS status,
             M.CREATED_AT,
             B.MEMBER_BLACKLIST_SEQ,
             B.REASON               AS blacklist_reason,
@@ -44,7 +44,7 @@
 
     <update id="updateMemberStatus" parameterType="map">
         UPDATE MEMBER
-        SET STATUS = #{status}
+        SET MEMBER_STATUS = #{status}
         WHERE MEMBER_SEQ = #{memberSeq}
     </update>
 
@@ -146,8 +146,29 @@
     <update id="updatePhotoReviewDecision" parameterType="com.app.silhouette.admin.PhotoReviewDTO">
         UPDATE PHOTO_REVIEW
         SET STATUS        = #{status},
-            REJECT_REASON = #{rejectReason},
-            REVIEWED_AT   = SYSDATE
+        REJECT_REASON = #{rejectReason},
+        REVIEWED_AT   = SYSDATE
         WHERE PHOTO_REVIEW_SEQ = #{photoReviewSeq}
     </update>
+
+    <!-- 7. 프로필 사진 심사 등록 (사용자가 사진 업로드 시 자동 등록) -->
+    <insert id="insertPhotoReview" parameterType="com.app.silhouette.admin.PhotoReviewDTO">
+        INSERT INTO PHOTO_REVIEW (
+            PHOTO_REVIEW_SEQ,
+            MEMBER_SEQ,
+            PHOTO_URL,
+            AI_SCORE,
+            IS_AI_SUSPECT,
+            STATUS,
+            CREATED_AT
+        ) VALUES (
+            SEQ_PHOTO_REVIEW.NEXTVAL,
+            #{memberSeq},
+            #{photoUrl},
+            #{aiScore, jdbcType=NUMERIC},
+            #{isAiSuspect, jdbcType=VARCHAR},
+            'WAITING',
+            SYSDATE
+        )
+    </insert>
 </mapper>
