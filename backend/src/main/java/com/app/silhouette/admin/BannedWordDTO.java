@@ -7,19 +7,19 @@ public class BannedWordDTO {
     private String word;
     private String category;
     private String replacement;
-    private String useYn;
+    private String use_yn;
     private LocalDateTime created_at;
 
     public BannedWordDTO() {}
 
-	public BannedWordDTO(Long banned_word_seq, String word, String category, String replacement, String useYn,
+	public BannedWordDTO(Long banned_word_seq, String word, String category, String replacement, String use_yn,
 			LocalDateTime created_at) {
 		super();
 		this.banned_word_seq = banned_word_seq;
 		this.word = word;
 		this.category = category;
 		this.replacement = replacement;
-		this.useYn = useYn;
+		this.use_yn = use_yn;
 		this.created_at = created_at;
 	}
 
@@ -56,11 +56,19 @@ public class BannedWordDTO {
 	}
 
 	public String getUseYn() {
-		return useYn;
+		return use_yn;
 	}
 
-	public void setUseYn(String useYn) {
-		this.useYn = useYn;
+	public void setUseYn(String use_yn) {
+		this.use_yn = use_yn;
+	}
+
+	public String getUse_yn() {
+		return use_yn;
+	}
+
+	public void setUse_yn(String use_yn) {
+		this.use_yn = use_yn;
 	}
 
 	public LocalDateTime getCreatedAt() {
