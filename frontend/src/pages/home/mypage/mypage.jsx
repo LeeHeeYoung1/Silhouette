@@ -1,35 +1,45 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Client from '../../../api/client';
 import styles from './mypage.module.css';
+import ob from '../../onboarding/onboarding.module.css';   // 수정 모드 칩 · 입력칸 (온보딩 · 프로필과 같은 모양)
+import {
+    MBTI_LIST, JOB_LIST, DRINKING_LIST, SMOKING_LIST, RELIGION_LIST,
+    FACE_TYPE_LIST, SKIN_TYPE_LIST, LOVE_TYPE_LIST, HOBBY_LIST,
+    FAVORITE_LIST, DISLIKE_LIST, FOOD_LIST, BODY_TYPE_LIST,
+    SMOKING_PREF_LIST, DRINKING_PREF_LIST,
+    MILITARY_LIST, MILITARY_PREF_LIST,
+} from '../../onboarding/onboardingOptions';
 
 /* =========================================================
-   실루엣 마이페이지 (M005 ~ M015) - 담당: 권형석
-   - CSS Module 바인딩 완료 (cx 헬퍼 연동)
-   - 이상형(M011), 북마크(M008), 채팅목록(M009), 캘린더(M012),
-     내가쓴글(M014), 결제내역(M010), 차단신고(M013), 온보딩(M015)
+   실루엣 마이페이지 - 담당: 권형석
+   - 기본 정보 (M005 · M006)        : GET/PUT /api/mypage/me, 닉네임 중복 확인 (토큰 방식)
+   - 내 정보 · 이상형 (M015 · M011)  : GET /api/profile/me, PUT /api/profile (내 정보 + 이상형 같이 저장)
+   - 프로필 사진 교체                : PUT /api/profile/images/1
+   - 북마크 (M008)                  : GET /api/bookmarks/me, POST /api/bookmarks/posts/{postSeq}
+   - 캘린더 (M012)                  : 화면만 (DB 저장은 다음 단계)
+   - 결제 내역 (M010) · 회원 탈퇴 (M007) : 목업 유지
+   - 아이디 · 비밀번호 · 이름 · 성별 · 생년월일은 수정 불가
    ========================================================= */
 
-// CSS 모듈 클래스와 외부 라이브러리(FontAwesome 등) 클래스를 안전하게 바인딩하는 헬퍼 함수
-const cx = (...names) => {
-    return names
+// CSS 모듈 클래스와 외부 라이브러리(FontAwesome 등) 클래스를 같이 쓰기 위한 도우미
+const cx = (...names) =>
+    names
         .flatMap((n) => (typeof n === 'string' ? n.trim().split(/\s+/) : []))
         .filter(Boolean)
         .map((n) => styles[n] || n)
         .join(' ');
-};
 
-// 왼쪽 메뉴 목록 (id는 아래 VIEWS의 키와 일치)
+// 왼쪽 메뉴
 const MENU_MAIN = [
-    { id: 'dashboard', icon: 'fa-chart-pie', label: '마이 대시보드' },
-    { id: 'ideal', icon: 'fa-heart-circle-check', label: '나의 이상형 & 취향', code: 'M011' },
-    { id: 'bookmarks', icon: 'fa-bookmark', label: '북마크한 인연', code: 'M008' },
-    { id: 'chat', icon: 'fa-comments', label: '내 채팅방 목록', code: 'M009' },
-    { id: 'calendar', icon: 'fa-calendar-check', label: '데이트 캘린더', code: 'M012' },
-    { id: 'posts', icon: 'fa-pen-to-square', label: '내가 쓴 게시글', code: 'M014' },
+    { id: 'basic', icon: 'fa-id-card', label: '기본 정보', code: 'M005' },
+    { id: 'onboarding', icon: 'fa-user-pen', label: '내 정보 (온보딩)', code: 'M015' },
+    { id: 'ideal', icon: 'fa-heart-circle-check', label: '이상형 (온보딩)', code: 'M011' },
+    { id: 'bookmarks', icon: 'fa-bookmark', label: '북마크', code: 'M008' },
+    { id: 'calendar', icon: 'fa-calendar-check', label: '캘린더', code: 'M012' },
 ];
 const MENU_ACCOUNT = [
-    { id: 'payment', icon: 'fa-credit-card', label: '결제 내역 관리', code: 'M010' },
-    { id: 'blocks', icon: 'fa-shield-halved', label: '차단 및 신고 내역', code: 'M013' },
-    { id: 'editProfile', icon: 'fa-user-gear', label: '개인정보 수정', code: 'M006' },
+    { id: 'payment', icon: 'fa-credit-card', label: '결제 내역', code: 'M010' },
 ];
 
 // 사진이 없을 때 쓰는 기본 아바타
@@ -42,17 +52,233 @@ const DEFAULT_AVATAR =
             '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#a855f7" opacity="0.6"/></svg>'
     );
 
+// ===== 기본 정보 규칙 (회원가입 signup.jsx와 같음) =====
+const REGEX_NICKNAME = /^[a-zA-Z0-9가-힣]{2,20}$/;
+const REGEX_PHONE = /^\d{3}-\d{3,4}-\d{4}$/;
+const REGEX_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const NO_DETAIL = '상세주소 없음';
+
+// ===== 온보딩 규칙 (onboarding.jsx · profile.jsx · 서버와 같음) =====
+const MAX_INTRO = 300;
+const MAX_MEMO = 150;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const HEIGHT_MIN = 100;
+const HEIGHT_MAX = 250;
+const WEIGHT_MIN = 30;
+const WEIGHT_MAX = 200;
+const IDEAL_AGE_MIN = 14;
+const MILITARY_MIN_AGE = 18;
+const MILITARY_UNDERAGE_VALUE = '미필';
+const MY_BODY_TYPE_LIST = BODY_TYPE_LIST.filter((v) => v !== '상관없음');
+
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const pad = (n) => String(n).padStart(2, '0');
 const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+/* ---------- 날짜 · 표시 도우미 ---------- */
+
+// "2026-11-18" / [2026,11,18] / "2026-11-18T00:00:00" → "2026-11-18"
+const toDateText = (v) => {
+    if (!v) return '';
+    if (Array.isArray(v)) {
+        const [y, m, d] = v;
+        return `${y}-${pad(m)}-${pad(d)}`;
+    }
+    return String(v).slice(0, 10);
+};
+
+// 만 나이
+const calcAge = (birth) => {
+    const text = toDateText(birth);
+    if (!text) return null;
+    const [y, m, d] = text.split('-').map(Number);
+    const now = new Date();
+    let age = now.getFullYear() - y;
+    if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--;
+    return age;
+};
+
+const isMaleGender = (g) => g === 'MALE' || g === 'M';
+const isFemaleGender = (g) => g === 'FEMALE' || g === 'F';
+const genderLabel = (g) => (isMaleGender(g) ? '남성' : isFemaleGender(g) ? '여성' : '-');
+const dash = (v) => (v === null || v === undefined || v === '' ? '-' : v);
+const show = (v, unit = '') => (v === null || v === undefined || v === '' ? '-' : `${v}${unit}`);
+const regionOf = (address1) => (address1 ? address1.split(' ').slice(0, 2).join(' ') : '');
+
+// 휴대전화 자동 하이픈 (회원가입과 같음)
+const formatPhone = (value) => {
+    const numbers = value.replace(/[^0-9]/g, '');
+    if (numbers.length > 7) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    if (numbers.length > 3) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return numbers;
+};
+
+// 서버 오류 메시지 꺼내기 ({ message } 또는 문자열)
+const errorMessage = (err, fallback) => {
+    const data = err.response?.data;
+    if (typeof data === 'string' && data) return data;
+    return data?.message || fallback;
+};
+
+/* ---------- 온보딩 도우미 (profile.jsx와 같음) ---------- */
+const toTags = (v) => (v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+const joinList = (arr) => (arr.length ? arr.join(', ') : null);
+const toNum = (v) => (v === '' || v == null ? null : Number(v));
+const toStr = (v) => (v === null || v === undefined ? '' : String(v));
+const onlyDigits = (v) => String(v).replace(/[^0-9]/g, '').slice(0, 3);
+const isNone = (v) => String(v ?? '').toLowerCase() === 'none';
+const smokingText = (v) => (isNone(v) ? '비흡연' : show(v));
+const drinkingText = (v) => (isNone(v) ? '안 마셔요' : show(v));
+const prefText = (v) => (!v || isNone(v) ? '상관없어요' : v);
+const isUnderageMaleOf = (basic) =>
+    isMaleGender(basic?.gender) && basic?.age != null && Number(basic.age) < MILITARY_MIN_AGE;
+const rangeText = (min, max, unit) => {
+    if (min == null && max == null) return '상관없음';
+    if (min != null && max != null) return `${min}${unit} ~ ${max}${unit}`;
+    return min != null ? `${min}${unit} 이상` : `${max}${unit} 이하`;
+};
+
+// 서버 데이터 → 수정 폼 값 (콤마 문자열은 배열로, 숫자는 문자열로)
+const toForm = (data) => {
+    const p = data?.profile ?? {};
+    const i = data?.ideal ?? {};
+    return {
+        profile: {
+            mbti: toStr(p.mbti), job: toStr(p.job),
+            height: toStr(p.height), weight: toStr(p.weight),
+            militaryStatus: isUnderageMaleOf(data?.basic) ? MILITARY_UNDERAGE_VALUE : toStr(p.militaryStatus),
+            drinking: toStr(p.drinking), smoking: toStr(p.smoking), religion: toStr(p.religion),
+            foodPreference: toTags(p.foodPreference),
+            faceType: toStr(p.faceType), skinType: toStr(p.skinType), bodyType: toStr(p.bodyType), loveType: toStr(p.loveType),
+            hobby: toTags(p.hobby), favorite: toTags(p.favorite), dislike: toTags(p.dislike),
+            introduction: toStr(p.introduction),
+        },
+        ideal: {
+            ageMin: toStr(i.ageMin), ageMax: toStr(i.ageMax),
+            minHeight: toStr(i.minHeight), maxHeight: toStr(i.maxHeight),
+            bodyType: toTags(i.bodyType), mbtiPref: toTags(i.mbtiPref),
+            smokingPref: toStr(i.smokingPref), drinkingPref: toStr(i.drinkingPref),
+            militaryPref: toTags(i.militaryPref),
+            memo: toStr(i.memo),
+        },
+    };
+};
+
+// 내 정보 검사 (온보딩과 같은 규칙)
+const validateProfilePart = (p, isMale, isUnderageMale) => {
+    if (!p.mbti) return 'MBTI를 선택해 주세요.';
+    if (!p.job) return '직업을 선택해 주세요.';
+    const h = toNum(p.height);
+    const w = toNum(p.weight);
+    if (h === null || h < HEIGHT_MIN || h > HEIGHT_MAX) return `키는 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
+    if (w === null || w < WEIGHT_MIN || w > WEIGHT_MAX) return `몸무게는 ${WEIGHT_MIN}~${WEIGHT_MAX}kg 사이로 입력해 주세요.`;
+    if (isMale && !isUnderageMale && !p.militaryStatus) return '병역 사항을 선택해 주세요.';
+    if (!p.drinking) return '음주 여부를 선택해 주세요.';
+    if (!p.smoking) return '흡연 여부를 선택해 주세요.';
+    if (!p.religion) return '종교를 선택해 주세요.';
+    if (p.foodPreference.length === 0) return '음식 취향을 하나 이상 선택해 주세요.';
+    if (!p.faceType) return '얼굴상을 선택해 주세요.';
+    if (!p.skinType) return '피부 타입을 선택해 주세요.';
+    if (!p.bodyType) return '체형을 선택해 주세요.';
+    if (!p.loveType) return '연애 스타일을 선택해 주세요.';
+    if (p.hobby.length === 0) return '취미를 하나 이상 선택해 주세요.';
+    if (p.favorite.length === 0) return '좋아하는 것을 하나 이상 선택해 주세요.';
+    if (p.dislike.length === 0) return '싫어하는 것을 하나 이상 선택해 주세요.';
+    if (!p.introduction.trim()) return '자기소개를 입력해 주세요.';
+    return '';
+};
+
+// 이상형 검사 (온보딩과 같은 규칙)
+const validateIdealPart = (i) => {
+    const aMin = toNum(i.ageMin), aMax = toNum(i.ageMax);
+    const hMin = toNum(i.minHeight), hMax = toNum(i.maxHeight);
+    if (aMin !== null && aMin < IDEAL_AGE_MIN) return `이상형 최소 나이는 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMin}세)`;
+    if (aMax !== null && aMax < IDEAL_AGE_MIN) return `이상형 최대 나이도 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMax}세)`;
+    const heightOut = (x) => x !== null && (x < HEIGHT_MIN || x > HEIGHT_MAX);
+    if (heightOut(hMin) || heightOut(hMax)) return `이상형 키는 ${HEIGHT_MIN}~${HEIGHT_MAX}cm 사이로 입력해 주세요.`;
+    if (aMin !== null && aMax !== null && aMin > aMax) return '이상형 나이의 최소값이 최대값보다 클 수 없어요.';
+    if (hMin !== null && hMax !== null && hMin > hMax) return '이상형 키의 최소값이 최대값보다 클 수 없어요.';
+    return '';
+};
+
+// 폼 → 서버로 보낼 값 (내 정보 + 이상형 항상 같이 보냄: 한쪽만 보내면 서버가 이상형을 지움)
+const buildProfilePayload = (form, basic) => {
+    const isMale = isMaleGender(basic?.gender);
+    const isFemale = isFemaleGender(basic?.gender);
+    const isUnderageMale = isUnderageMaleOf(basic);
+    const p = form.profile;
+    const i = form.ideal;
+    return {
+        profile: {
+            mbti: p.mbti,
+            job: p.job,
+            height: toNum(p.height),
+            weight: toNum(p.weight),
+            introduction: p.introduction.trim(),
+            loveType: p.loveType,
+            hobby: joinList(p.hobby),
+            favorite: joinList(p.favorite),
+            dislike: joinList(p.dislike),
+            drinking: p.drinking,
+            smoking: p.smoking,
+            religion: p.religion,
+            foodPreference: joinList(p.foodPreference),
+            faceType: p.faceType,
+            skinType: p.skinType,
+            bodyType: p.bodyType,
+            militaryStatus: isMale ? (isUnderageMale ? MILITARY_UNDERAGE_VALUE : p.militaryStatus) : null,
+        },
+        ideal: {
+            ageMin: toNum(i.ageMin),
+            ageMax: toNum(i.ageMax),
+            minHeight: toNum(i.minHeight),
+            maxHeight: toNum(i.maxHeight),
+            bodyType: joinList(i.bodyType),
+            mbtiPref: joinList(i.mbtiPref),
+            smokingPref: i.smokingPref || null,
+            drinkingPref: i.drinkingPref || null,
+            militaryPref: isFemale ? joinList(i.militaryPref) : null,
+            memo: i.memo.trim() || null,
+        },
+    };
+};
+
+// 토큰이 필요한 사진을 blob으로 받아 보여주기 (version이 바뀌면 다시 받음)
+function useAuthImage(url, version = 0) {
+    const [src, setSrc] = useState(null);
+    useEffect(() => {
+        if (!url) {
+            setSrc(null);
+            return;
+        }
+        let cancelled = false;
+        let objectUrl = null;
+        Client.get(url, { responseType: 'blob', params: { v: version } })
+            .then((res) => {
+                if (cancelled) return;
+                objectUrl = URL.createObjectURL(res.data);
+                setSrc(objectUrl);
+            })
+            .catch((err) => {
+                console.error(err);
+                if (!cancelled) setSrc(null);
+            });
+        return () => {
+            cancelled = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [url, version]);
+    return src;
+}
+
 /* ---------- 공통 작은 컴포넌트 ---------- */
 
-function EmptyState({ icon, text }) {
+function EmptyState({ icon, text, children }) {
     return (
         <div className={cx('empty-state')}>
             <i className={cx(icon)}></i>
             <span>{text}</span>
+            {children}
         </div>
     );
 }
@@ -66,99 +292,199 @@ function PageHeader({ icon, title, desc, children }) {
                 </h1>
                 <p className={cx('page-subdesc')}>{desc}</p>
             </div>
-            {children}
+            {children && <div style={{ display: 'flex', gap: 8 }}>{children}</div>}
         </div>
     );
 }
 
-function EmptyTable({ headers, emptyText }) {
+function InfoCell({ label, value, full }) {
     return (
-        <div className={cx('web-table-wrap')}>
-            <table className={cx('custom-table')}>
-                <thead>
-                    <tr>
-                        {headers.map((h) => (
-                            <th key={h}>{h}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr className={cx('empty-row')}>
-                        <td colSpan={headers.length}>{emptyText}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div className={cx('info-cell', full && 'full')}>
+            <div className={cx('cell-label')}>{label}</div>
+            <div className={cx('cell-value')}>{value}</div>
         </div>
     );
 }
 
-function ScheduleCard({ schedule, showDate, onDelete }) {
+// "등산, 독서" → 배지 여러 개
+function TagPills({ value, pink }) {
+    const items = toTags(value);
+    if (items.length === 0) return <span>-</span>;
+    return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {items.map((t) => <span key={t} className={cx('badge-pill', pink && 'pink')}>{t}</span>)}
+        </div>
+    );
+}
+
+// 이상형 한 줄
+function IdealRow({ label, children }) {
+    return (
+        <div className={cx('ideal-row')}>
+            <span className={cx('ideal-key')}>{label}</span>
+            <div className={cx('ideal-tags')} style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>{children}</div>
+        </div>
+    );
+}
+
+function ScheduleCard({ schedule, onEdit, onDelete }) {
     return (
         <div className={cx('sched-card')}>
             <span className={cx('sched-card-title')}>{schedule.title}</span>
             <span className={cx('sched-card-meta')}>
                 <i className={cx('fa-regular', 'fa-clock')}></i>
-                {showDate && `${schedule.startAt.slice(5, 10).replace('-', '/')} `}
                 {schedule.startAt.slice(11, 16)}
                 {schedule.memo && ` · ${schedule.memo}`}
             </span>
-            {onDelete && (
+            {(onEdit || onDelete) && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button className={cx('btn-table-action', 'danger')} onClick={onDelete}>
-                        삭제
-                    </button>
+                    {onEdit && (
+                        <button className={cx('btn-table-action')} onClick={onEdit}>
+                            수정
+                        </button>
+                    )}
+                    {onDelete && (
+                        <button className={cx('btn-table-action', 'danger')} onClick={onDelete}>
+                            삭제
+                        </button>
+                    )}
                 </div>
             )}
         </div>
     );
 }
 
+/* ---------- 수정 모드 조각 (온보딩 · 프로필과 같은 모양) ---------- */
+
+function Chips({ options, value, onSelect }) {
+    const isActive = (opt) => (Array.isArray(value) ? value.includes(opt) : value === opt);
+    return (
+        <div className={ob.chips}>
+            {options.map((opt) => (
+                <button key={opt} type="button"
+                    className={`${ob.chip} ${isActive(opt) ? ob.chipActive : ''}`}
+                    onClick={() => onSelect(opt)}>
+                    {opt}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function OptionCards({ options, value, onSelect }) {
+    return (
+        <div className={ob.optionGrid}>
+            {options.map((opt) => (
+                <button key={opt.value} type="button"
+                    className={`${ob.optionCard} ${value === opt.value ? ob.optionCardActive : ''}`}
+                    onClick={() => onSelect(opt.value)}>
+                    <span className={ob.optionIcon}>{opt.icon}</span>
+                    <span className={ob.optionTitle}>{opt.value}</span>
+                    <span className={ob.optionDesc}>{opt.desc}</span>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function Field({ label, hint, children }) {
+    return (
+        <div className={ob.field}>
+            <label className={ob.label}>{label}</label>
+            {hint && <p className={ob.hint}>{hint}</p>}
+            {children}
+        </div>
+    );
+}
+
+// 숫자 입력칸 (값을 몰래 고치지 않고 범위를 벗어나면 안내)
+function NumberText({ value, onChange, min, max, unit = '', placeholder }) {
+    const [focused, setFocused] = useState(false);
+    const n = value === '' || value == null ? null : Number(value);
+    const overMax = n !== null && max != null && n > max;
+    const underMin = n !== null && min != null && n < min;
+
+    let warn = '';
+    if (overMax) warn = `최대 ${max}${unit}까지만 입력할 수 있어요. (지금 ${n}${unit})`;
+    else if (underMin && !focused) warn = `최소 ${min}${unit} 이상 입력해야 해요. (지금 ${n}${unit})`;
+
+    return (
+        <>
+            <input
+                type="text"
+                inputMode="numeric"
+                maxLength={3}
+                className={ob.input}
+                placeholder={placeholder}
+                value={value}
+                aria-invalid={warn ? 'true' : 'false'}
+                style={warn ? { borderColor: '#f43f5e' } : undefined}
+                onChange={(e) => onChange(onlyDigits(e.target.value))}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+            />
+            {warn && <p className={ob.error}>⚠️ {warn}</p>}
+        </>
+    );
+}
+
 /* ---------- 마이페이지 본체 ---------- */
 
 function MyPage() {
-    // 화면 전환
-    const [view, setView] = useState('dashboard');
+    const navigate = useNavigate();
 
-    // 회원 정보 (로그인 회원 상태 또는 초기값)
-    const [member] = useState({
-        nickname: '실루엣회원',
-        name: '권형석',
-        loginId: 'user01',
-        birth: '1998-05-21 (28세)',
-        phone: '010-1234-5678',
-        email: 'user01@silhouette.com',
-        address: '서울특별시 강남구 테헤란로',
-        joinDate: '2026-11-01',
-        ticket: 5,
-        mileage: 1200,
-    });
-    const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
+    // 화면 전환 (첫 화면 = 기본 정보)
+    const [view, setView] = useState('basic');
 
-    // 일정 데이터 (M012 데이트 캘린더)
-    const [schedules, setSchedules] = useState([
-        {
-            id: 1,
-            title: '성수동 카페 데이트',
-            startAt: `${toKey(new Date())}T14:00`,
-            memo: '성수역 3번 출구 만남'
-        }
-    ]);
+    // 회원 기본 정보 (MEMBER)
+    const [member, setMember] = useState(null);
+    const [loadError, setLoadError] = useState('');
 
-    // 북마크 목록 (M008 북마크)
-    const [bookmarks, setBookmarks] = useState([
-        { id: 1, nickname: '달빛소녀', age: 26, location: '서울 송파구', mbti: 'ENFP', rate: 94 },
-        { id: 2, nickname: '별빛밤하늘', age: 28, location: '경기 성남시', mbti: 'INFJ', rate: 89 }
-    ]);
+    // 온보딩 정보 { basic, profile, ideal, images } — 온보딩 안 했으면 { notOnboarded: true }
+    const [myProfile, setMyProfile] = useState(null);
 
-    // 캘린더 상태
+    // 프로필 사진 (왼쪽 카드 · 내 정보 공용)
+    const [photoVersion, setPhotoVersion] = useState(0);
+    const [photoPreview, setPhotoPreview] = useState(null);   // 업로드하는 동안 미리보기
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
+    const avatarSrc = useAuthImage(member?.profileImageUrl, photoVersion);
+    const photoSrc = photoPreview || avatarSrc;
+
+    // 기본 정보 수정
+    const [editing, setEditing] = useState(false);
+    const [editForm, setEditForm] = useState(null);
+    const [nickChecked, setNickChecked] = useState(false);
+    const [nickMessage, setNickMessage] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    // 내 정보 · 이상형 수정 ('onboarding' | 'ideal' | null)
+    const [pEditing, setPEditing] = useState(null);
+    const [pForm, setPForm] = useState(null);
+    const [pError, setPError] = useState('');
+    const [pSaving, setPSaving] = useState(false);
+
+    // 북마크
+    const [bmList, setBmList] = useState([]);
+    const [bmPage, setBmPage] = useState(1);
+    const [bmTotalPages, setBmTotalPages] = useState(1);
+    const [bmTotalCount, setBmTotalCount] = useState(0);
+    const [bmLoading, setBmLoading] = useState(false);
+
+    // 캘린더 (회원별 localStorage 영구 저장 — 백엔드 API 미구현으로 클라이언트 저장소 사용)
+    const [schedules, setSchedules] = useState([]);
+    const [calStorageKey, setCalStorageKey] = useState('');
     const today = new Date();
     const [viewYear, setViewYear] = useState(today.getFullYear());
-    const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0 = 1월
+    const [viewMonth, setViewMonth] = useState(today.getMonth());
     const [selectedKey, setSelectedKey] = useState(toKey(today));
-
-    // 일정 등록 모달
     const [modalOpen, setModalOpen] = useState(false);
+    const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [form, setForm] = useState({ title: '', startAt: '', memo: '' });
+
+    // 회원 탈퇴 (목업)
+    const [withdrawCheck, setWithdrawCheck] = useState(false);
+    const [withdrawPw, setWithdrawPw] = useState('');
 
     // 토스트 메시지
     const [toast, setToast] = useState('');
@@ -168,16 +494,361 @@ function MyPage() {
         window.__mpToastTimer = setTimeout(() => setToast(''), 2500);
     };
 
-    // 회원 탈퇴
-    const [withdrawCheck, setWithdrawCheck] = useState(false);
-    const [withdrawPw, setWithdrawPw] = useState('');
-
     const switchView = (id) => {
+        if (id === view) return;
+        if ((editing || pEditing) && !window.confirm('수정 중인 내용이 사라집니다. 이동할까요?')) return;
+        setEditing(false);
+        setEditForm(null);
+        setPEditing(null);
+        setPForm(null);
+        setPError('');
         setView(id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    /* ----- 캘린더 계산 ----- */
+    /* ===================== 불러오기 ===================== */
+    const loadMember = () =>
+        Client.get('/api/mypage/me').then((res) => {
+            setMember(res.data);
+            return res.data;
+        });
+
+    const loadMyProfile = () =>
+        Client.get('/api/profile/me')
+            .then((res) => {
+                setMyProfile(res.data);
+                return res.data;
+            })
+            .catch((err) => {
+                if (err.response?.status === 404) {
+                    setMyProfile({ notOnboarded: true });   // 온보딩 안 한 회원
+                    return null;
+                }
+                console.error(err);
+                return null;
+            });
+
+    useEffect(() => {
+        loadMember().catch((err) => {
+            console.error(err);
+            if (err.response?.status === 401) {
+                alert('로그인이 필요합니다.');
+                navigate('/login');
+                return;
+            }
+            setLoadError('회원 정보를 불러오지 못했습니다.');
+        });
+        loadMyProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    /* ===================== 기본 정보 수정 ===================== */
+    const startEdit = () => {
+        setEditForm({
+            nickname: member.nickname || '',
+            phone: member.phone || '',
+            email: member.email || '',
+            zipcode: member.zipcode || '',
+            address1: member.address1 || '',
+            address2: member.address2 === NO_DETAIL ? '' : member.address2 || '',
+        });
+        setNickChecked(true);
+        setNickMessage('');
+        setEditing(true);
+    };
+
+    const cancelEdit = () => {
+        setEditing(false);
+        setEditForm(null);
+        setNickMessage('');
+    };
+
+    const handleEditChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'phone') {
+            setEditForm((prev) => ({ ...prev, phone: formatPhone(value) }));
+            return;
+        }
+        if (name === 'nickname') {
+            setNickChecked(value.trim() === member.nickname);
+            setNickMessage('');
+        }
+        setEditForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCheckNickname = async () => {
+        const nickname = editForm.nickname.trim();
+        if (!REGEX_NICKNAME.test(nickname)) {
+            setNickChecked(false);
+            setNickMessage('⚠️ 닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
+            return;
+        }
+        if (nickname === member.nickname) {
+            setNickChecked(true);
+            setNickMessage('✓ 현재 사용 중인 닉네임입니다.');
+            return;
+        }
+        try {
+            const res = await Client.get('/api/mypage/nickname-check', { params: { nickname } });
+            setNickChecked(res.data.available);
+            setNickMessage(res.data.available ? '✓ 사용 가능한 닉네임입니다.' : '⚠️ 이미 사용 중인 닉네임입니다.');
+        } catch (err) {
+            console.error(err);
+            setNickChecked(false);
+            setNickMessage(`⚠️ ${errorMessage(err, '닉네임 확인에 실패했습니다.')}`);
+        }
+    };
+
+    // 카카오 우편번호 검색 (회원가입과 같음)
+    const handleOpenPostcode = () => {
+        const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
+        if (Postcode) {
+            executePostcode(Postcode);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.onload = () => {
+            const Loaded = window.daum?.Postcode || window.kakao?.Postcode;
+            if (Loaded) executePostcode(Loaded);
+        };
+        document.head.appendChild(script);
+    };
+
+    const executePostcode = (PostcodeConstructor) => {
+        new PostcodeConstructor({
+            oncomplete: (data) => {
+                let fullAddress = data.address;
+                let extra = '';
+                if (data.addressType === 'R') {
+                    if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) extra += data.bname;
+                    if (data.buildingName !== '' && data.apartment === 'Y') {
+                        extra += extra !== '' ? `, ${data.buildingName}` : data.buildingName;
+                    }
+                    if (extra !== '') fullAddress += ` (${extra})`;
+                }
+                setEditForm((prev) => ({ ...prev, zipcode: data.zonecode, address1: fullAddress, address2: '' }));
+                setTimeout(() => document.getElementById('mp-address2')?.focus(), 100);
+            },
+        }).open();
+    };
+
+    const handleSave = async () => {
+        const f = editForm;
+        if (!REGEX_NICKNAME.test(f.nickname.trim())) return alert('닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
+        if (!nickChecked) return alert('닉네임 중복 확인을 해 주세요.');
+        if (!REGEX_PHONE.test(f.phone)) return alert('핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.');
+        if (!REGEX_EMAIL.test(f.email.trim())) return alert('올바른 이메일 양식을 입력해 주세요.');
+        if (!f.zipcode || !f.address1) return alert('주소 검색을 통해 주소를 입력해 주세요.');
+        if (saving) return;
+
+        setSaving(true);
+        try {
+            const res = await Client.put('/api/mypage/me', {
+                nickname: f.nickname.trim(),
+                phone: f.phone,
+                email: f.email.trim(),
+                zipcode: f.zipcode,
+                address1: f.address1,
+                address2: f.address2.trim(),
+            });
+            setMember(res.data);
+            setEditing(false);
+            setEditForm(null);
+            loadMyProfile();   // 온보딩 화면의 닉네임도 맞추기
+            showToast('기본 정보가 수정되었습니다.');
+        } catch (err) {
+            console.error(err);
+            if (err.response?.status === 401) {
+                alert('로그인 정보가 없습니다. 다시 로그인해 주세요.');
+                navigate('/login');
+                return;
+            }
+            if (err.response?.status === 409) setNickChecked(false);
+            alert(errorMessage(err, '기본 정보 수정에 실패했습니다.'));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /* ===================== 프로필 사진 교체 ===================== */
+    const openPicker = () => {
+        if (!fileInputRef.current) return;
+        fileInputRef.current.value = '';
+        fileInputRef.current.click();
+    };
+
+    const handlePhotoChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { alert('이미지 파일만 올릴 수 있어요.'); return; }
+        if (file.size > MAX_PHOTO_SIZE) { alert('사진은 10MB까지 올릴 수 있어요.'); return; }
+
+        const localPreview = URL.createObjectURL(file);
+        setPhotoPreview(localPreview);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploading(true);
+        try {
+            await Client.put('/api/profile/images/1', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            await Promise.all([loadMember(), loadMyProfile()]);   // 새 사진 번호 · 주소 받기
+            setPhotoVersion((v) => v + 1);
+            showToast('프로필 사진이 변경되었습니다. (관리자 심사 대기)');
+        } catch (err) {
+            const status = err.response?.status;
+            if (status === 401) { alert('로그인이 필요합니다.'); navigate('/login'); }
+            else if (status === 413) alert('사진 용량이 너무 커요.');
+            else { console.error(err); alert(errorMessage(err, '사진 변경에 실패했습니다.')); }
+        } finally {
+            setUploading(false);
+            setPhotoPreview(null);
+            setTimeout(() => URL.revokeObjectURL(localPreview), 3000);
+        }
+    };
+
+    /* ===================== 내 정보 · 이상형 수정 ===================== */
+    const startProfileEdit = (kind) => {
+        if (!myProfile?.profile) return;
+        setPForm(toForm(myProfile));
+        setPError('');
+        setPEditing(kind);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelProfileEdit = () => {
+        if (!window.confirm('수정한 내용을 취소할까요?')) return;
+        setPEditing(null);
+        setPForm(null);
+        setPError('');
+    };
+
+    const setProfileValue = (key, value) =>
+        setPForm((prev) => ({ ...prev, profile: { ...prev.profile, [key]: value } }));
+
+    const toggleProfileList = (key, value) =>
+        setPForm((prev) => {
+            const list = prev.profile[key];
+            return { ...prev, profile: { ...prev.profile, [key]: list.includes(value) ? list.filter((v) => v !== value) : [...list, value] } };
+        });
+
+    const setIdealValue = (key, value) =>
+        setPForm((prev) => ({ ...prev, ideal: { ...prev.ideal, [key]: value } }));
+
+    const toggleIdealList = (key, value) =>
+        setPForm((prev) => {
+            const list = prev.ideal[key];
+            return { ...prev, ideal: { ...prev.ideal, [key]: list.includes(value) ? list.filter((v) => v !== value) : [...list, value] } };
+        });
+
+    // 이상형 병역: '상관없음'은 단독 선택
+    const toggleMilitaryPref = (value) =>
+        setPForm((prev) => {
+            const list = prev.ideal.militaryPref;
+            let next;
+            if (value === '상관없음') {
+                next = list.includes('상관없음') ? [] : ['상관없음'];
+            } else {
+                const rest = list.filter((v) => v !== '상관없음');
+                next = rest.includes(value) ? rest.filter((v) => v !== value) : [...rest, value];
+            }
+            return { ...prev, ideal: { ...prev.ideal, militaryPref: next } };
+        });
+
+    const clearIdeal = () => {
+        if (!window.confirm('이상형 입력값을 모두 비울까요? (저장해야 삭제돼요)')) return;
+        setPForm((prev) => ({ ...prev, ideal: toForm({}).ideal }));
+    };
+
+    const handleProfileSave = async () => {
+        const basic = myProfile.basic;
+        const isMale = isMaleGender(basic?.gender);
+        const isUnderageMale = isUnderageMaleOf(basic);
+
+        // 수정하는 쪽을 먼저 검사, 다른 쪽도 서버 규칙 때문에 같이 검사
+        const msg = pEditing === 'ideal'
+            ? validateIdealPart(pForm.ideal) || validateProfilePart(pForm.profile, isMale, isUnderageMale)
+            : validateProfilePart(pForm.profile, isMale, isUnderageMale) || validateIdealPart(pForm.ideal);
+        if (msg) { setPError(msg); return; }
+        if (pSaving) return;
+
+        setPSaving(true);
+        setPError('');
+        try {
+            await Client.put('/api/profile', buildProfilePayload(pForm, basic));
+            await loadMyProfile();
+            setPEditing(null);
+            setPForm(null);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast(pEditing === 'ideal' ? '이상형이 저장되었습니다.' : '내 정보가 수정되었습니다.');
+        } catch (err) {
+            const status = err.response?.status;
+            if (status === 401) { alert('로그인이 필요합니다.'); navigate('/login'); }
+            else if (status === 400) setPError(errorMessage(err, '입력값을 다시 확인해 주세요.'));
+            else { console.error(err); setPError('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'); }
+        } finally {
+            setPSaving(false);
+        }
+    };
+
+    /* ===================== 북마크 ===================== */
+    const loadBookmarks = (page) => {
+        setBmLoading(true);
+        Client.get('/api/bookmarks/me', { params: { page } })
+            .then((res) => {
+                setBmList(res.data.list);
+                setBmPage(res.data.page);
+                setBmTotalPages(res.data.totalPages);
+                setBmTotalCount(res.data.totalCount);
+            })
+            .catch((err) => console.error(err))
+            .finally(() => setBmLoading(false));
+    };
+
+    useEffect(() => {
+        if (view === 'bookmarks') loadBookmarks(1);
+    }, [view]);
+
+    const removeBookmark = async (item) => {
+        if (!window.confirm('북마크를 해제할까요?')) return;
+        try {
+            await Client.post(`/api/bookmarks/posts/${item.postSeq}`);
+            const nextPage = bmList.length === 1 && bmPage > 1 ? bmPage - 1 : bmPage;
+            loadBookmarks(nextPage);
+            showToast('북마크가 해제되었습니다.');
+        } catch (err) {
+            console.error(err);
+            alert('북마크 해제에 실패했습니다.');
+        }
+    };
+
+    /* ===================== 캘린더 (등록 · 수정 · 삭제 · 영구 저장) ===================== */
+    useEffect(() => {
+        if (!member) return;
+        const key = `silhouette_mypage_calendar_${member.memberSeq ?? member.loginId ?? 'guest'}`;
+        try {
+            const raw = localStorage.getItem(key);
+            const parsed = raw ? JSON.parse(raw) : [];
+            setSchedules(Array.isArray(parsed) ? parsed : []);
+        } catch (err) {
+            console.error(err);
+            setSchedules([]);
+        }
+        setCalStorageKey(key);
+    }, [member?.memberSeq, member?.loginId]);
+
+    useEffect(() => {
+        if (!calStorageKey) return;
+        try {
+            localStorage.setItem(calStorageKey, JSON.stringify(schedules));
+        } catch (err) {
+            console.error(err);
+        }
+    }, [schedules, calStorageKey]);
+
     const schedulesOf = (key) =>
         schedules
             .filter((s) => s.startAt.slice(0, 10) === key)
@@ -186,6 +857,8 @@ function MyPage() {
     const firstDay = new Date(viewYear, viewMonth, 1).getDay();
     const lastDate = new Date(viewYear, viewMonth + 1, 0).getDate();
     const todayKey = toKey(today);
+    const [, selM, selD] = selectedKey.split('-');
+    const selectedList = schedulesOf(selectedKey);
 
     const moveMonth = (diff) => {
         let y = viewYear;
@@ -196,18 +869,25 @@ function MyPage() {
         setViewMonth(m);
     };
 
-    const nowKey = `${todayKey}T${pad(today.getHours())}:${pad(today.getMinutes())}`;
-    const upcoming = schedules
-        .filter((s) => s.startAt >= nowKey)
-        .sort((a, b) => a.startAt.localeCompare(b.startAt))
-        .slice(0, 2);
-
-    const [, selM, selD] = selectedKey.split('-');
-    const selectedList = schedulesOf(selectedKey);
-
     const openScheduleModal = () => {
+        setEditingScheduleId(null);
         setForm({ title: '', startAt: `${selectedKey}T12:00`, memo: '' });
         setModalOpen(true);
+    };
+
+    const openEditScheduleModal = (schedule) => {
+        setEditingScheduleId(schedule.id);
+        setForm({
+            title: schedule.title || '',
+            startAt: schedule.startAt || `${selectedKey}T12:00`,
+            memo: schedule.memo || '',
+        });
+        setModalOpen(true);
+    };
+
+    const closeScheduleModal = () => {
+        setModalOpen(false);
+        setEditingScheduleId(null);
     };
 
     const saveSchedule = () => {
@@ -215,13 +895,31 @@ function MyPage() {
             alert('일정 제목과 날짜를 입력해 주세요.');
             return;
         }
-        setSchedules((prev) => [...prev, { id: Date.now(), ...form, title: form.title.trim() }]);
+        const trimmedTitle = form.title.trim();
+        const trimmedMemo = form.memo.trim();
+
+        if (editingScheduleId !== null) {
+            setSchedules((prev) =>
+                prev.map((s) =>
+                    s.id === editingScheduleId
+                        ? { ...s, title: trimmedTitle, startAt: form.startAt, memo: trimmedMemo }
+                        : s
+                )
+            );
+            showToast('일정이 수정되었습니다.');
+        } else {
+            setSchedules((prev) => [
+                ...prev,
+                { id: Date.now(), title: trimmedTitle, startAt: form.startAt, memo: trimmedMemo },
+            ]);
+            showToast('새 일정이 등록되었습니다.');
+        }
+
         const key = form.startAt.slice(0, 10);
         setSelectedKey(key);
         setViewYear(Number(key.slice(0, 4)));
         setViewMonth(Number(key.slice(5, 7)) - 1);
-        setModalOpen(false);
-        showToast('새 데이트 일정이 등록되었습니다.');
+        closeScheduleModal();
     };
 
     const deleteSchedule = (id) => {
@@ -230,23 +928,7 @@ function MyPage() {
         showToast('일정이 삭제되었습니다.');
     };
 
-    const removeBookmark = (id) => {
-        setBookmarks((prev) => prev.filter((b) => b.id !== id));
-        showToast('북마크가 해제되었습니다.');
-    };
-
-    /* ----- 프로필 및 계정 관련 핸들러 ----- */
-    const handleAvatar = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            setAvatar(evt.target.result);
-            showToast('새 사진이 선택되었습니다. (미리보기 반영)');
-        };
-        reader.readAsDataURL(file);
-    };
-
+    /* ===================== 회원 탈퇴 (목업) ===================== */
     const handleWithdraw = () => {
         if (!withdrawCheck) { alert('유의사항 확인 및 탈퇴 동의에 체크해 주세요.'); return; }
         if (!withdrawPw) { alert('비밀번호를 입력해 주세요.'); return; }
@@ -255,13 +937,7 @@ function MyPage() {
         }
     };
 
-    const confirmLogout = () => {
-        if (window.confirm('실루엣에서 로그아웃 하시겠습니까?')) {
-            showToast('로그아웃 되었습니다.');
-        }
-    };
-
-    const dash = (v) => (v === null || v === '' || v === undefined ? '-' : v);
+    /* ===================== 화면 ===================== */
 
     const lnbItem = (m) => (
         <a
@@ -277,77 +953,90 @@ function MyPage() {
         </a>
     );
 
+    // 온보딩 안 한 회원 / 불러오는 중 안내 (내 정보 · 이상형 공용)
+    const renderNeedOnboarding = () => {
+        if (!myProfile) return <EmptyState icon="fa-solid fa-spinner" text="불러오는 중..." />;
+        return (
+            <EmptyState icon="fa-solid fa-wand-magic-sparkles" text="아직 온보딩을 완료하지 않았어요. 온보딩을 마치면 내 정보와 이상형을 관리할 수 있어요.">
+                <button className={cx('btn-primary-gradient')} style={{ padding: '10px 22px', marginTop: 6 }} onClick={() => navigate('/onboarding')}>
+                    온보딩 하러 가기
+                </button>
+            </EmptyState>
+        );
+    };
+
+    // 저장 · 취소 버튼 (내 정보 · 이상형 공용)
+    const renderProfileEditButtons = () => (
+        <>
+            {pError && <p className={ob.error} style={{ marginTop: 16 }}>⚠️ {pError}</p>}
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className={cx('btn-secondary')} style={{ padding: '12px 22px' }} onClick={cancelProfileEdit} disabled={pSaving}>
+                    취소
+                </button>
+                <button className={cx('btn-primary-gradient')} onClick={handleProfileSave} disabled={pSaving}>
+                    {pSaving ? '저장 중...' : '저장하기'}
+                </button>
+            </div>
+        </>
+    );
+
+    if (!member) {
+        return (
+            <div className={cx('mypage')}>
+                <main className={cx('main-wrapper')} style={{ display: 'block' }}>
+                    <EmptyState icon="fa-solid fa-spinner" text={loadError || '회원 정보를 불러오는 중...'} />
+                </main>
+            </div>
+        );
+    }
+
+    const age = calcAge(member.birthDate);
+    const region = regionOf(member.address1);
+    const pBasic = myProfile?.basic ?? {};
+    const pData = myProfile?.profile ?? null;
+    const pIdeal = myProfile?.ideal ?? null;
+    const pIsMale = isMaleGender(pBasic.gender);
+    const pIsFemale = isFemaleGender(pBasic.gender);
+    const pIsUnderageMale = isUnderageMaleOf(pBasic);
+    const militaryText = pIsUnderageMale
+        ? `${MILITARY_UNDERAGE_VALUE} (만 ${MILITARY_MIN_AGE}세 미만)`
+        : show(pData?.militaryStatus);
+
     return (
         <div className={cx('mypage')}>
-            {/* ===== 1. 상단 GNB ===== */}
-            <header className={cx('gnb')}>
-                <div className={cx('gnb-inner')}>
-                    <div className={cx('gnb-left')}>
-                        <a className={cx('logo')} onClick={() => switchView('dashboard')}>
-                            <div className={cx('logo-icon')}><i className={cx('fa-solid', 'fa-moon')}></i></div>
-                            <span>SILHOUETTE</span>
-                        </a>
-                        <nav className={cx('gnb-nav')}>
-                            <a className={cx('nav-link', view === 'dashboard' && 'active')} onClick={() => switchView('dashboard')}>마이페이지</a>
-                            <a className={cx('nav-link', view === 'bookmarks' && 'active')} onClick={() => switchView('bookmarks')}>북마크(M008)</a>
-                            <a className={cx('nav-link', view === 'chat' && 'active')} onClick={() => switchView('chat')}>실시간 채팅(M009)</a>
-                            <a className={cx('nav-link', view === 'calendar' && 'active')} onClick={() => switchView('calendar')}>캘린더(M012)</a>
-                            <a className={cx('nav-link', view === 'posts' && 'active')} onClick={() => switchView('posts')}>내가 쓴 글(M014)</a>
-                        </nav>
-                    </div>
-
-                    <div className={cx('gnb-right')}>
-                        <div className={cx('asset-chip')} onClick={() => switchView('payment')} title="이용권 잔여량">
-                            <i className={cx('fa-solid', 'fa-ticket')} style={{ color: '#a855f7' }}></i>
-                            <span>이용권</span>
-                            <span className={cx('val')}>{dash(member.ticket)}장</span>
-                        </div>
-                        <div className={cx('asset-chip')} onClick={() => switchView('payment')} title="보유 마일리지">
-                            <i className={cx('fa-solid', 'fa-coins')} style={{ color: '#ec4899' }}></i>
-                            <span>마일리지</span>
-                            <span className={cx('val')}>{dash(member.mileage)}P</span>
-                        </div>
-                        <div className={cx('user-top-btn')} onClick={() => switchView('dashboard')}>
-                            <img src={avatar} alt="프로필" className={cx('mini-avatar')} />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{member.nickname || '회원'} 님</span>
-                        </div>
-                        <button className={cx('btn-secondary')} style={{ padding: '8px 14px' }} onClick={confirmLogout}>
-                            <i className={cx('fa-solid', 'fa-arrow-right-from-bracket')}></i> 로그아웃
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            {/* ===== 2. 본문 (사이드바 + 컨텐츠) ===== */}
             <main className={cx('main-wrapper')}>
+                {/* ===== 왼쪽 사이드바 ===== */}
                 <aside className={cx('sidebar')}>
                     <div className={cx('profile-sidecard')}>
                         <div className={cx('avatar-wrap')}>
-                            <img src={avatar} alt="아바타" className={cx('avatar-img')} />
+                            <img src={photoSrc || DEFAULT_AVATAR} alt={`${member.nickname} 프로필 사진`} className={cx('avatar-img')} />
                         </div>
                         <div className={cx('side-nick')}>{member.nickname}</div>
-                        <div className={cx('side-subinfo')}>{member.name} · {member.birth}</div>
+                        <div className={cx('side-subinfo')}>
+                            {member.name}{age !== null && ` · 만 ${age}세`}
+                        </div>
                         <div className={cx('side-badges')}>
-                            <span className={cx('badge-pill')}>INFP</span>
-                            <span className={cx('badge-pill', 'pink')}>직장인</span>
-                            <span className={cx('badge-pill')}>서울</span>
+                            <span className={cx('badge-pill')}>{genderLabel(member.gender)}</span>
+                            {pData?.mbti && <span className={cx('badge-pill')}>{pData.mbti}</span>}
+                            {pData?.job && <span className={cx('badge-pill', 'pink')}>{pData.job}</span>}
+                            {region && <span className={cx('badge-pill')}>{region}</span>}
                         </div>
                         <div className={cx('side-asset-box')}>
                             <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
                                 <span className={cx('side-asset-label')}>채팅 이용권</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#c084fc' }}>{dash(member.ticket)}장</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#c084fc' }}>-</span>
                             </div>
                             <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
                                 <span className={cx('side-asset-label')}>보유 마일리지</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>{dash(member.mileage)}P</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>-</span>
                             </div>
                         </div>
                     </div>
 
                     <nav className={cx('lnb-menu')}>
-                        <div className={cx('lnb-group-title')}>MY Silhouette (권형석 파트)</div>
+                        <div className={cx('lnb-group-title')}>마이 대시보드</div>
                         {MENU_MAIN.map(lnbItem)}
-                        <div className={cx('lnb-group-title')} style={{ marginTop: 10 }}>계정 및 보안 관리</div>
+                        <div className={cx('lnb-group-title')} style={{ marginTop: 10 }}>계정 관리</div>
                         {MENU_ACCOUNT.map(lnbItem)}
                         <a className={cx('lnb-item', view === 'withdraw' && 'active')} onClick={() => switchView('withdraw')}>
                             <div className={cx('lnb-item-left')} style={{ color: '#f87171' }}>
@@ -360,192 +1049,444 @@ function MyPage() {
                 </aside>
 
                 <section className={cx('main-content')}>
-                    {/* [뷰 1] 대시보드 */}
-                    {view === 'dashboard' && (
+                    {/* ==================== [뷰 1] 기본 정보 (M005 · M006) ==================== */}
+                    {view === 'basic' && (
                         <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-id-card" title="마이페이지 기본 정보 (M005)" desc="회원님의 기본 등록 정보와 활동 현황을 한눈에 확인합니다.">
-                                <button className={cx('btn-secondary')} onClick={() => switchView('editProfile')}>
-                                    <i className={cx('fa-solid', 'fa-pen')}></i> 개인정보 수정
-                                </button>
+                            <PageHeader
+                                icon="fa-id-card"
+                                title="기본 정보"
+                                desc={editing
+                                    ? '닉네임, 휴대전화, 이메일, 주소를 수정할 수 있습니다. (아이디 · 이름 · 성별 · 생년월일은 변경 불가)'
+                                    : '회원가입 때 등록한 기본 정보입니다.'}
+                            >
+                                {editing ? (
+                                    <>
+                                        <button className={cx('btn-secondary')} style={{ padding: '10px 18px' }} onClick={cancelEdit}>취소</button>
+                                        <button className={cx('btn-primary-gradient')} style={{ padding: '10px 22px' }} onClick={handleSave} disabled={saving}>
+                                            {saving ? '저장 중...' : '저장하기'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button className={cx('btn-secondary')} style={{ padding: '10px 18px' }} onClick={startEdit}>
+                                        <i className={cx('fa-solid', 'fa-pen')}></i> 수정
+                                    </button>
+                                )}
                             </PageHeader>
 
-                            <div className={cx('dash-grid')} style={{ marginTop: 20 }}>
-                                <div className={cx('dash-card', 'col-span-2')}>
-                                    <div className={cx('card-header')}>
-                                        <div className={cx('card-title')}><i className={cx('fa-solid', 'fa-circle-user')}></i> 등록된 회원 상세 정보</div>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>가입 일자: {dash(member.joinDate)}</span>
-                                    </div>
-                                    <div className={cx('info-table')}>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>회원 이름 / 성별</div><div className={cx('cell-value')}>{dash(member.name)} / 남성</div></div>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>생년월일 / 나이</div><div className={cx('cell-value')}>{dash(member.birth)}</div></div>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>아이디</div><div className={cx('cell-value')}>{dash(member.loginId)}</div></div>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>비밀번호</div><div className={cx('cell-value')}>•••••••• (보안 마스킹)</div></div>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>휴대전화 번호</div><div className={cx('cell-value')}>{dash(member.phone)}</div></div>
-                                        <div className={cx('info-cell')}><div className={cx('cell-label')}>이메일 주소</div><div className={cx('cell-value')}>{dash(member.email)}</div></div>
-                                        <div className={cx('info-cell', 'full')}><div className={cx('cell-label')}>거주 주소지</div><div className={cx('cell-value')}>{dash(member.address)}</div></div>
-                                    </div>
-                                </div>
-
-                                <div className={cx('dash-card')}>
-                                    <div className={cx('card-header')}>
-                                        <div className={cx('card-title')}><i className={cx('fa-solid', 'fa-heart-pulse')}></i> 이상형 체크리스트 (M011)</div>
-                                        <button className={cx('card-link')} onClick={() => switchView('ideal')}>설정 변경 <i className={cx('fa-solid', 'fa-chevron-right')}></i></button>
-                                    </div>
-                                    <div className={cx('ideal-list')}>
-                                        <div className={cx('ideal-row')}>
-                                            <span className={cx('ideal-key')}>선호 연령대</span>
-                                            <span className={cx('badge-pill')}>25세 ~ 31세</span>
-                                        </div>
-                                        <div className={cx('ideal-row')}>
-                                            <span className={cx('ideal-key')}>선호 지역</span>
-                                            <span className={cx('badge-pill', 'pink')}>서울, 경기</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={cx('dash-card')}>
-                                    <div className={cx('card-header')}>
-                                        <div className={cx('card-title')}><i className={cx('fa-solid', 'fa-calendar-day')}></i> 다가오는 일정 (M012)</div>
-                                        <button className={cx('card-link')} onClick={() => switchView('calendar')}>전체 캘린더 <i className={cx('fa-solid', 'fa-chevron-right')}></i></button>
-                                    </div>
-                                    <div className={cx('schedule-side-list')}>
-                                        {upcoming.length
-                                            ? upcoming.map((s) => <ScheduleCard key={s.id} schedule={s} showDate />)
-                                            : <EmptyState icon="fa-regular fa-calendar" text="다가오는 일정이 없습니다." />}
-                                    </div>
-                                </div>
-
-                                <div className={cx('dash-card', 'col-span-2')}>
-                                    <div className={cx('card-header')}>
-                                        <div className={cx('card-title')}><i className={cx('fa-solid', 'fa-bookmark')}></i> 최근 북마크한 인연 (M008)</div>
-                                        <button className={cx('card-link')} onClick={() => switchView('bookmarks')}>북마크 전체보기 <i className={cx('fa-solid', 'fa-chevron-right')}></i></button>
-                                    </div>
-                                    {bookmarks.length > 0 ? (
-                                        <div className={cx('bm-web-grid')}>
-                                            {bookmarks.map((b) => (
-                                                <div key={b.id} className={cx('bm-web-card')}>
-                                                    <div className={cx('bm-card-body')}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <div className={cx('bm-name')}>{b.nickname} ({b.age}세)</div>
-                                                            <span className={cx('badge-pill', 'pink')}>호환도 {b.rate}%</span>
-                                                        </div>
-                                                        <div className={cx('bm-desc')}>{b.location} · {b.mbti}</div>
-                                                        <button className={cx('btn-table-action', 'danger')} onClick={() => removeBookmark(b.id)}>
-                                                            북마크 해제
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <EmptyState icon="fa-regular fa-bookmark" text="북마크한 인연이 없습니다." />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* [뷰 2] 이상형 (M011, M015) */}
-                    {view === 'ideal' && (
-                        <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-sliders" title="나의 이상형 & 취향 체크리스트 (M011, M015)" desc="설정하신 이성 체크리스트는 알고리즘 매칭(MA002)과 오늘의 추천에 반영됩니다." />
                             <div className={cx('dash-card')} style={{ marginTop: 20 }}>
-                                <div className={cx('form-grid-web')}>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>희망 연령대</label><input type="text" className={cx('web-input')} defaultValue="25세 ~ 31세" placeholder="예: 26세 ~ 31세" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>희망 거주 지역</label><input type="text" className={cx('web-input')} defaultValue="서울 강남구, 서초구, 경기 성남시" placeholder="예: 서울, 경기" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>선호 MBTI 유형 (다중 선택)</label><input type="text" className={cx('web-input')} defaultValue="ENFJ, INFJ, ENFP" placeholder="예: ENFJ, INFJ" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>선호 직업군</label><input type="text" className={cx('web-input')} defaultValue="IT/개발, 전문직, 디자인" placeholder="예: IT/개발, 디자인" /></div>
-                                    <div className={cx('form-group-web', 'full')}>
-                                        <label className={cx('web-label')}>데이트 스타일 및 연애 가치관 태그 (M015 온보딩 연계)</label>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
-                                            <span className={cx('badge-pill')}>#맛집탐방</span>
-                                            <span className={cx('badge-pill')}>#카페투어</span>
-                                            <span className={cx('badge-pill')}>#야외활동</span>
-                                            <span className={cx('badge-pill', 'pink')} style={{ padding: '6px 14px', fontSize: '0.85rem', cursor: 'pointer' }}>+ 취향 키워드 추가</span>
-                                        </div>
+                                <div className={cx('card-header')}>
+                                    <div className={cx('card-title')}>
+                                        <i className={cx('fa-solid', 'fa-circle-user')}></i> 회원 정보
                                     </div>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                                        가입 일자: {dash(toDateText(member.createdAt))}
+                                    </span>
                                 </div>
-                                <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button className={cx('btn-primary-gradient')} onClick={() => showToast('이상형 체크리스트가 저장되었습니다.')}>
-                                        체크리스트 저장하기
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* [뷰 3] 북마크 (M008) */}
-                    {view === 'bookmarks' && (
-                        <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-bookmark" title="북마크한 프로필 (M008)" desc="관심 프로필로 저장해 둔 인연 목록입니다. 상세 프로필 확인 및 북마크 해제가 가능합니다." />
-                            <div style={{ marginTop: 20 }}>
-                                {bookmarks.length > 0 ? (
-                                    <div className={cx('bm-web-grid')}>
-                                        {bookmarks.map((b) => (
-                                            <div key={b.id} className={cx('bm-web-card')}>
-                                                <div className={cx('bm-card-body')}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                                        <div className={cx('bm-name')}>{b.nickname}</div>
-                                                        <span className={cx('badge-pill', 'pink')}>알고리즘 호환 {b.rate}%</span>
-                                                    </div>
-                                                    <div className={cx('bm-desc')}>{b.age}세 · {b.location} · {b.mbti}</div>
-                                                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                                                        <button className={cx('btn-secondary')} style={{ flex: 1, padding: '8px' }} onClick={() => showToast(`${b.nickname}님에게 채팅 신청을 보냈습니다.`)}>
-                                                            채팅 신청
-                                                        </button>
-                                                        <button className={cx('btn-table-action', 'danger')} onClick={() => removeBookmark(b.id)}>
-                                                            해제
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                {!editing ? (
+                                    <div className={cx('info-table')}>
+                                        <InfoCell label="아이디" value={dash(member.loginId)} />
+                                        <InfoCell label="이름" value={dash(member.name)} />
+                                        <InfoCell label="닉네임" value={dash(member.nickname)} />
+                                        <InfoCell label="성별" value={genderLabel(member.gender)} />
+                                        <InfoCell
+                                            label="생년월일 / 나이"
+                                            value={`${dash(toDateText(member.birthDate))}${age !== null ? ` (만 ${age}세)` : ''}`}
+                                        />
+                                        <InfoCell label="휴대전화 번호" value={dash(member.phone)} />
+                                        <InfoCell label="이메일 주소" value={dash(member.email)} />
+                                        <InfoCell
+                                            full
+                                            label="주소"
+                                            value={member.address1
+                                                ? `[${member.zipcode}] ${member.address1} ${member.address2 === NO_DETAIL ? '' : member.address2 || ''}`
+                                                : '-'}
+                                        />
                                     </div>
                                 ) : (
-                                    <EmptyState icon="fa-regular fa-bookmark" text="북마크한 인연이 없습니다." />
+                                    <div className={cx('form-grid-web')}>
+                                        <div className={cx('form-group-web')}>
+                                            <label className={cx('web-label')}>아이디 (변경 불가)</label>
+                                            <input type="text" className={cx('web-input')} value={member.loginId} disabled />
+                                        </div>
+                                        <div className={cx('form-group-web')}>
+                                            <label className={cx('web-label')}>이름 (변경 불가)</label>
+                                            <input type="text" className={cx('web-input')} value={member.name} disabled />
+                                        </div>
+
+                                        <div className={cx('form-group-web', 'full')}>
+                                            <label className={cx('web-label')}>닉네임</label>
+                                            <div className={cx('input-row')}>
+                                                <input type="text" name="nickname" className={cx('web-input')} value={editForm.nickname}
+                                                    onChange={handleEditChange} maxLength={20} placeholder="영문, 숫자, 한글 2~20자" />
+                                                <button type="button" className={cx('btn-secondary')} onClick={handleCheckNickname}>중복확인</button>
+                                            </div>
+                                            {nickMessage && (
+                                                <span style={{ fontSize: '0.8rem', color: nickChecked ? 'var(--success)' : '#f87171' }}>{nickMessage}</span>
+                                            )}
+                                        </div>
+
+                                        <div className={cx('form-group-web')}>
+                                            <label className={cx('web-label')}>휴대전화 번호</label>
+                                            <input type="tel" name="phone" className={cx('web-input')} value={editForm.phone}
+                                                onChange={handleEditChange} maxLength={13} placeholder="010-1234-5678" />
+                                        </div>
+                                        <div className={cx('form-group-web')}>
+                                            <label className={cx('web-label')}>이메일 주소</label>
+                                            <input type="email" name="email" className={cx('web-input')} value={editForm.email}
+                                                onChange={handleEditChange} placeholder="example@silhouette.com" />
+                                        </div>
+
+                                        <div className={cx('form-group-web', 'full')}>
+                                            <label className={cx('web-label')}>주소</label>
+                                            <div className={cx('input-row')}>
+                                                <input type="text" className={cx('web-input')} style={{ maxWidth: 130 }} value={editForm.zipcode}
+                                                    placeholder="우편번호" onClick={handleOpenPostcode} readOnly />
+                                                <input type="text" className={cx('web-input')} value={editForm.address1}
+                                                    placeholder="주소 검색을 눌러 주세요" onClick={handleOpenPostcode} readOnly />
+                                                <button type="button" className={cx('btn-secondary')} onClick={handleOpenPostcode}>🔍 주소 검색</button>
+                                            </div>
+                                            <input id="mp-address2" type="text" name="address2" className={cx('web-input')} value={editForm.address2}
+                                                onChange={handleEditChange} placeholder="상세주소를 입력해 주세요" />
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* [뷰 4] 채팅방 목록 (M009) */}
-                    {view === 'chat' && (
+                    {/* ==================== [뷰 2] 내 정보 (온보딩, M015) ==================== */}
+                    {view === 'onboarding' && (
                         <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-comments" title="내 채팅방 목록 (M009)" desc="참여 중인 블라인드 채팅(C001), 1:1 실시간 채팅(C002) 방 목록입니다." />
-                            <div className={cx('chat-web-list')} style={{ marginTop: 20 }}>
-                                <div className={cx('chat-web-item')}>
-                                    <div className={cx('chat-user-group')}>
-                                        <div className={cx('chat-web-avatar')}>🌙</div>
-                                        <div>
-                                            <div style={{ fontWeight: 700, color: '#fff', marginBottom: 4 }}>달빛소녀 (1:1 매칭)</div>
-                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>네! 주말에 성수동에서 봬요 :)</div>
+                            <PageHeader icon="fa-user-pen" title="내 정보 (온보딩)" desc="온보딩에서 등록한 프로필 사진과 나의 정보입니다.">
+                                {pData && pEditing !== 'onboarding' && (
+                                    <button className={cx('btn-secondary')} style={{ padding: '10px 18px' }} onClick={() => startProfileEdit('onboarding')}>
+                                        <i className={cx('fa-solid', 'fa-pen')}></i> 수정
+                                    </button>
+                                )}
+                            </PageHeader>
+
+                            <div style={{ marginTop: 20 }}>
+                                {!pData ? renderNeedOnboarding() : (
+                                    <div className={cx('dash-card')}>
+                                        {/* 사진 + 요약 (보기 · 수정 공통) */}
+                                        <div style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                                                <div style={{ position: 'relative', width: 140, height: 180 }}>
+                                                    <img
+                                                        src={photoSrc || DEFAULT_AVATAR}
+                                                        alt={`${pBasic.nickname} 프로필 사진`}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16, border: '2px solid var(--primary-light)' }}
+                                                    />
+                                                    {uploading && (
+                                                        <div style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                                            업로드 중...
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button className={cx('btn-secondary')} style={{ padding: '8px 14px' }} onClick={openPicker} disabled={uploading}>
+                                                    <i className={cx('fa-solid', 'fa-camera')}></i> 사진 바꾸기
+                                                </button>
+                                                <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+                                            </div>
+
+                                            <div style={{ flex: 1, minWidth: 240 }}>
+                                                <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 6 }}>{pBasic.nickname}</div>
+                                                <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem', marginBottom: 12 }}>
+                                                    {genderLabel(pBasic.gender)} · 만 {show(pBasic.age)}세
+                                                    {pData.mbti && <> · <strong style={{ color: '#fff' }}>{pData.mbti}</strong></>}
+                                                    {pData.job && <> · {pData.job}</>}
+                                                </div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                    {pData.loveType && <span className={cx('badge-pill', 'pink')}>💕 {pData.loveType}</span>}
+                                                    {pData.faceType && <span className={cx('badge-pill')}>✨ {pData.faceType}</span>}
+                                                    {pData.skinType && <span className={cx('badge-pill')}>🧴 {pData.skinType}</span>}
+                                                    {pData.bodyType && <span className={cx('badge-pill')}>🏃 {pData.bodyType}</span>}
+                                                    {pData.religion && <span className={cx('badge-pill')}>🙏 {pData.religion}</span>}
+                                                    {pIsMale && (pData.militaryStatus || pIsUnderageMale) && (
+                                                        <span className={cx('badge-pill')}>🎖️ {pIsUnderageMale ? MILITARY_UNDERAGE_VALUE : pData.militaryStatus}</span>
+                                                    )}
+                                                </div>
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 10 }}>
+                                                    * 사진은 바꾸면 관리자 심사 후 반영됩니다. 이미지 파일 10MB까지.
+                                                </p>
+                                            </div>
                                         </div>
+
+                                        {pEditing !== 'onboarding' ? (
+                                            /* ----- 보기 모드 ----- */
+                                            <div className={cx('info-table')}>
+                                                <InfoCell full label="💬 자기소개" value={<span style={{ whiteSpace: 'pre-line', fontWeight: 500 }}>{pData.introduction || '-'}</span>} />
+                                                <InfoCell label="키" value={show(pData.height, 'cm')} />
+                                                <InfoCell label="몸무게" value={show(pData.weight, 'kg')} />
+                                                <InfoCell label="직업" value={show(pData.job)} />
+                                                <InfoCell label="MBTI" value={show(pData.mbti)} />
+                                                {pIsMale && <InfoCell label="병역" value={militaryText} />}
+                                                <InfoCell label="음주" value={drinkingText(pData.drinking)} />
+                                                <InfoCell label="흡연" value={smokingText(pData.smoking)} />
+                                                <InfoCell label="종교" value={show(pData.religion)} />
+                                                <InfoCell label="얼굴상" value={show(pData.faceType)} />
+                                                <InfoCell label="피부 타입" value={show(pData.skinType)} />
+                                                <InfoCell label="체형" value={show(pData.bodyType)} />
+                                                <InfoCell label="연애 스타일" value={show(pData.loveType)} />
+                                                <InfoCell full label="음식 취향" value={<TagPills value={pData.foodPreference} />} />
+                                                <InfoCell full label="취미" value={<TagPills value={pData.hobby} />} />
+                                                <InfoCell full label="좋아하는 것" value={<TagPills value={pData.favorite} pink />} />
+                                                <InfoCell full label="싫어하는 것" value={<TagPills value={pData.dislike} />} />
+                                            </div>
+                                        ) : pForm && (
+                                            /* ----- 수정 모드 (온보딩과 같은 선택지) ----- */
+                                            <div>
+                                                <h3 className={cx('card-title')} style={{ margin: '8px 0 12px' }}>📋 기본 정보</h3>
+                                                <Field label="MBTI">
+                                                    <Chips options={MBTI_LIST} value={pForm.profile.mbti} onSelect={(v) => setProfileValue('mbti', v)} />
+                                                </Field>
+                                                <Field label="직업">
+                                                    <Chips options={JOB_LIST} value={pForm.profile.job} onSelect={(v) => setProfileValue('job', v)} />
+                                                </Field>
+                                                <div className={ob.row}>
+                                                    <Field label={`키 (cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                                        <NumberText value={pForm.profile.height} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm"
+                                                            onChange={(v) => setProfileValue('height', v)} />
+                                                    </Field>
+                                                    <Field label={`몸무게 (kg, ${WEIGHT_MIN}~${WEIGHT_MAX})`}>
+                                                        <NumberText value={pForm.profile.weight} min={WEIGHT_MIN} max={WEIGHT_MAX} unit="kg"
+                                                            onChange={(v) => setProfileValue('weight', v)} />
+                                                    </Field>
+                                                </div>
+                                                {pIsMale && (
+                                                    pIsUnderageMale ? (
+                                                        <Field label="병역" hint={`만 ${MILITARY_MIN_AGE}세 미만은 '${MILITARY_UNDERAGE_VALUE}'로 고정되며 변경할 수 없어요.`}>
+                                                            <p style={{ color: 'var(--text-sub)', fontSize: '0.9rem' }}>🔒 {MILITARY_UNDERAGE_VALUE} (자동 등록)</p>
+                                                        </Field>
+                                                    ) : (
+                                                        <Field label="병역">
+                                                            <OptionCards options={MILITARY_LIST} value={pForm.profile.militaryStatus}
+                                                                onSelect={(v) => setProfileValue('militaryStatus', v)} />
+                                                        </Field>
+                                                    )
+                                                )}
+
+                                                <h3 className={cx('card-title')} style={{ margin: '24px 0 12px' }}>🍷 생활 습관</h3>
+                                                <Field label="음주">
+                                                    <Chips options={DRINKING_LIST} value={pForm.profile.drinking} onSelect={(v) => setProfileValue('drinking', v)} />
+                                                </Field>
+                                                <Field label="흡연">
+                                                    <Chips options={SMOKING_LIST} value={pForm.profile.smoking} onSelect={(v) => setProfileValue('smoking', v)} />
+                                                </Field>
+                                                <Field label="종교">
+                                                    <Chips options={RELIGION_LIST} value={pForm.profile.religion} onSelect={(v) => setProfileValue('religion', v)} />
+                                                </Field>
+                                                <Field label="음식 취향" hint="여러 개 선택할 수 있어요.">
+                                                    <Chips options={FOOD_LIST} value={pForm.profile.foodPreference} onSelect={(v) => toggleProfileList('foodPreference', v)} />
+                                                </Field>
+
+                                                <h3 className={cx('card-title')} style={{ margin: '24px 0 12px' }}>💄 외모 · 연애 성향</h3>
+                                                <Field label="얼굴상">
+                                                    <Chips options={FACE_TYPE_LIST} value={pForm.profile.faceType} onSelect={(v) => setProfileValue('faceType', v)} />
+                                                </Field>
+                                                <Field label="피부 타입">
+                                                    <Chips options={SKIN_TYPE_LIST} value={pForm.profile.skinType} onSelect={(v) => setProfileValue('skinType', v)} />
+                                                </Field>
+                                                <Field label="체형">
+                                                    <Chips options={MY_BODY_TYPE_LIST} value={pForm.profile.bodyType} onSelect={(v) => setProfileValue('bodyType', v)} />
+                                                </Field>
+                                                <Field label="연애 스타일">
+                                                    <Chips options={LOVE_TYPE_LIST} value={pForm.profile.loveType} onSelect={(v) => setProfileValue('loveType', v)} />
+                                                </Field>
+
+                                                <h3 className={cx('card-title')} style={{ margin: '24px 0 12px' }}>🎨 취향 · 자기소개</h3>
+                                                <Field label="취미" hint="여러 개 선택할 수 있어요.">
+                                                    <Chips options={HOBBY_LIST} value={pForm.profile.hobby} onSelect={(v) => toggleProfileList('hobby', v)} />
+                                                </Field>
+                                                <Field label="좋아하는 것" hint="여러 개 선택할 수 있어요.">
+                                                    <Chips options={FAVORITE_LIST} value={pForm.profile.favorite} onSelect={(v) => toggleProfileList('favorite', v)} />
+                                                </Field>
+                                                <Field label="싫어하는 것" hint="여러 개 선택할 수 있어요.">
+                                                    <Chips options={DISLIKE_LIST} value={pForm.profile.dislike} onSelect={(v) => toggleProfileList('dislike', v)} />
+                                                </Field>
+                                                <Field label="자기소개">
+                                                    <textarea className={ob.textarea} maxLength={MAX_INTRO} rows={5}
+                                                        value={pForm.profile.introduction}
+                                                        onChange={(e) => setProfileValue('introduction', e.target.value)} />
+                                                    <p className={ob.counter}>{pForm.profile.introduction.length} / {MAX_INTRO}</p>
+                                                </Field>
+
+                                                {renderProfileEditButtons()}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>오후 2:30</span>
-                                        <div><span className={cx('lnb-badge')} style={{ marginTop: 4, display: 'inline-block' }}>1</span></div>
-                                    </div>
-                                </div>
-                                <div className={cx('chat-web-item')}>
-                                    <div className={cx('chat-user-group')}>
-                                        <div className={cx('chat-web-avatar')}>🎭</div>
-                                        <div>
-                                            <div style={{ fontWeight: 700, color: '#fff', marginBottom: 4 }}>블라인드 익명 채팅 #308</div>
-                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>블라인드 대화 시간이 종료되었습니다.</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>어제</span>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    {/* [뷰 5] 캘린더 (M012) */}
+                    {/* ==================== [뷰 3] 이상형 (온보딩, M011) ==================== */}
+                    {view === 'ideal' && (
+                        <div className={cx('view-section', 'active')}>
+                            <PageHeader icon="fa-heart-circle-check" title="이상형 (온보딩)" desc="입력한 이상형은 매칭과 오늘의 추천에 반영됩니다.">
+                                {pData && pEditing !== 'ideal' && (
+                                    <button className={cx('btn-secondary')} style={{ padding: '10px 18px' }} onClick={() => startProfileEdit('ideal')}>
+                                        <i className={cx('fa-solid', 'fa-pen')}></i> {pIdeal ? '수정' : '이상형 입력'}
+                                    </button>
+                                )}
+                            </PageHeader>
+
+                            <div style={{ marginTop: 20 }}>
+                                {!pData ? renderNeedOnboarding() : pEditing !== 'ideal' ? (
+                                    /* ----- 보기 모드 ----- */
+                                    !pIdeal ? (
+                                        <EmptyState icon="fa-regular fa-heart" text="아직 이상형을 입력하지 않았어요. 입력하면 매칭 확률이 높아져요.">
+                                            <button className={cx('btn-primary-gradient')} style={{ padding: '10px 22px', marginTop: 6 }} onClick={() => startProfileEdit('ideal')}>
+                                                이상형 입력하기
+                                            </button>
+                                        </EmptyState>
+                                    ) : (
+                                        <div className={cx('dash-card')}>
+                                            <div className={cx('ideal-list')}>
+                                                <IdealRow label="나이"><span className={cx('badge-pill')}>{rangeText(pIdeal.ageMin, pIdeal.ageMax, '세')}</span></IdealRow>
+                                                <IdealRow label="키"><span className={cx('badge-pill')}>{rangeText(pIdeal.minHeight, pIdeal.maxHeight, 'cm')}</span></IdealRow>
+                                                <IdealRow label="체형"><TagPills value={pIdeal.bodyType} /></IdealRow>
+                                                <IdealRow label="MBTI"><TagPills value={pIdeal.mbtiPref} pink /></IdealRow>
+                                                <IdealRow label="흡연"><span className={cx('badge-pill')}>{prefText(pIdeal.smokingPref)}</span></IdealRow>
+                                                <IdealRow label="음주"><span className={cx('badge-pill')}>{prefText(pIdeal.drinkingPref)}</span></IdealRow>
+                                                {pIsFemale && <IdealRow label="병역"><TagPills value={pIdeal.militaryPref} /></IdealRow>}
+                                                <IdealRow label="하고 싶은 말">
+                                                    <span style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>{pIdeal.memo ? `“${pIdeal.memo}”` : '-'}</span>
+                                                </IdealRow>
+                                            </div>
+                                        </div>
+                                    )
+                                ) : pForm && (
+                                    /* ----- 수정 모드 (온보딩과 같은 선택지) ----- */
+                                    <div className={cx('dash-card')}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                            <p style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>모든 항목은 선택이에요. 모두 비우고 저장하면 이상형이 삭제돼요.</p>
+                                            <button className={cx('btn-table-action', 'danger')} onClick={clearIdeal}>전부 비우기</button>
+                                        </div>
+                                        <div className={ob.row}>
+                                            <Field label={`나이 (최소, 만 ${IDEAL_AGE_MIN}세 이상)`}>
+                                                <NumberText value={pForm.ideal.ageMin} min={IDEAL_AGE_MIN} unit="세" placeholder="예: 25"
+                                                    onChange={(v) => setIdealValue('ageMin', v)} />
+                                            </Field>
+                                            <Field label={`나이 (최대, 만 ${IDEAL_AGE_MIN}세 이상)`}>
+                                                <NumberText value={pForm.ideal.ageMax} min={IDEAL_AGE_MIN} unit="세" placeholder="예: 32"
+                                                    onChange={(v) => setIdealValue('ageMax', v)} />
+                                            </Field>
+                                        </div>
+                                        <div className={ob.row}>
+                                            <Field label={`키 (최소 cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                                <NumberText value={pForm.ideal.minHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm" placeholder="예: 160"
+                                                    onChange={(v) => setIdealValue('minHeight', v)} />
+                                            </Field>
+                                            <Field label={`키 (최대 cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
+                                                <NumberText value={pForm.ideal.maxHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm" placeholder="예: 185"
+                                                    onChange={(v) => setIdealValue('maxHeight', v)} />
+                                            </Field>
+                                        </div>
+                                        <Field label="체형" hint="여러 개 선택할 수 있어요.">
+                                            <Chips options={BODY_TYPE_LIST} value={pForm.ideal.bodyType} onSelect={(v) => toggleIdealList('bodyType', v)} />
+                                        </Field>
+                                        <Field label="MBTI" hint="여러 개 선택할 수 있어요.">
+                                            <Chips options={MBTI_LIST} value={pForm.ideal.mbtiPref} onSelect={(v) => toggleIdealList('mbtiPref', v)} />
+                                        </Field>
+                                        <Field label="흡연">
+                                            <Chips options={SMOKING_PREF_LIST} value={pForm.ideal.smokingPref}
+                                                onSelect={(v) => setIdealValue('smokingPref', pForm.ideal.smokingPref === v ? '' : v)} />
+                                        </Field>
+                                        <Field label="음주">
+                                            <Chips options={DRINKING_PREF_LIST} value={pForm.ideal.drinkingPref}
+                                                onSelect={(v) => setIdealValue('drinkingPref', pForm.ideal.drinkingPref === v ? '' : v)} />
+                                        </Field>
+                                        {pIsFemale && (
+                                            <Field label="병역" hint="여러 개 선택할 수 있어요. '상관없음'은 단독으로 선택돼요.">
+                                                <Chips options={MILITARY_PREF_LIST} value={pForm.ideal.militaryPref} onSelect={toggleMilitaryPref} />
+                                            </Field>
+                                        )}
+                                        <Field label="하고 싶은 말">
+                                            <textarea className={ob.textarea} maxLength={MAX_MEMO} rows={3}
+                                                value={pForm.ideal.memo}
+                                                onChange={(e) => setIdealValue('memo', e.target.value)} />
+                                            <p className={ob.counter}>{pForm.ideal.memo.length} / {MAX_MEMO}</p>
+                                        </Field>
+
+                                        {renderProfileEditButtons()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ==================== [뷰 4] 북마크 (M008) ==================== */}
+                    {view === 'bookmarks' && (
+                        <div className={cx('view-section', 'active')}>
+                            <PageHeader icon="fa-bookmark" title="북마크" desc={`북마크한 게시글 ${bmTotalCount}개 · 삭제된 글은 목록에 보이지 않습니다.`} />
+                            <div className={cx('dash-card')} style={{ marginTop: 20 }}>
+                                {bmLoading ? (
+                                    <EmptyState icon="fa-solid fa-spinner" text="불러오는 중..." />
+                                ) : bmList.length === 0 ? (
+                                    <EmptyState icon="fa-regular fa-bookmark" text="북마크한 게시글이 없습니다." />
+                                ) : (
+                                    <div className={cx('web-table-wrap')}>
+                                        <table className={cx('custom-table')}>
+                                            <thead>
+                                                <tr>
+                                                    <th>게시판</th>
+                                                    <th>제목</th>
+                                                    <th>작성자</th>
+                                                    <th>조회 · 추천 · 댓글</th>
+                                                    <th>북마크한 날</th>
+                                                    <th>관리</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bmList.map((item) => (
+                                                    <tr key={item.postBookmarkSeq}>
+                                                        <td>
+                                                            <span className={cx('badge-pill', item.boardType === 'ANON' && 'pink')}>
+                                                                {item.boardType === 'ANON' ? '익명' : item.category}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ cursor: 'pointer', fontWeight: 600 }} onClick={() => navigate(`/post/detail/${item.postSeq}`)} title="게시글로 이동">
+                                                            {item.title}
+                                                        </td>
+                                                        <td>{item.writerName}</td>
+                                                        <td style={{ color: 'var(--text-sub)' }}>{item.viewCount} · {item.recommendCount} · {item.commentCount}</td>
+                                                        <td style={{ color: 'var(--text-sub)' }}>{toDateText(item.createdAt)}</td>
+                                                        <td>
+                                                            <button className={cx('btn-table-action', 'danger')} onClick={() => removeBookmark(item)}>해제</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {bmTotalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
+                                        <button className={cx('btn-table-action')} disabled={bmPage <= 1} onClick={() => loadBookmarks(bmPage - 1)}>‹</button>
+                                        {Array.from({ length: bmTotalPages }, (_, i) => i + 1).map((n) => (
+                                            <button
+                                                key={n}
+                                                className={cx('btn-table-action')}
+                                                style={n === bmPage ? { background: 'var(--primary)', borderColor: 'var(--primary)', color: '#fff' } : undefined}
+                                                onClick={() => loadBookmarks(n)}
+                                            >
+                                                {n}
+                                            </button>
+                                        ))}
+                                        <button className={cx('btn-table-action')} disabled={bmPage >= bmTotalPages} onClick={() => loadBookmarks(bmPage + 1)}>›</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ==================== [뷰 5] 캘린더 (M012) ==================== */}
                     {view === 'calendar' && (
                         <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-calendar-days" title="내 일정 캘린더 (M012)" desc="약속된 데이트 일정 및 중요한 이벤트를 등록하고 관리합니다.">
+                            <PageHeader icon="fa-calendar-days" title="캘린더" desc="내 일정을 등록, 수정, 삭제하고 관리합니다.">
                                 <button className={cx('btn-primary-gradient')} onClick={openScheduleModal}>
                                     <i className={cx('fa-solid', 'fa-plus')}></i> 새 일정 등록
                                 </button>
@@ -572,20 +1513,25 @@ function MyPage() {
                                                 if (key === todayKey) cls.push('today');
                                                 if (key === selectedKey) cls.push('active');
                                                 if (schedulesOf(key).length) cls.push('has-dot');
-                                                return (
-                                                    <div key={key} className={cx(...cls)} onClick={() => setSelectedKey(key)}>{d}</div>
-                                                );
+                                                return <div key={key} className={cx(...cls)} onClick={() => setSelectedKey(key)}>{d}</div>;
                                             })}
                                         </div>
                                     </div>
 
                                     <div>
                                         <h3 style={{ fontSize: '1rem', marginBottom: 14, fontWeight: 700 }}>
-                                            {Number(selM)}월 {Number(selD)}일{selectedKey === todayKey ? ' (오늘)' : ''} 등록 일정
+                                            {Number(selM)}월 {Number(selD)}일{selectedKey === todayKey ? ' (오늘)' : ''} 일정
                                         </h3>
                                         <div className={cx('schedule-side-list')}>
                                             {selectedList.length
-                                                ? selectedList.map((s) => <ScheduleCard key={s.id} schedule={s} onDelete={() => deleteSchedule(s.id)} />)
+                                                ? selectedList.map((s) => (
+                                                    <ScheduleCard
+                                                        key={s.id}
+                                                        schedule={s}
+                                                        onEdit={() => openEditScheduleModal(s)}
+                                                        onDelete={() => deleteSchedule(s.id)}
+                                                    />
+                                                ))
                                                 : <EmptyState icon="fa-regular fa-calendar" text="등록된 일정이 없습니다." />}
                                         </div>
                                     </div>
@@ -594,52 +1540,7 @@ function MyPage() {
                         </div>
                     )}
 
-                    {/* [뷰 6] 내가 쓴 글 (M014) */}
-                    {view === 'posts' && (
-                        <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-file-pen" title="내가 쓴 글 (M014)" desc="자유 게시판(B001)에 본인이 작성한 게시글을 모아서 조회하고 관리합니다." />
-                            <div className={cx('dash-card')} style={{ marginTop: 20 }}>
-                                <div className={cx('web-table-wrap')}>
-                                    <table className={cx('custom-table')}>
-                                        <thead>
-                                            <tr>
-                                                <th>카테고리</th>
-                                                <th>제목</th>
-                                                <th>작성일시</th>
-                                                <th>조회수</th>
-                                                <th>추천수</th>
-                                                <th>관리</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span className={cx('badge-pill')}>자유</span></td>
-                                                <td>첫 블라인드 소개팅 후기 남겨봅니다!</td>
-                                                <td>2026-11-15</td>
-                                                <td>124</td>
-                                                <td>18</td>
-                                                <td>
-                                                    <button className={cx('btn-table-action', 'danger')} onClick={() => showToast('게시글이 삭제되었습니다.')}>삭제</button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><span className={cx('badge-pill', 'pink')}>연애고민</span></td>
-                                                <td>연락 주기 차이에 대해서 어떻게 생각하시나요?</td>
-                                                <td>2026-11-12</td>
-                                                <td>245</td>
-                                                <td>32</td>
-                                                <td>
-                                                    <button className={cx('btn-table-action', 'danger')} onClick={() => showToast('게시글이 삭제되었습니다.')}>삭제</button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* [뷰 7] 결제 내역 (M010) */}
+                    {/* ==================== [뷰 6] 결제 내역 (M010) - 목업 ==================== */}
                     {view === 'payment' && (
                         <div className={cx('view-section', 'active')}>
                             <PageHeader icon="fa-receipt" title="결제 내역 (M010)" desc="채팅 이용권(P001) 구매 내역 및 마일리지(P002) 사용 내역을 조회합니다." />
@@ -680,90 +1581,7 @@ function MyPage() {
                         </div>
                     )}
 
-                    {/* [뷰 8] 차단·신고 (M013) */}
-                    {view === 'blocks' && (
-                        <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-shield-halved" title="차단 및 신고 내역 (M013)" desc="차단한 회원은 상호 간 매칭, 채팅 및 프로필 노출이 차단됩니다." />
-                            <div className={cx('dash-card')} style={{ marginTop: 20 }}>
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 14 }}>🚫 차단한 회원 목록</h3>
-                                <div style={{ marginBottom: 30 }}>
-                                    <div className={cx('web-table-wrap')}>
-                                        <table className={cx('custom-table')}>
-                                            <thead>
-                                                <tr>
-                                                    <th>차단 대상 닉네임</th>
-                                                    <th>차단 일자</th>
-                                                    <th>상태</th>
-                                                    <th>차단 관리</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>블랙리스트유저99</td>
-                                                    <td>2026-11-08</td>
-                                                    <td>차단 적용 중</td>
-                                                    <td>
-                                                        <button className={cx('btn-table-action')} onClick={() => showToast('차단이 해제되었습니다.')}>차단 해제</button>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 14 }}>🚨 접수된 신고 내역</h3>
-                                <EmptyTable headers={['신고 일시', '신고 대상', '신고 사유', '처리 상태']} emptyText="접수된 신고 내역이 없습니다." />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* [뷰 9] 개인정보 수정 (M006) */}
-                    {view === 'editProfile' && (
-                        <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-user-pen" title="개인정보 수정 (M006)" desc="닉네임, 비밀번호, 연락처, 프로필 사진 등을 수정합니다." />
-                            <div className={cx('dash-card')} style={{ marginTop: 20 }}>
-                                <div className={cx('form-grid-web')}>
-                                    <div className={cx('form-group-web', 'full')}>
-                                        <label className={cx('web-label')}>새 프로필 사진 업로드 (관리자 심사 A001 대상)</label>
-                                        <div className={cx('input-row')}>
-                                            <label className={cx('btn-secondary')} style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                                                <i className={cx('fa-solid', 'fa-camera')}></i> 이미지 파일 선택
-                                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatar} />
-                                            </label>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center' }}>
-                                                * JPG, PNG 파일 지원 (등록 시 관리자 승인 후 반영)
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className={cx('form-group-web')}>
-                                        <label className={cx('web-label')}>닉네임 변경</label>
-                                        <div className={cx('input-row')}>
-                                            <input type="text" className={cx('web-input')} defaultValue={member.nickname} placeholder="새 닉네임" />
-                                            <button className={cx('btn-secondary')} onClick={() => showToast('사용 가능한 닉네임입니다.')}>중복확인</button>
-                                        </div>
-                                    </div>
-                                    <div className={cx('form-group-web')}>
-                                        <label className={cx('web-label')}>휴대전화 번호 변경</label>
-                                        <div className={cx('input-row')}>
-                                            <input type="text" className={cx('web-input')} defaultValue={member.phone} placeholder="010-0000-0000" />
-                                            <button className={cx('btn-secondary')} onClick={() => showToast('인증번호가 발송되었습니다.')}>재인증</button>
-                                        </div>
-                                    </div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>현재 비밀번호 확인</label><input type="password" className={cx('web-input')} placeholder="정보 수정을 위해 기존 비밀번호 입력" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>변경할 새 비밀번호</label><input type="password" className={cx('web-input')} placeholder="영문, 숫자, 특수문자 조합 8자리 이상" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>MBTI</label><input type="text" className={cx('web-input')} defaultValue="INFP" placeholder="예: INFP" /></div>
-                                    <div className={cx('form-group-web')}><label className={cx('web-label')}>직업</label><input type="text" className={cx('web-input')} defaultValue="소프트웨어 개발자" placeholder="예: 디자이너" /></div>
-                                    <div className={cx('form-group-web', 'full')}><label className={cx('web-label')}>주소지 (시/군/구)</label><input type="text" className={cx('web-input')} defaultValue={member.address} placeholder="예: 서울특별시 마포구" /></div>
-                                </div>
-                                <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button className={cx('btn-primary-gradient')} onClick={() => showToast('개인정보가 성공적으로 수정되었습니다.')}>
-                                        수정 내용 저장하기
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* [뷰 10] 회원 탈퇴 (M007) */}
+                    {/* ==================== [뷰 7] 회원 탈퇴 (M007) - 목업 ==================== */}
                     {view === 'withdraw' && (
                         <div className={cx('view-section', 'active')}>
                             <div className={cx('page-header')}>
@@ -804,17 +1622,17 @@ function MyPage() {
                 </section>
             </main>
 
-            {/* ===== 일정 등록 모달 ===== */}
-            <div className={cx('modal-overlay', modalOpen && 'open')} onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+            {/* ===== 일정 등록 / 수정 모달 ===== */}
+            <div className={cx('modal-overlay', modalOpen && 'open')} onClick={(e) => e.target === e.currentTarget && closeScheduleModal()}>
                 <div className={cx('modal-window')}>
                     <div className={cx('modal-header')}>
-                        <h3 className={cx('modal-title')}>새 데이트 일정 등록 (M012)</h3>
-                        <button className={cx('modal-close-btn')} onClick={() => setModalOpen(false)}>&times;</button>
+                        <h3 className={cx('modal-title')}>{editingScheduleId !== null ? '일정 수정' : '새 일정 등록'}</h3>
+                        <button className={cx('modal-close-btn')} onClick={closeScheduleModal}>&times;</button>
                     </div>
                     <div className={cx('form-group-web')} style={{ gap: 14 }}>
                         <div>
                             <label className={cx('web-label')} style={{ marginBottom: 6 }}>일정 제목</label>
-                            <input type="text" className={cx('web-input')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: 분위기 좋은 와인바 데이트" />
+                            <input type="text" className={cx('web-input')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: 성수동 카페 약속" />
                         </div>
                         <div>
                             <label className={cx('web-label')} style={{ marginBottom: 6 }}>날짜 및 시간</label>
@@ -822,9 +1640,11 @@ function MyPage() {
                         </div>
                         <div>
                             <label className={cx('web-label')} style={{ marginBottom: 6 }}>장소 및 메모</label>
-                            <input type="text" className={cx('web-input')} value={form.memo} onChange={(e) => setForm({ ...form, memo: e.target.value })} placeholder="예: 홍대입구 3번 출구 만남" />
+                            <input type="text" className={cx('web-input')} value={form.memo} onChange={(e) => setForm({ ...form, memo: e.target.value })} placeholder="예: 성수역 3번 출구" />
                         </div>
-                        <button className={cx('btn-primary-gradient')} style={{ marginTop: 10 }} onClick={saveSchedule}>일정 저장</button>
+                        <button className={cx('btn-primary-gradient')} style={{ marginTop: 10 }} onClick={saveSchedule}>
+                            {editingScheduleId !== null ? '수정 저장' : '일정 저장'}
+                        </button>
                     </div>
                 </div>
             </div>
