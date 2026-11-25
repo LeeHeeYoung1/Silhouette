@@ -1489,14 +1489,6 @@ const Chatting = () => {
                       : '음성 녹음'}
                 </span>
               </button>
- 
-              <button
-                type="button"
-                className={styles.uploadButton}
-              >
-                <span>🎬</span>
-                <span>동영상</span>
-              </button>
             </div>
           )}
         </form>
