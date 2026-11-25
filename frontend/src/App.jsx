@@ -41,7 +41,7 @@ function App() {
         <Route path="/event/food-test" element={<FoodTest />} />
 
         <Route path="/profile" element={<Profile />} />
-        <Route path="/event/beauty-test" element{<BeautyTest />} />
+        <Route path="/event/beauty-test" element={<BeautyTest />} />
         <Route path="/event/love-value-test" element={<LoveValueTest />} />
         <Route path="/event/mbti-test" element={<MBTITest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}
