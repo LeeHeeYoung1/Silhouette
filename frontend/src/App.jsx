@@ -20,7 +20,7 @@ import Chatting from './pages/chatting/chatting';
 import Event from './pages/event/event';
 import Profile from './pages/profile/profile';
 import FoodTest from './pages/event/foodTest';
-
+import BeautyTest from './pages/event/beautytest';
 import LoveValueTest from './pages/event/loveValueTest';
 import MBTITest from './pages/event/MBTITest';
 
@@ -40,7 +40,7 @@ function App() {
         <Route path="/event/food-test" element={<FoodTest />} />
 
         <Route path="/profile" element={<Profile />} />
-
+        <Route path="/event/beauty-test" element{<BeautyTest />} />
         <Route path="/event/love-value-test" element={<LoveValueTest />} />
         <Route path="/event/mbti-test" element={<MBTITest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}
