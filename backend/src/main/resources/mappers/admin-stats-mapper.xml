@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- =========================================================
+     관리자 메인 통계 대시보드 (A005)
+     - 이용자 = 그 주에 출석체크(ATTENDANCE)한 회원, 관리자(ROLE_ADMIN) 제외
+     - 주 범위: #{weekStart}(월요일) 이상 ~ #{weekEnd}(다음 주 월요일) 미만
+     - 날짜 컬럼에 함수를 씌우지 않고 범위로 비교해야 인덱스를 탈 수 있음
+     ========================================================= -->
+<mapper namespace="AdminStats">
+
+    <!-- 그 주에 출석한 회원(관리자 제외) 조건 (별칭 m) -->
+    <sql id="weekUser">
+        <![CDATA[
+        m.MEMBER_SEQ IN (SELECT a.MEMBER_SEQ
+                         FROM ATTENDANCE a
+                         WHERE a.ATTEND_DATE >= #{weekStart}
+                           AND a.ATTEND_DATE <  #{weekEnd})
+        AND m.ROLE <> 'ROLE_ADMIN'
+        ]]>
+    </sql>
+
+    <!-- 한 주 요약 숫자 -->
+    <select id="selectWeeklySummary" parameterType="map" resultType="com.app.silhouette.admin.WeeklySummaryDTO">
+        <![CDATA[
+        SELECT
+            (SELECT COUNT(DISTINCT a.MEMBER_SEQ)
+               FROM ATTENDANCE a JOIN MEMBER m ON m.MEMBER_SEQ = a.MEMBER_SEQ
+              WHERE a.ATTEND_DATE >= #{weekStart} AND a.ATTEND_DATE < #{weekEnd}
+                AND m.ROLE <> 'ROLE_ADMIN')                                      AS active_members,
+            (SELECT COUNT(*)
+               FROM ATTENDANCE a JOIN MEMBER m ON m.MEMBER_SEQ = a.MEMBER_SEQ
+              WHERE a.ATTEND_DATE >= #{weekStart} AND a.ATTEND_DATE < #{weekEnd}
+                AND m.ROLE <> 'ROLE_ADMIN')                                      AS attend_count,
+            (SELECT COUNT(*) FROM MEMBER
+              WHERE CREATED_AT >= #{weekStart} AND CREATED_AT < #{weekEnd}
+                AND ROLE <> 'ROLE_ADMIN')                                        AS new_members,
+            (SELECT COUNT(*) FROM BLIND_MATCHING
+              WHERE MATCHED_AT >= #{weekStart} AND MATCHED_AT < #{weekEnd})     AS blind_count,
+            (SELECT COUNT(*) FROM BLIND_MATCHING
+              WHERE MATCHED_AT >= #{weekStart} AND MATCHED_AT < #{weekEnd}
+                AND STATUS = 'CONTINUED')                                        AS blind_continued,
+            (SELECT COUNT(*) FROM IDEAL_MATCHING
+              WHERE MATCHED_AT >= #{weekStart} AND MATCHED_AT < #{weekEnd})     AS ideal_count
+        FROM DUAL
+        ]]>
+    </select>
+
+    <!-- 성비 (label: MALE / FEMALE) -->
+    <select id="selectGenderRatio" parameterType="map" resultType="com.app.silhouette.admin.StatItemDTO">
+        SELECT m.GENDER                                            AS label,
+               COUNT(*)                                            AS cnt,
+               ROUND(RATIO_TO_REPORT(COUNT(*)) OVER () * 100, 1)   AS pct
+        FROM MEMBER m
+        WHERE <include refid="weekUser"/>
+        GROUP BY m.GENDER
+        ORDER BY m.GENDER
+    </select>
+
+    <!-- 연령대 비율 (연 나이 = 그 주의 연도 - 출생 연도, label: 20대 …) -->
+    <select id="selectAgeRatio" parameterType="map" resultType="com.app.silhouette.admin.StatItemDTO">
+        SELECT AGE_BASE || '대'                                    AS label,
+               COUNT(*)                                            AS cnt,
+               ROUND(RATIO_TO_REPORT(COUNT(*)) OVER () * 100, 1)   AS pct
+        FROM (
+            SELECT FLOOR((#{weekYear} - EXTRACT(YEAR FROM m.BIRTH_DATE)) / 10) * 10 AS AGE_BASE
+            FROM MEMBER m
+            WHERE <include refid="weekUser"/>
+        )
+        GROUP BY AGE_BASE
+        ORDER BY AGE_BASE
+    </select>
+
+    <!-- 지역(시·도) 비율 - 카카오 우편번호 주소의 첫 단어, 긴 표기는 짧게 통일 -->
+    <select id="selectRegionRatio" parameterType="map" resultType="com.app.silhouette.admin.StatItemDTO">
+        SELECT SIDO                                                AS label,
+               COUNT(*)                                            AS cnt,
+               ROUND(RATIO_TO_REPORT(COUNT(*)) OVER () * 100, 1)   AS pct
+        FROM (
+            SELECT CASE REGEXP_SUBSTR(TRIM(m.ADDRESS1), '[^ ]+', 1, 1)
+                       WHEN '서울특별시'     THEN '서울'
+                       WHEN '세종특별자치시' THEN '세종'
+                       WHEN '강원특별자치도' THEN '강원'
+                       WHEN '전북특별자치도' THEN '전북'
+                       WHEN '제주특별자치도' THEN '제주'
+                       ELSE NVL(REGEXP_SUBSTR(TRIM(m.ADDRESS1), '[^ ]+', 1, 1), '기타')
+                   END AS SIDO
+            FROM MEMBER m
+            WHERE <include refid="weekUser"/>
+        )
+        GROUP BY SIDO
+        ORDER BY cnt DESC, label
+    </select>
+
+    <!-- 최근 N주 추이 (기록이 없는 주도 0으로 나오도록 주 목록을 먼저 만듦) -->
+    <select id="selectWeeklyTrend" parameterType="map" resultType="com.app.silhouette.admin.WeeklyTrendDTO">
+        <![CDATA[
+        SELECT TO_CHAR(w.WEEK_START, 'YYYY-MM-DD') AS week_start,
+               NVL(n.CNT, 0)     AS new_members,
+               NVL(a.MEMBERS, 0) AS active_members,
+               NVL(a.CNT, 0)     AS attend_count,
+               NVL(b.CNT, 0)     AS blind_count,
+               NVL(i.CNT, 0)     AS ideal_count
+        FROM (SELECT CAST(#{lastWeekStart} AS DATE) - 7 * (LEVEL - 1) AS WEEK_START
+              FROM DUAL CONNECT BY LEVEL <= #{weeks}) w
+        LEFT JOIN (SELECT TRUNC(CREATED_AT, 'IW') AS WS, COUNT(*) AS CNT
+                   FROM MEMBER
+                   WHERE CREATED_AT >= #{rangeStart} AND CREATED_AT < #{rangeEnd}
+                     AND ROLE <> 'ROLE_ADMIN'
+                   GROUP BY TRUNC(CREATED_AT, 'IW')) n ON n.WS = w.WEEK_START
+        LEFT JOIN (SELECT TRUNC(ad.ATTEND_DATE, 'IW') AS WS,
+                          COUNT(DISTINCT ad.MEMBER_SEQ) AS MEMBERS,
+                          COUNT(*) AS CNT
+                   FROM ATTENDANCE ad JOIN MEMBER m ON m.MEMBER_SEQ = ad.MEMBER_SEQ
+                   WHERE ad.ATTEND_DATE >= #{rangeStart} AND ad.ATTEND_DATE < #{rangeEnd}
+                     AND m.ROLE <> 'ROLE_ADMIN'
+                   GROUP BY TRUNC(ad.ATTEND_DATE, 'IW')) a ON a.WS = w.WEEK_START
+        LEFT JOIN (SELECT TRUNC(MATCHED_AT, 'IW') AS WS, COUNT(*) AS CNT
+                   FROM BLIND_MATCHING
+                   WHERE MATCHED_AT >= #{rangeStart} AND MATCHED_AT < #{rangeEnd}
+                   GROUP BY TRUNC(MATCHED_AT, 'IW')) b ON b.WS = w.WEEK_START
+        LEFT JOIN (SELECT TRUNC(MATCHED_AT, 'IW') AS WS, COUNT(*) AS CNT
+                   FROM IDEAL_MATCHING
+                   WHERE MATCHED_AT >= #{rangeStart} AND MATCHED_AT < #{rangeEnd}
+                   GROUP BY TRUNC(MATCHED_AT, 'IW')) i ON i.WS = w.WEEK_START
+        ORDER BY w.WEEK_START
+        ]]>
+    </select>
+
+</mapper>
