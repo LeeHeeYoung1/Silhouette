@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import styles from './layout.module.css';
 import useOnboardingGuard from '../onboarding/useOnboardingGuard';
@@ -15,6 +15,7 @@ function Layout() {
 
   const [theme, setTheme] = useState(() => localStorage.getItem('silhouette_theme') || 'light');
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationAreaRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [memberSeq, setMemberSeq] = useState(null);
@@ -143,6 +144,30 @@ function Layout() {
     }
   };
 
+  // 알림 창이 열려 있을 때 바깥(배경)을 누르거나 ESC를 누르면 닫습니다.
+  useEffect(() => {
+    if (!showNotifications) return undefined;
+
+    const handleOutside = (e) => {
+      if (notificationAreaRef.current && !notificationAreaRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setShowNotifications(false);
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [showNotifications]);
+
   // 종 아이콘을 눌러 알림 창을 열거나 닫습니다.
   const openNotifications = async () => {
     const next = !showNotifications;
@@ -151,6 +176,16 @@ function Layout() {
     if (next) {
       await refreshNotifications();
     }
+  };
+
+  // 알림 목록 전체를 한 번에 숨깁니다.
+  const hideAllNotifications = () => {
+    setHiddenNotificationIds((prev) => [
+      ...new Set([
+        ...prev,
+        ...notifications.map((item) => item.notification_seq)
+      ])
+    ]);
   };
 
   // 숨기지 않은 알림만 화면에 표시합니다.
@@ -170,7 +205,6 @@ function Layout() {
           <nav className={styles.navLinks}>
             <NavLink to="/" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>홈</NavLink>
             <NavLink to="/profile" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>프로필</NavLink>
-            <NavLink to="/chattingRoomList" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>채팅방</NavLink>
             <NavLink to="/event" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>이벤트</NavLink>
             <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
             <NavLink to="/mypage" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>마이페이지</NavLink>
@@ -181,7 +215,7 @@ function Layout() {
 
           {/* 로그인한 사용자에게만 종 아이콘과 알림 창을 표시합니다. */}
           {token && (
-            <div className={styles.notificationArea}>
+            <div className={styles.notificationArea} ref={notificationAreaRef}>
               <button
                 type="button"
                 className={styles.notificationBell}
@@ -205,7 +239,7 @@ function Layout() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowNotifications(false)}
+                      onClick={hideAllNotifications}
                     >
                       ×
                     </button>

@@ -207,14 +207,14 @@
   top: calc(100% + 13px);
   right: 0;
   z-index: 100;
-  width: 360px;
+  width: 290px;
   max-width: calc(100vw - 28px);
-  max-height: 540px;
+  max-height: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--card-border);
-  border-radius: 18px;
+  border-radius: 14px;
   background: var(--card-bg);
   box-shadow: 0 18px 50px rgba(0,0,0,.22);
   backdrop-filter: blur(24px);
@@ -224,40 +224,41 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 17px 18px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--cell-border);
 }
 
 .notificationHeader div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .notificationHeader strong {
   color: var(--text-main);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .notificationHeader span {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .notificationHeader button {
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
 }
 
 .notificationList {
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .notificationEmpty {
-  padding: 42px 15px;
+  padding: 28px 12px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
@@ -267,8 +268,8 @@
 .notificationItem {
   position: relative;
   display: flex;
-  gap: 11px;
-  padding: 15px 16px;
+  gap: 9px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--cell-border);
 }
 
@@ -277,14 +278,14 @@
 }
 
 .notificationIcon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255,77,136,.12);
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .notificationBody {
@@ -295,35 +296,35 @@
 
 .notificationBody strong {
   color: var(--text-main);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .notificationBody p {
-  margin: 4px 0;
+  margin: 3px 0;
   color: var(--text-sub);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .notificationBody small {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .notificationActions {
   display: flex;
-  gap: 7px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .notificationActions button {
   flex: 1;
   border: 0;
   border-radius: 8px;
-  padding: 7px;
+  padding: 5px;
   background: var(--primary-gradient);
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -398,3 +399,4 @@
     right: 12px;
   }
 }
+ 

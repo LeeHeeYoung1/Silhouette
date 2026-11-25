@@ -29,6 +29,8 @@ const Chatting = () => {
   const [roomMembers, setRoomMembers] = useState([]);
   const [roomMemberImageUrls, setRoomMemberImageUrls] = useState({});
   const [profileTargetSeq, setProfileTargetSeq] = useState(null);   // 프로필 팝업으로 볼 회원 번호
+  const [friendSeqs, setFriendSeqs] = useState([]);                 // 내 친구(수락 완료)의 회원 번호 목록
+  const [friendsLoaded, setFriendsLoaded] = useState(false);       // 친구 목록 조회 완료 여부
   const [inviteMessage, setInviteMessage] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isOwner, setIsOwner] = useState(false);
@@ -145,6 +147,33 @@ const Chatting = () => {
     }
   }, [token]);
  
+  // 내 친구 목록 불러오기: 처음 들어올 때, 그리고 친구 요청이 수락되어 목록이 바뀔 때마다 다시 불러옵니다.
+  // (참여 중인 회원 옆 + 버튼을 보여줄지 판단하는 용도)
+  useEffect(() => {
+    if (!token) return undefined;
+
+    const loadFriendSeqs = async () => {
+      try {
+        const response = await Client.get('/api/chat/friends');
+        const list = Array.isArray(response.data) ? response.data : [];
+        setFriendSeqs(list.map((friend) => Number(friend.member_seq)));
+      } catch (error) {
+        console.error('친구 목록을 불러오지 못했습니다.', error);
+      } finally {
+        setFriendsLoaded(true);
+      }
+    };
+
+    loadFriendSeqs();
+
+    // 알림창에서 친구 요청을 수락하거나, 서버 웹소켓 신호를 받으면 이 이벤트가 발생합니다.
+    window.addEventListener('silhouette-friends-updated', loadFriendSeqs);
+
+    return () => {
+      window.removeEventListener('silhouette-friends-updated', loadFriendSeqs);
+    };
+  }, [token]);
+
   // 실시간 채팅 연결 + 이전 메시지 불러오기
   useEffect(() => {
     if (!roomId || !token || !memberSeq) return;
@@ -250,6 +279,11 @@ const Chatting = () => {
           });
         });
  
+        // 상대가 내 친구 요청을 수락하면 서버가 보내는 신호를 받아 + 버튼을 바로 없앱니다.
+        client.subscribe(`/sub/friends/${memberSeq}`, () => {
+          if (isActive) window.dispatchEvent(new Event('silhouette-friends-updated'));
+        });
+
         // 소켓 연결 직후에도 참여자 목록을 다시 조회해 연결 전 변경을 놓치지 않도록 합니다.
         Client.get(`/api/chat/room/${roomId}/members`)
           .then((response) => {
@@ -812,6 +846,21 @@ const Chatting = () => {
     }
   };
  
+  // 참여 중인 회원에게 친구 요청 보내기 (+ 버튼)
+  const sendFriendRequest = async (event, member) => {
+    event.stopPropagation();   // 프로필 팝업이 같이 열리지 않도록
+
+    try {
+      await Client.post('/api/chat/friends/request', {
+        friend_member_seq: Number(member.member_seq)
+      });
+
+      alert('친구 요청을 보냈습니다.');
+    } catch (error) {
+      alert(error.response?.data || '친구 요청을 보내지 못했습니다.');
+    }
+  };
+
   // 회원 초대
   const inviteMember = async (member) => {
     try {
@@ -848,7 +897,7 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/leave`);
  
       alert('채팅방에서 나왔습니다.');
-      navigate('/chattingRoomList');
+      navigate('/');
  
     } catch (error) {
       alert(
@@ -889,7 +938,7 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/delete`);
  
       alert('채팅방이 삭제되었습니다.');
-      navigate('/chattingRoomList');
+      navigate('/');
  
     } catch (error) {
       alert(
@@ -978,7 +1027,7 @@ const Chatting = () => {
         <header className={styles.chatHeader}>
           <button
             type="button"
-            onClick={() => navigate('/chattingRoomList')}
+            onClick={() => navigate('/')}
             className={styles.backButton}
           >
             ←
@@ -1141,6 +1190,19 @@ const Chatting = () => {
                   </strong>
                   {member.participant_role === 'OWNER' && (
                     <span className={styles.ownerBadge}>방장</span>
+                  )}
+                  {friendsLoaded
+                    && Number(member.member_seq) !== Number(memberSeq)
+                    && !friendSeqs.includes(Number(member.member_seq)) && (
+                    <button
+                      type="button"
+                      className={styles.addFriendBtn}
+                      onClick={(e) => sendFriendRequest(e, member)}
+                      title="친구 요청 보내기"
+                      aria-label="친구 요청 보내기"
+                    >
+                      +
+                    </button>
                   )}
                 </div>
               ))}
@@ -1426,14 +1488,6 @@ const Chatting = () => {
                       ? `녹음 종료 ${formatDuration(recordingSeconds)}`
                       : '음성 녹음'}
                 </span>
-              </button>
- 
-              <button
-                type="button"
-                className={styles.uploadButton}
-              >
-                <span>🎬</span>
-                <span>동영상</span>
               </button>
             </div>
           )}

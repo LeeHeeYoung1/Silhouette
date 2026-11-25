@@ -17,11 +17,10 @@ import Live from './pages/live/live';
 import LiveAdmin from './pages/live/liveAdmin';
 import AdminReport from './pages/admin/adminreport';    // 🛡️ 관리자 신고 · 블랙리스트
 import Chatting from './pages/chatting/chatting';
-import ChatRoomList from './pages/chattingRoomList/chattingRoomList';
 import Event from './pages/event/event';
 import Profile from './pages/profile/profile';
 import FoodTest from './pages/event/foodTest';
-import BeautyTest from './pages/event/beautytest'; // [권형석] E001 외모 등급 테스트
+import BeautyTest from './pages/event/beautytest';
 import LoveValueTest from './pages/event/loveValueTest';
 import MBTITest from './pages/event/MBTITest';
 
@@ -41,10 +40,7 @@ function App() {
         <Route path="/event/food-test" element={<FoodTest />} />
 
         <Route path="/profile" element={<Profile />} />
-
-        {/* [권형석] E001 외모 등급 테스트 - 경로 추가 (시작) */}
-        <Route path="/event/beauty-test" element={<BeautyTest />} />
-        {/* [권형석] E001 외모 등급 테스트 - 경로 추가 (끝) */}
+        <Route path="/event/beauty-test" element{<BeautyTest />} />
         <Route path="/event/love-value-test" element={<LoveValueTest />} />
         <Route path="/event/mbti-test" element={<MBTITest />} />
         {/* <Route path="/profile" element={<Profile />} /> */}
@@ -90,7 +86,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/chatting/:roomId" element={<Chatting />} />
-        <Route path="/chattingRoomList" element={<ChatRoomList />} />
+        {/* 채팅방 목록 페이지는 홈으로 통합됨 — 예전 주소는 홈으로 이동 */}
+        <Route path="/chattingRoomList" element={<Navigate to="/" replace />} />
 
         {/* 블라인드 (blind) 라우트 */}
         <Route path='/chat/:roomSeq' element={<BlindChatting />} />

@@ -1011,3 +1011,34 @@
 .messageContextMenu button:hover {
   background: rgba(120, 120, 120, 0.12);
 }
+
+/* 참여 회원 옆 친구 요청(+) 버튼 */
+.addFriendBtn {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #ff5c93;
+  border-radius: 50%;
+  background: rgba(255, 77, 136, 0.12);
+  color: #ff5c93;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addFriendBtn:hover {
+  background: #ff4d88;
+  color: #fff;
+}
+
+/* 방장 배지가 이미 오른쪽 끝으로 밀고 있으면 + 버튼은 바로 옆에 붙입니다. */
+.ownerBadge + .addFriendBtn {
+  margin-left: 8px;
+}
