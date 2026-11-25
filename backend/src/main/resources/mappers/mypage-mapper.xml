@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MyPage">
+
+	<!-- 내 기본 정보 (비밀번호 · 권한 · 상태는 조회하지 않음) + 대표 사진 -->
+	<select id="selectMyInfo" parameterType="long" resultType="com.app.silhouette.mypage.MyPageDTO">
+		select m.member_seq,
+		       m.login_id,
+		       m.name,
+		       m.nickname,
+		       m.phone,
+		       m.email,
+		       m.gender,
+		       m.birth_date,
+		       m.zipcode,
+		       m.address1,
+		       m.address2,
+		       m.created_at,
+		       (select max(pi.file_url) keep (dense_rank first order by pi.sort_order)
+		          from profile_image pi
+		         where pi.member_seq = m.member_seq) as profile_image_url
+		  from member m
+		 where m.member_seq = #{memberSeq}
+	</select>
+
+	<!-- 닉네임 중복 확인 (내 회원번호는 제외) -->
+	<select id="countNickname" parameterType="map" resultType="int">
+		select count(*)
+		  from member
+		 where nickname = #{nickname}
+		   and member_seq &lt;&gt; #{memberSeq}
+	</select>
+
+	<!-- 기본 정보 수정: 닉네임 · 휴대전화 · 이메일 · 주소만 (아이디 · 비밀번호 · 이름 · 성별 · 생년월일은 수정 안 함) -->
+	<update id="updateMyInfo" parameterType="com.app.silhouette.mypage.MyPageDTO">
+		update member
+		   set nickname = #{nickname},
+		       phone    = #{phone},
+		       email    = #{email},
+		       zipcode  = #{zipcode},
+		       address1 = #{address1},
+		       address2 = #{address2}
+		 where member_seq = #{memberSeq}
+	</update>
+</mapper>
