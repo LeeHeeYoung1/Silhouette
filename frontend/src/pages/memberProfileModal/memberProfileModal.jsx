@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Client from '../../api/client';
 import modal from './memberProfileModal.module.css'; // 팝업(배경, 닫기 버튼, 친구 버튼)만 따로
 import styles from '../profile/profile.module.css';
@@ -225,7 +226,7 @@ function MemberProfileModal({ memberSeq, onClose }) {
     const profile = data?.profile ?? null;
     const isMale = isMaleGender(basic.gender);
  
-    return (
+    return createPortal(
         <div className={modal.overlay} onClick={onClose}>
             <div className={modal.panel} onClick={(e) => e.stopPropagation()}>
                 <button type="button" className={modal.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
@@ -315,8 +316,9 @@ function MemberProfileModal({ memberSeq, onClose }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
- 
+
 export default MemberProfileModal;

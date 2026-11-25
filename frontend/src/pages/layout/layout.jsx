@@ -1,17 +1,31 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import styles from './layout.module.css';
 import useOnboardingGuard from '../onboarding/useOnboardingGuard';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
 
+// 기본 프로필 아바타 이미지 (SVG)
+const DEFAULT_AVATAR =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+      '<rect width="100" height="100" fill="#2d2238"/>' +
+      '<circle cx="50" cy="38" r="18" fill="#ff758c" opacity="0.8"/>' +
+      '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ff758c" opacity="0.8"/></svg>'
+  );
+
 // 모든 페이지의 공통 상단 메뉴와 알림 드롭다운을 관리합니다.
 function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = useAuthStore((state) => state.token);
+  const logout = useAuthStore((state) => state.logout);
   useOnboardingGuard();
+
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
   const [theme, setTheme] = useState(() => localStorage.getItem('silhouette_theme') || 'light');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -21,11 +35,87 @@ function Layout() {
   const [memberSeq, setMemberSeq] = useState(null);
   const [hiddenNotificationIds, setHiddenNotificationIds] = useState([]);
 
+  // 로그인 사용자 프로필 정보 (닉네임, 프로필 사진)
+  const [profile, setProfile] = useState({
+    nickname: '',
+    photoUrl: null
+  });
+
   useEffect(() => {
     if (theme === 'light') document.body.classList.add('theme-light');
     else document.body.classList.remove('theme-light');
     localStorage.setItem('silhouette_theme', theme);
   }, [theme]);
+
+  // 로그인 회원 정보 및 프로필 사진 로드
+  useEffect(() => {
+    if (!token) {
+      setProfile({ nickname: '', photoUrl: null });
+      return undefined;
+    }
+
+    let isMounted = true;
+    let blobUrl = null;
+
+    const fetchUserProfile = async () => {
+      try {
+        const basicRes = await Client.get('/api/profile/basic');
+        if (!isMounted) return;
+        const nick = basicRes.data?.nickname || sessionStorage.getItem('id') || '회원';
+
+        let imgUrl = null;
+        try {
+          const imgListRes = await Client.get('/api/profile/images');
+          if (Array.isArray(imgListRes.data) && imgListRes.data.length > 0) {
+            const firstImgSeq =
+              imgListRes.data[0].profileImageSeq || imgListRes.data[0].profile_image_seq;
+            if (firstImgSeq) {
+              const imgBlobRes = await Client.get(`/api/profile/image/${firstImgSeq}`, {
+                responseType: 'blob'
+              });
+              blobUrl = URL.createObjectURL(imgBlobRes.data);
+              imgUrl = blobUrl;
+            }
+          }
+        } catch {
+          // 사진 로드 실패 시 기본 아바타 사용
+        }
+
+        if (isMounted) {
+          setProfile({
+            nickname: nick,
+            photoUrl: imgUrl
+          });
+        }
+      } catch (err) {
+        if (isMounted) {
+          setProfile({
+            nickname: sessionStorage.getItem('id') || '회원',
+            photoUrl: null
+          });
+        }
+      }
+    };
+
+    fetchUserProfile();
+
+    const handleProfileUpdate = () => fetchUserProfile();
+    window.addEventListener('silhouette-profile-updated', handleProfileUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('silhouette-profile-updated', handleProfileUpdate);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [token]);
+
+  // 로그아웃 처리
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   // 알림 목록과 읽지 않은 개수를 서버에서 다시 가져옵니다.
   const refreshNotifications = useCallback(async () => {
@@ -196,26 +286,75 @@ function Layout() {
 
   return (
     <div className={styles.appContainer}>
-      <header className={styles.header}>
-        <div className={styles.brandLogo} onClick={() => navigate('/')}>
-          <div className={styles.brandIcon}>🌙</div>
-          <span className={styles.brandTitle}>실루엣 (Silhouette)</span>
-        </div>
+      {/* 
+        상단바 2개를 같은 한 열에 배치하는 헤더 행
+        - 좌측: 메인 네비게이션 상단바 (하단 매칭 모드 선택과 동일한 왼쪽 정렬)
+        - 우측: 알림, 프로필사진, 닉네임, 마이페이지, 로그아웃이 포함된 컴팩트 상단바
+        - 로그인/회원가입 화면에서는 우측 유저바 없이 콤팩트 규격으로 중앙 단독 배치
+      */}
+      <div className={`${styles.headerRow} ${isAuthPage ? styles.headerRowLogin : ''}`}>
+        {/* ================= 1. 원래 있던 상단바 ================= */}
+        <header className={`${styles.header} ${isAuthPage ? styles.headerLogin : ''}`}>
+          <div className={styles.brandLogo} onClick={() => navigate('/')}>
+            <div className={styles.brandIcon}>🌙</div>
+            <span className={styles.brandTitle}>실루엣 (Silhouette)</span>
+          </div>
 
-        <div className={styles.headerRight}>
-          <nav className={styles.navLinks}>
-            <NavLink to="/" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>홈</NavLink>
-            <NavLink to="/profile" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>프로필</NavLink>
-            <NavLink to="/event" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>이벤트</NavLink>
-            <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
-            <NavLink to="/mypage" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>마이페이지</NavLink>
-            <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
-            <NavLink to="/login" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>로그인</NavLink>
-            <NavLink to="/signup" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>회원가입</NavLink>
-          </nav>
+          {/* 로그인/회원가입 화면에서는 메뉴 버튼들을 숨기고, 일반 화면에서만 중앙에 배치 */}
+          {!isAuthPage && (
+            <nav className={styles.navLinks}>
+              {token ? (
+                /* 로그인 이후: 홈, 이벤트, 게시판, 라이브 */
+                <>
+                  <NavLink to="/" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>홈</NavLink>
+                  <NavLink to="/event" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>이벤트</NavLink>
+                  <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
+                  <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
+                </>
+              ) : (
+                /* 비로그인 시: 홈, 이벤트, 게시판, 라이브, 로그인, 회원가입 */
+                <>
+                  <NavLink to="/" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>홈</NavLink>
+                  <NavLink to="/event" end className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>이벤트</NavLink>
+                  <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
+                  <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
+                  <NavLink to="/login" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>로그인</NavLink>
+                  <NavLink to="/signup" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>회원가입</NavLink>
+                </>
+              )}
+            </nav>
+          )}
 
-          {/* 로그인한 사용자에게만 종 아이콘과 알림 창을 표시합니다. */}
-          {token && (
+          <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.themeToggleBtn}
+              onClick={toggleTheme}
+              title="화면 모드 전환"
+            >
+              {theme === 'light' ? '🌸 라이트 모드' : '🌙 다크 모드'}
+            </button>
+          </div>
+        </header>
+
+        {/* ================= 2. 로그인 시 우측에 나타나는 새로운 상단바 (로그인/회원가입 페이지에서는 숨김) ================= */}
+        {token && !isAuthPage && (
+          <aside className={styles.userBar}>
+            {/* 1. 로그인된 내 프로필 사진 및 닉네임 */}
+            <div
+              className={styles.userProfileGroup}
+              onClick={() => navigate('/mypage')}
+              title="마이페이지로 이동"
+            >
+              <img
+                src={profile.photoUrl || DEFAULT_AVATAR}
+                alt="프로필 사진"
+                className={styles.userAvatar}
+              />
+              <span className={styles.userNickname}>{profile.nickname || '회원'}</span>
+            </div>
+
+            {/* 2. 종모양 알림 이모티콘 및 드롭다운 (닉네임/프로필 오른쪽) */}
             <div className={styles.notificationArea} ref={notificationAreaRef}>
               <button
                 type="button"
@@ -332,18 +471,27 @@ function Layout() {
                 </div>
               )}
             </div>
-          )}
 
-          <button
-            type="button"
-            className={styles.themeToggleBtn}
-            onClick={toggleTheme}
-            title="화면 모드 전환"
-          >
-            {theme === 'light' ? '🌸 라이트 모드' : '🌙 다크 모드'}
-          </button>
-        </div>
-      </header>
+            {/* 3. 마이페이지 버튼 */}
+            <button
+              type="button"
+              className={styles.userActionBtn}
+              onClick={() => navigate('/mypage')}
+            >
+              마이페이지
+            </button>
+
+            {/* 4. 로그아웃 버튼 */}
+            <button
+              type="button"
+              className={`${styles.userActionBtn} ${styles.logoutBtn}`}
+              onClick={handleLogout}
+            >
+              로그아웃
+            </button>
+          </aside>
+        )}
+      </div>
 
       <main className={styles.main}>
         <Outlet />
