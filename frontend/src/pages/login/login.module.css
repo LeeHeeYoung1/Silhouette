@@ -238,6 +238,49 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.findLinks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.findLinkBtn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.findLinkBtn:hover {
+  color: var(--accent-pink);
+  text-decoration: underline;
+}
+
+.divider {
+  color: var(--text-muted);
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+.authInfoNotice {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 107, 139, 0.08);
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 107, 139, 0.3);
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 :global(body.theme-light) .signupPrompt {
   border-top-color: rgba(255, 200, 215, 0.6);
 }
