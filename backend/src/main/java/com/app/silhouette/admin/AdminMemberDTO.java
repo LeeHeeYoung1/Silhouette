@@ -9,6 +9,7 @@ public class AdminMemberDTO {
     private String gender;
     private String status;
     private Long member_blacklist_seq;
+    private Long admin_seq;
     private String blacklist_reason;
     private String admin_memo;
     private String blacklist_status;
@@ -78,6 +79,22 @@ public class AdminMemberDTO {
 
 	public void setMemberBlacklistSeq(Long member_blacklist_seq) {
 		this.member_blacklist_seq = member_blacklist_seq;
+	}
+
+	public Long getAdminSeq() {
+		return admin_seq;
+	}
+
+	public void setAdminSeq(Long admin_seq) {
+		this.admin_seq = admin_seq;
+	}
+
+	public Long getAdmin_seq() {
+		return admin_seq;
+	}
+
+	public void setAdmin_seq(Long admin_seq) {
+		this.admin_seq = admin_seq;
 	}
 
 	public String getBlacklistReason() {

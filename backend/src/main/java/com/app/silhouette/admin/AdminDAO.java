@@ -32,8 +32,15 @@ public class AdminDAO {
 		return mybatis.update("Admin.updateMemberStatus", params);
 	}
 	
+	public int releaseBlacklist(Long memberSeq, Long adminSeq) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("memberSeq", memberSeq);
+		params.put("adminSeq", adminSeq);
+		return mybatis.update("Admin.releaseBlacklist", params);
+	}
+
 	public int releaseBlacklist(Long memberSeq) {
-		return mybatis.update("Admin.releaseBlacklist", memberSeq);
+		return releaseBlacklist(memberSeq, null);
 	}
 	
 	public int deleteMember(Long memberSeq) {
@@ -74,5 +81,9 @@ public class AdminDAO {
 
 	public int insertPhotoReview(PhotoReviewDTO dto) {
 		return mybatis.insert("Admin.insertPhotoReview", dto);
+	}
+
+	public int updateProfileImageStatus(Long memberSeq, String status) {
+		return mybatis.update("Admin.updateProfileImageStatus", Map.of("memberSeq", memberSeq, "status", status));
 	}
 }
