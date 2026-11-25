@@ -33,7 +33,7 @@ public class NotificationService {
         notification.setNotification_content(content);
         notification.setRead_yn("N");
         notificationDAO.insertNotification(notification);
-        Object payload = Map.of(
+        Object payload = (Object) Map.of(
                 "type", "NOTIFICATION_CREATED",
                 "notification_seq", notification.getNotification_seq()
         );
