@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.app.silhouette.admin.AdminService;
+
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -42,13 +44,15 @@ public class PostService {
 
 	private final PostDAO postDAO;
 	private final Storage storage;     // GCSConfig에서 만든 Bean
+	private final AdminService adminService;
 
 	@Value("${gcp.bucket}")
 	private String bucket;
 
-	public PostService(PostDAO postDAO, Storage storage) {
+	public PostService(PostDAO postDAO, Storage storage, AdminService adminService) {
 		this.postDAO = postDAO;
 		this.storage = storage;
+		this.adminService = adminService;
 	}
 
 	// ===================== 등록 =====================
@@ -66,6 +70,10 @@ public class PostService {
 		String boardType = checkBoardType(dto.getBoardType());
 		dto.setBoardType(boardType);
 		checkPostInput(dto, boardType);
+
+		// 금칙어 필터링 적용
+		dto.setTitle(adminService.filterText(dto.getTitle()));
+		dto.setContent(adminService.filterText(dto.getContent()));
 
 		if (files != null && files.size() > MAX_FILES) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "첨부파일은 최대 " + MAX_FILES + "개입니다.");
@@ -238,6 +246,10 @@ public class PostService {
 
 		// 2) 원래 게시판 기준으로 입력값 검사 (익명 글이면 카테고리 '익명' 고정)
 		checkPostInput(dto, saved.getBoardType());
+
+		// 금칙어 필터링 적용
+		dto.setTitle(adminService.filterText(dto.getTitle()));
+		dto.setContent(adminService.filterText(dto.getContent()));
 
 		// 3) 서버가 정하는 값 채우고 수정
 		dto.setPostSeq(postSeq);

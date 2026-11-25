@@ -41,6 +41,7 @@ public class AuthController {
 
             result.put("token", token);
             result.put("id", id);
+            result.put("role", this.mServ.selectRole(id));
 
             return ResponseEntity.ok(result);
         }

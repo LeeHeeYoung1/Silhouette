@@ -65,4 +65,11 @@
     AND MEMBER_STATUS = 'ACTIVE'
 </select>
 
+    <!-- 회원 권한 조회 -->
+    <select id="selectRole" parameterType="string" resultType="string">
+        SELECT ROLE
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+    </select>
+
 </mapper>

@@ -33,4 +33,9 @@ public class MembersDAO {
 
         return this.mybatis.selectOne("Members.login", user);
     }
+
+    // 회원 권한 조회
+    public String selectRole(String loginId) {
+        return this.mybatis.selectOne("Members.selectRole", loginId);
+    }
 }
