@@ -327,7 +327,7 @@ function IdealRow({ label, children }) {
     );
 }
 
-function ScheduleCard({ schedule, onDelete }) {
+function ScheduleCard({ schedule, onEdit, onDelete }) {
     return (
         <div className={cx('sched-card')}>
             <span className={cx('sched-card-title')}>{schedule.title}</span>
@@ -336,11 +336,18 @@ function ScheduleCard({ schedule, onDelete }) {
                 {schedule.startAt.slice(11, 16)}
                 {schedule.memo && ` · ${schedule.memo}`}
             </span>
-            {onDelete && (
+            {(onEdit || onDelete) && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button className={cx('btn-table-action', 'danger')} onClick={onDelete}>
-                        삭제
-                    </button>
+                    {onEdit && (
+                        <button className={cx('btn-table-action')} onClick={onEdit}>
+                            수정
+                        </button>
+                    )}
+                    {onDelete && (
+                        <button className={cx('btn-table-action', 'danger')} onClick={onDelete}>
+                            삭제
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -464,13 +471,15 @@ function MyPage() {
     const [bmTotalCount, setBmTotalCount] = useState(0);
     const [bmLoading, setBmLoading] = useState(false);
 
-    // 캘린더 (화면에서만 관리, DB 연결은 다음 단계)
+    // 캘린더 (회원별 localStorage 영구 저장 — 백엔드 API 미구현으로 클라이언트 저장소 사용)
     const [schedules, setSchedules] = useState([]);
+    const [calStorageKey, setCalStorageKey] = useState('');
     const today = new Date();
     const [viewYear, setViewYear] = useState(today.getFullYear());
     const [viewMonth, setViewMonth] = useState(today.getMonth());
     const [selectedKey, setSelectedKey] = useState(toKey(today));
     const [modalOpen, setModalOpen] = useState(false);
+    const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [form, setForm] = useState({ title: '', startAt: '', memo: '' });
 
     // 회원 탈퇴 (목업)
@@ -816,7 +825,30 @@ function MyPage() {
         }
     };
 
-    /* ===================== 캘린더 (화면에서만) ===================== */
+    /* ===================== 캘린더 (등록 · 수정 · 삭제 · 영구 저장) ===================== */
+    useEffect(() => {
+        if (!member) return;
+        const key = `silhouette_mypage_calendar_${member.memberSeq ?? member.loginId ?? 'guest'}`;
+        try {
+            const raw = localStorage.getItem(key);
+            const parsed = raw ? JSON.parse(raw) : [];
+            setSchedules(Array.isArray(parsed) ? parsed : []);
+        } catch (err) {
+            console.error(err);
+            setSchedules([]);
+        }
+        setCalStorageKey(key);
+    }, [member?.memberSeq, member?.loginId]);
+
+    useEffect(() => {
+        if (!calStorageKey) return;
+        try {
+            localStorage.setItem(calStorageKey, JSON.stringify(schedules));
+        } catch (err) {
+            console.error(err);
+        }
+    }, [schedules, calStorageKey]);
+
     const schedulesOf = (key) =>
         schedules
             .filter((s) => s.startAt.slice(0, 10) === key)
@@ -838,8 +870,24 @@ function MyPage() {
     };
 
     const openScheduleModal = () => {
+        setEditingScheduleId(null);
         setForm({ title: '', startAt: `${selectedKey}T12:00`, memo: '' });
         setModalOpen(true);
+    };
+
+    const openEditScheduleModal = (schedule) => {
+        setEditingScheduleId(schedule.id);
+        setForm({
+            title: schedule.title || '',
+            startAt: schedule.startAt || `${selectedKey}T12:00`,
+            memo: schedule.memo || '',
+        });
+        setModalOpen(true);
+    };
+
+    const closeScheduleModal = () => {
+        setModalOpen(false);
+        setEditingScheduleId(null);
     };
 
     const saveSchedule = () => {
@@ -847,13 +895,31 @@ function MyPage() {
             alert('일정 제목과 날짜를 입력해 주세요.');
             return;
         }
-        setSchedules((prev) => [...prev, { id: Date.now(), ...form, title: form.title.trim() }]);
+        const trimmedTitle = form.title.trim();
+        const trimmedMemo = form.memo.trim();
+
+        if (editingScheduleId !== null) {
+            setSchedules((prev) =>
+                prev.map((s) =>
+                    s.id === editingScheduleId
+                        ? { ...s, title: trimmedTitle, startAt: form.startAt, memo: trimmedMemo }
+                        : s
+                )
+            );
+            showToast('일정이 수정되었습니다.');
+        } else {
+            setSchedules((prev) => [
+                ...prev,
+                { id: Date.now(), title: trimmedTitle, startAt: form.startAt, memo: trimmedMemo },
+            ]);
+            showToast('새 일정이 등록되었습니다.');
+        }
+
         const key = form.startAt.slice(0, 10);
         setSelectedKey(key);
         setViewYear(Number(key.slice(0, 4)));
         setViewMonth(Number(key.slice(5, 7)) - 1);
-        setModalOpen(false);
-        showToast('새 일정이 등록되었습니다.');
+        closeScheduleModal();
     };
 
     const deleteSchedule = (id) => {
@@ -990,7 +1056,7 @@ function MyPage() {
                                 icon="fa-id-card"
                                 title="기본 정보"
                                 desc={editing
-                                    ? '닉네임, 휴대전화, 이메일, 주소를 수정할 수 있습니다. (아이디 · 비밀번호 · 이름 · 성별 · 생년월일은 변경 불가)'
+                                    ? '닉네임, 휴대전화, 이메일, 주소를 수정할 수 있습니다. (아이디 · 이름 · 성별 · 생년월일은 변경 불가)'
                                     : '회원가입 때 등록한 기본 정보입니다.'}
                             >
                                 {editing ? (
@@ -1020,7 +1086,6 @@ function MyPage() {
                                 {!editing ? (
                                     <div className={cx('info-table')}>
                                         <InfoCell label="아이디" value={dash(member.loginId)} />
-                                        <InfoCell label="비밀번호" value="••••••••" />
                                         <InfoCell label="이름" value={dash(member.name)} />
                                         <InfoCell label="닉네임" value={dash(member.nickname)} />
                                         <InfoCell label="성별" value={genderLabel(member.gender)} />
@@ -1418,10 +1483,10 @@ function MyPage() {
                         </div>
                     )}
 
-                    {/* ==================== [뷰 5] 캘린더 (M012) - DB 저장은 다음 단계 ==================== */}
+                    {/* ==================== [뷰 5] 캘린더 (M012) ==================== */}
                     {view === 'calendar' && (
                         <div className={cx('view-section', 'active')}>
-                            <PageHeader icon="fa-calendar-days" title="캘린더" desc="내 일정을 등록하고 관리합니다. (현재는 새로고침하면 사라짐 · DB 저장 연결 예정)">
+                            <PageHeader icon="fa-calendar-days" title="캘린더" desc="내 일정을 등록, 수정, 삭제하고 관리합니다.">
                                 <button className={cx('btn-primary-gradient')} onClick={openScheduleModal}>
                                     <i className={cx('fa-solid', 'fa-plus')}></i> 새 일정 등록
                                 </button>
@@ -1459,7 +1524,14 @@ function MyPage() {
                                         </h3>
                                         <div className={cx('schedule-side-list')}>
                                             {selectedList.length
-                                                ? selectedList.map((s) => <ScheduleCard key={s.id} schedule={s} onDelete={() => deleteSchedule(s.id)} />)
+                                                ? selectedList.map((s) => (
+                                                    <ScheduleCard
+                                                        key={s.id}
+                                                        schedule={s}
+                                                        onEdit={() => openEditScheduleModal(s)}
+                                                        onDelete={() => deleteSchedule(s.id)}
+                                                    />
+                                                ))
                                                 : <EmptyState icon="fa-regular fa-calendar" text="등록된 일정이 없습니다." />}
                                         </div>
                                     </div>
@@ -1550,12 +1622,12 @@ function MyPage() {
                 </section>
             </main>
 
-            {/* ===== 일정 등록 모달 ===== */}
-            <div className={cx('modal-overlay', modalOpen && 'open')} onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+            {/* ===== 일정 등록 / 수정 모달 ===== */}
+            <div className={cx('modal-overlay', modalOpen && 'open')} onClick={(e) => e.target === e.currentTarget && closeScheduleModal()}>
                 <div className={cx('modal-window')}>
                     <div className={cx('modal-header')}>
-                        <h3 className={cx('modal-title')}>새 일정 등록</h3>
-                        <button className={cx('modal-close-btn')} onClick={() => setModalOpen(false)}>&times;</button>
+                        <h3 className={cx('modal-title')}>{editingScheduleId !== null ? '일정 수정' : '새 일정 등록'}</h3>
+                        <button className={cx('modal-close-btn')} onClick={closeScheduleModal}>&times;</button>
                     </div>
                     <div className={cx('form-group-web')} style={{ gap: 14 }}>
                         <div>
@@ -1570,7 +1642,9 @@ function MyPage() {
                             <label className={cx('web-label')} style={{ marginBottom: 6 }}>장소 및 메모</label>
                             <input type="text" className={cx('web-input')} value={form.memo} onChange={(e) => setForm({ ...form, memo: e.target.value })} placeholder="예: 성수역 3번 출구" />
                         </div>
-                        <button className={cx('btn-primary-gradient')} style={{ marginTop: 10 }} onClick={saveSchedule}>일정 저장</button>
+                        <button className={cx('btn-primary-gradient')} style={{ marginTop: 10 }} onClick={saveSchedule}>
+                            {editingScheduleId !== null ? '수정 저장' : '일정 저장'}
+                        </button>
                     </div>
                 </div>
             </div>
