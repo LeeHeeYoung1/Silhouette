@@ -67,7 +67,7 @@ public class SightEngineService {
 	
 	public double detectAiGeneratedScoreByUrl(String imageUrl) {
 		try {
-			URI requestUri = UriComponentsBuilder.fromHttpUrl(apiUrl)
+			URI requestUri = UriComponentsBuilder.fromUriString(apiUrl)
 					.queryParam("models", "genai")
 					.queryParam("api_user", apiUser)
 					.queryParam("api_secret", apiSecret)

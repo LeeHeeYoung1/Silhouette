@@ -239,10 +239,19 @@ public class ProfileService {
 		for (ProfileImageDTO img : newImages) {
 			profileDAO.insertProfileImage(img);
 
+			// 사진 URL 생성 (/api/profile/image/{seq})
+			String photoUrl = (img.getFileUrl() != null && !img.getFileUrl().isBlank())
+					? img.getFileUrl()
+					: (img.getProfileImageSeq() != null ? "/api/profile/image/" + img.getProfileImageSeq() : img.getStoredName());
+			img.setFileUrl(photoUrl);
+
 			// 관리자 사진 심사(PHOTO_REVIEW)에 대기 상태로 등록
 			PhotoReviewDTO review = new PhotoReviewDTO();
 			review.setMemberSeq(memberSeq);
-			review.setPhotoUrl(img.getFileUrl());
+			review.setPhotoUrl(photoUrl);
+			review.setAiScore(0.0);
+			review.setIsAiSuspect("N");
+			review.setStatus("WAITING");
 			adminDAO.insertPhotoReview(review);
 		}
  

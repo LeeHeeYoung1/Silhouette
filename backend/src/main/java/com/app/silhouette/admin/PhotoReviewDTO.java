@@ -8,9 +8,9 @@ public class PhotoReviewDTO {
     private Long member_seq;
     private String nickname;
     private String photo_url;
-    private Double ai_score;
-    private String is_ai_suspect;
-    private String status;
+    private Double ai_score = 0.0;
+    private String is_ai_suspect = "N";
+    private String status = "WAITING";
     private String reject_reason;
     private LocalDateTime reviewed_at;
     private LocalDateTime created_at;
