@@ -34,7 +34,7 @@ public class SightEngineService {
 	private final RestTemplate restTemplate = new RestTemplate();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 	
-	public double detectAiGeneratedScore(MultipartFile file) {
+	public double detectAiGeneratedScore(byte[] imageBytes, String filename) {
 		try {
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -43,10 +43,10 @@ public class SightEngineService {
 			body.add("models", "genai");
 			body.add("api_user", apiUser);
 			body.add("api_secret", apiSecret);
-			body.add("media", new ByteArrayResource(file.getBytes()) {
+			body.add("media", new ByteArrayResource(imageBytes) {
 				@Override
 				public String getFilename() {
-					return file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload.jpg";
+					return (filename != null && !filename.isBlank()) ? filename : "upload.jpg";
 				}
 			});
 				
@@ -62,6 +62,14 @@ public class SightEngineService {
 			
 		} catch (Exception e) {
 			throw new RuntimeException("AI 이미지 판별 API 호출 실패: " + e.getMessage(), e);
+		}
+	}
+
+	public double detectAiGeneratedScore(MultipartFile file) {
+		try {
+			return detectAiGeneratedScore(file.getBytes(), file.getOriginalFilename());
+		} catch (Exception e) {
+			throw new RuntimeException("AI 이미지 파일 읽기 실패: " + e.getMessage(), e);
 		}
 	}
 	

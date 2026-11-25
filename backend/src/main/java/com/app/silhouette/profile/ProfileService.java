@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
- 
+
 import com.app.silhouette.admin.AdminDAO;
 import com.app.silhouette.admin.PhotoReviewDTO;
+import com.app.silhouette.admin.SightEngineService;
+import com.app.silhouette.commons.AuthMemberDAO;
+import com.app.silhouette.commons.AuthMemberDTO;
 import com.app.silhouette.friend.MemberFriendService;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -40,15 +43,19 @@ public class ProfileService {
 	private final Storage storage;
 	private final MemberFriendService memberFriendService;
 	private final AdminDAO adminDAO;
- 
+	private final AuthMemberDAO authMemberDAO;
+	private final SightEngineService sightEngineService;
+
 	@Value("${gcp.bucket}")
 	private String bucketName;
- 
-	public ProfileService(ProfileDAO profileDAO, Storage storage, MemberFriendService memberFriendService, AdminDAO adminDAO) {
+
+	public ProfileService(ProfileDAO profileDAO, Storage storage, MemberFriendService memberFriendService, AdminDAO adminDAO, AuthMemberDAO authMemberDAO, SightEngineService sightEngineService) {
 		this.profileDAO = profileDAO;
 		this.storage = storage;
 		this.memberFriendService = memberFriendService;
 		this.adminDAO = adminDAO;
+		this.authMemberDAO = authMemberDAO;
+		this.sightEngineService = sightEngineService;
 	}
  
 	// ===================== 회원 기본 정보 =====================
@@ -140,10 +147,15 @@ public class ProfileService {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다.");
 		}
  
+		AuthMemberDTO authMember = authMemberDAO.selectAuthMember(loginId);
+		boolean isAdmin = authMember != null && authMember.isAdmin();
+
 		String relation;
 		Long requestSeq = null;
 		if (mySeq.equals(targetSeq)) {
 			relation = "SELF";
+		} else if (isAdmin) {
+			relation = "ADMIN";
 		} else if (memberFriendService.isAcceptedFriend(mySeq, targetSeq)) {
 			relation = "FRIEND";
 		} else if (memberFriendService.findPendingRequestSeq(mySeq, targetSeq) != null) {
@@ -153,14 +165,14 @@ public class ProfileService {
 			relation = requestSeq != null ? "RECEIVED" : "NONE";
 		}
  
-		// 친구도 아니고 대기 요청도 없으면, 같은 채팅방에 있는 회원만 볼 수 있음
-		if ("NONE".equals(relation) && profileDAO.countSharedRoom(mySeq, targetSeq) == 0) {
+		// 관리자가 아니고, 친구도 아니고 대기 요청도 없으면, 같은 채팅방에 있는 회원만 볼 수 있음
+		if (!isAdmin && "NONE".equals(relation) && profileDAO.countSharedRoom(mySeq, targetSeq) == 0) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "프로필을 볼 수 없는 회원입니다.");
 		}
  
 		ProfileDTO profile = profileDAO.selectProfileByMember(targetSeq);
-		if (profile != null) {
-			profile.setLoginId(null);   // 상대 로그인 아이디는 보내지 않음
+		if (profile != null && !isAdmin) {
+			profile.setLoginId(null);   // 상대 로그인 아이디는 보내지 않음 (관리자는 확인 가능)
 		}
  
 		Map<String, Object> basicInfo = new HashMap<>();
@@ -173,7 +185,11 @@ public class ProfileService {
 		Map<String, Object> result = new HashMap<>();
 		result.put("basic", basicInfo);
 		result.put("profile", profile);
-		result.put("images", profileDAO.selectProfileImages(targetSeq));
+		// 관리자는 승인 여부와 상관없이 모든 사진 확인 가능, 일반 회원은 승인(APPROVED)된 사진만 노출
+		List<ProfileImageDTO> images = isAdmin
+				? profileDAO.selectProfileImages(targetSeq)
+				: profileDAO.selectApprovedProfileImages(targetSeq);
+		result.put("images", images);
 		result.put("relation", relation);
 		result.put("requestSeq", requestSeq);
 		return result;
@@ -245,12 +261,24 @@ public class ProfileService {
 					: (img.getProfileImageSeq() != null ? "/api/profile/image/" + img.getProfileImageSeq() : img.getStoredName());
 			img.setFileUrl(photoUrl);
 
+			// SightEngine AI 생성 사진 검사
+			double aiScore = 0.0;
+			String isAiSuspect = "N";
+			try {
+				if (files != null && !files.isEmpty()) {
+					aiScore = sightEngineService.detectAiGeneratedScore(files.get(0));
+					isAiSuspect = aiScore >= 70.0 ? "Y" : "N";
+				}
+			} catch (Exception ex) {
+				System.err.println("AI 사진 검사 실패 (기본값 등록): " + ex.getMessage());
+			}
+
 			// 관리자 사진 심사(PHOTO_REVIEW)에 대기 상태로 등록
 			PhotoReviewDTO review = new PhotoReviewDTO();
 			review.setMemberSeq(memberSeq);
 			review.setPhotoUrl(photoUrl);
-			review.setAiScore(0.0);
-			review.setIsAiSuspect("N");
+			review.setAiScore(aiScore);
+			review.setIsAiSuspect(isAiSuspect);
 			review.setStatus("WAITING");
 			adminDAO.insertPhotoReview(review);
 		}
