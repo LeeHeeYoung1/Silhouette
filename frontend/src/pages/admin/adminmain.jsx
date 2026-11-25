@@ -6,7 +6,6 @@ import styles from './adminreport.module.css';
 
 /* =========================================================
    관리자 메인 대시보드 (AdminMain)
-   - A005: 연령별, 성별별, 지역별 이용 현황 대시보드
    - A001: 회원 관리, 블랙리스트 등록/해제, 강제 삭제
    - A001: 금칙어(비속어/광고) 필터 등록 및 삭제
    - A001: 프로필 사진 AI 심사 및 수동 승인/반려
@@ -20,31 +19,8 @@ function AdminMain() {
   // 1. 관리자 권한 확인 상태
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // 2. 현재 선택된 탭 ('DASHBOARD': A005 대시보드, 'MEMBERS': A001 회원, 'WORDS': A001 금칙어, 'PHOTOS': A001 사진심사)
-  const [currentTab, setCurrentTab] = useState('DASHBOARD');
-
-  // ========================================================
-  // [A005] 대시보드 통계 데이터 (연령별, 성별별, 지역별 이용 현황)
-  // ========================================================
-  const [stats, setStats] = useState({
-    totalUsers: 1240,       // 전체 가입자
-    activeMatches: 86,      // 오늘 매칭 이용 횟수
-    // 성별 이용 현황
-    gender: { male: 60, female: 40 },
-    // 연령별 이용 횟수 (%)
-    age: [
-      { label: '20대 초반 (20~24)', count: '45%' },
-      { label: '20대 후반 (25~29)', count: '35%' },
-      { label: '30대 이상', count: '20%' },
-    ],
-    // 지역별 이용 횟수 (%)
-    region: [
-      { name: '서울', percent: '52%' },
-      { name: '경기/인천', percent: '28%' },
-      { name: '부산/경상', percent: '12%' },
-      { name: '기타 지역', percent: '8%' },
-    ]
-  });
+  // 2. 현재 선택된 탭 ('MEMBERS': 회원, 'WORDS': 금칙어, 'PHOTOS': 사진심사)
+  const [currentTab, setCurrentTab] = useState('MEMBERS');
 
   // ========================================================
   // [A001] 회원 관리 데이터 & 함수 (백엔드 AdminController 연동)
@@ -227,12 +203,6 @@ function AdminMain() {
       {/* 상단 탭 버튼들 */}
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${currentTab === 'DASHBOARD' ? styles.tabActive : ''}`}
-          onClick={() => setCurrentTab('DASHBOARD')}
-        >
-          📊 메인 통계 (A005)
-        </button>
-        <button
           className={`${styles.tab} ${currentTab === 'MEMBERS' ? styles.tabActive : ''}`}
           onClick={() => setCurrentTab('MEMBERS')}
         >
@@ -251,65 +221,7 @@ function AdminMain() {
           🖼️ AI 사진 심사 (A001)
         </button>
       </div>
-
-      {/* =========================================================
-          탭 1. [A005] 대시보드 (통계)
-      ========================================================= */}
-      {currentTab === 'DASHBOARD' && (
-        <div>
-          {/* 상단 핵심 요약 지표 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
-            <div className={styles.card}>
-              <div className={styles.dim}>전체 가입 회원</div>
-              <h2 style={{ color: '#a78bfa', margin: '8px 0 0' }}>{stats.totalUsers.toLocaleString()} 명</h2>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.dim}>오늘 매칭 이용 횟수</div>
-              <h2 style={{ color: '#34d399', margin: '8px 0 0' }}>{stats.activeMatches} 회</h2>
-            </div>
-          </div>
-
-          {/* 성별, 연령별, 지역별 이용 통계 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-            
-            {/* 성별 비율 */}
-            <div className={styles.card}>
-              <h3 style={{ marginTop: 0 }}>👫 성별 이용 비율</h3>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                <span style={{ color: '#60a5fa' }}>남성: {stats.gender.male}%</span>
-                <span style={{ color: '#f472b6' }}>여성: {stats.gender.female}%</span>
-              </div>
-              <div style={{ width: '100%', height: '14px', backgroundColor: '#f472b6', borderRadius: '7px', overflow: 'hidden', display: 'flex' }}>
-                <div style={{ width: `${stats.gender.male}%`, backgroundColor: '#60a5fa', height: '100%' }}></div>
-              </div>
-            </div>
-
-            {/* 연령별 이용 현황 */}
-            <div className={styles.card}>
-              <h3 style={{ marginTop: 0 }}>🎂 연령별 이용 현황</h3>
-              {stats.age.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #2a2a34', fontSize: '0.9rem' }}>
-                  <span>{item.label}</span>
-                  <strong style={{ color: '#a78bfa' }}>{item.count}</strong>
-                </div>
-              ))}
-            </div>
-
-            {/* 지역별 이용 현황 */}
-            <div className={styles.card}>
-              <h3 style={{ marginTop: 0 }}>📍 지역별 이용 현황</h3>
-              {stats.region.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #2a2a34', fontSize: '0.9rem' }}>
-                  <span>{item.name}</span>
-                  <strong style={{ color: '#38bdf8' }}>{item.percent}</strong>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </div>
-      )}
-
+       
       {/* =========================================================
           탭 2. [A001] 회원 및 블랙리스트 관리
       ========================================================= */}
