@@ -163,6 +163,7 @@ function AdminDashboard() {
                     <p className={styles.basis}>이용자 = 그 주에 출석체크한 회원 (관리자 제외) · 월~일 기준</p>
                 </div>
                 <nav className={styles.adminLinks}>
+                    <Link to="/admin/manage">👥 회원 · 금칙어 · 사진 심사</Link>
                     <Link to="/admin/reports">🛡️ 신고 · 블랙리스트</Link>
                     <Link to="/admin/live">📡 라이브 관리</Link>
                 </nav>
