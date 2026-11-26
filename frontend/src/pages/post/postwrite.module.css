@@ -293,3 +293,29 @@
     background: rgba(239, 68, 68, 0.15);
     color: var(--danger);
 }
+
+
+/* ==========================================================================
+   BUMBLE STYLE POSTWRITE OVERRIDES
+   ========================================================================== */
+.writeCard { border: 0; box-shadow: none; border-radius: 32px; }
+.writeCardHeader h2 { color: var(--ink); font-weight: 900; }
+.selectBox, .writeInput, .writeTextarea { color: var(--ink); border-radius: 18px; }
+.writeInput:focus, .writeTextarea:focus { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey); }
+.writeBtn { background: var(--ink); color: var(--cream); border-radius: 9999px; box-shadow: none; font-weight: 800; }
+.writeBtn:hover { background: var(--honey); color: var(--ink); opacity: 1; }
+.cancelBtn { background: #ffffff; border: 0; border-radius: 9999px; color: var(--ink); font-weight: 800; }
+.cancelBtn:hover { background: var(--sand-hover); color: var(--ink); }
+.uploadZone {
+    background: #ffffff;
+    border: 2px dashed #d9cfb5;
+    border-radius: 22px;
+}
+.uploadZone:hover:not(:disabled) {
+    border-color: var(--honey);
+    background: #fff8dc;
+    box-shadow: none;
+}
+.uploadMain { color: var(--ink); }
+.fileItem { border-radius: 16px; }
+.fileIconBox { background: var(--honey); color: var(--ink); }

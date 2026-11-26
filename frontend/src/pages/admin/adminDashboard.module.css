@@ -146,3 +146,19 @@
     .kpiCard { padding: 12px 14px; }
     .kpiValue { font-size: 1.5rem; }
 }
+
+/* ==========================================================================
+   BUMBLE STYLE ADMIN DASHBOARD OVERRIDES
+   ========================================================================== */
+.adminLinks a {
+    border: 0;
+    background: var(--sand);
+    color: var(--ink);
+    font-weight: 700;
+}
+.adminLinks a:hover { background: var(--honey); }
+.weekBtn { border: 0; font-weight: 700; }
+.weekBtn:hover:not(:disabled) { background: var(--honey); }
+.weekBtnGhost { background: var(--honey); border: 0; color: var(--ink); font-weight: 800; }
+.badge { background: var(--honey); color: var(--ink); font-weight: 800; }
+.kpiCard, .chartCard { border: 0; border-radius: 24px; background: var(--sand); }

@@ -209,10 +209,6 @@ function Layout() {
     return () => client.deactivate();
   }, [token, memberSeq, refreshNotifications]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => prev === 'light' ? 'dark' : 'light');
-  };
-
   // 알림 하나를 읽음 처리한 뒤 목록과 개수를 갱신합니다.
   const markRead = async (notificationSeq) => {
     await Client.post(`/api/notifications/${notificationSeq}/read`);
@@ -302,7 +298,7 @@ function Layout() {
     .filter((item) => !hiddenNotificationIds.includes(item.notification_seq ?? item.notificationSeq));
 
   return (
-    <div className={styles.appContainer}>
+    <div className={`${styles.appContainer} ${location.pathname === '/' ? styles.homeMode : ''}`}>
       {/* 
         상단바 2개를 같은 한 열에 배치하는 헤더 행
         - 좌측: 메인 네비게이션 상단바 (하단 매칭 모드 선택과 동일한 왼쪽 정렬)
@@ -313,12 +309,11 @@ function Layout() {
         {/* ================= 1. 원래 있던 상단바 ================= */}
         <header className={`${styles.header} ${isAuthPage ? styles.headerLogin : ''}`}>
           <div className={styles.brandLogo} onClick={() => navigate('/')}>
-            <div className={styles.brandIcon}>🌙</div>
-            <span className={styles.brandTitle}>실루엣 (Silhouette)</span>
+            <span className={styles.brandWordmark}>Silhouette</span>
           </div>
 
           {/* 로그인/회원가입 화면에서는 메뉴 버튼들을 숨기고, 일반 화면에서만 중앙에 배치 */}
-          {!isAuthPage && (
+          {!isAuthPage && location.pathname !== '/' && (
             <nav className={styles.navLinks}>
               {token ? (
                 /* 로그인 이후: 홈, 이벤트, 게시판, 라이브, (관리자일 때 관리자 메뉴) */
@@ -329,7 +324,7 @@ function Layout() {
                   <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
                   {role === 'ROLE_ADMIN' && (
                     <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`} style={{ color: '#f87171', fontWeight: 'bold' }}>
-                      🛡️ 관리자
+                      관리자
                     </NavLink>
                   )}
                 </>
@@ -348,14 +343,6 @@ function Layout() {
           )}
 
           <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.themeToggleBtn}
-              onClick={toggleTheme}
-              title="화면 모드 전환"
-            >
-              {theme === 'light' ? '🌸 라이트 모드' : '🌙 다크 모드'}
-            </button>
           </div>
         </header>
 
@@ -384,7 +371,7 @@ function Layout() {
                 onClick={openNotifications}
                 aria-label="알림 열기"
               >
-                🔔
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.bellIcon}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
                 {unreadCount > 0 && (
                   <span className={styles.notificationCount}>
                     {unreadCount > 99 ? '99+' : unreadCount}

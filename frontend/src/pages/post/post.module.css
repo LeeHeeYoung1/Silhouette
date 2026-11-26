@@ -1,37 +1,31 @@
 /* =========================================================
-   실루엣 게시판 공통 레이아웃 스타일 (Post) - 담당: 권형석
-   - 전체 컨테이너 / CSS 변수 / 상단 헤더 / 메인 탭
-   - 하위 페이지 스타일은 각 페이지 전용 파일 사용
-     · postlist.module.css   (목록, FAQ, Q&A)
-     · postdetail.module.css (상세, 댓글/대댓글)
-     · postwrite.module.css  (새 글 작성, 첨부파일)
-   - 아래 CSS 변수(--bg-card 등)는 .postContainer 안에서 렌더링되는
-     모든 하위 페이지에 상속되므로 각 모듈에서 그대로 var()로 사용 가능
+   실루엣 게시판 공통 레이아웃 스타일 (Post) — Bumble 에디토리얼 스타일
    ========================================================= */
 
 .postContainer {
-    --bg-body: #0b0a13;
-    --bg-card: #171528;
-    --bg-card-sub: #1f1c35;
-    --bg-input: #100e1c;
-    --primary: #9333ea;
-    --primary-light: #a855f7;
-    --primary-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-    --primary-soft: rgba(168, 85, 247, 0.12);
-    --secondary: #ec4899;
-    --text-main: #f9fafb;
-    --text-sub: #a1a1aa;
-    --text-dim: #71717a;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(168, 85, 247, 0.45);
-    --danger: #ef4444;
-    --success: #10b981;
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
+    --bg-body: #fffdf6;
+    --bg-card: #f7f3e6;
+    --bg-card-sub: #ffffff;
+    --bg-input: #ffffff;
+    --primary: #22201e;
+    --primary-light: #22201e;
+    --primary-gradient: linear-gradient(#22201e, #22201e);
+    --primary-soft: #ffd34e;
+    --secondary: #22201e;
+    --text-main: #22201e;
+    --text-sub: #5c5549;
+    --text-dim: #8a8173;
+    --border: #e7e0ce;
+    --border-hover: #22201e;
+    --danger: #d64545;
+    --success: #1f9d6b;
+    --radius-sm: 14px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
 
     background-color: var(--bg-body);
     color: var(--text-main);
+    width: 100%;
     min-height: 100vh;
     padding: 32px 24px 60px;
     box-sizing: border-box;
@@ -46,64 +40,60 @@
     gap: 24px;
 }
 
-/* 상단 헤더 & 타이틀 */
 .headerSection {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 32px 36px;
+    border-radius: 32px;
+    background: var(--honey);
 }
 
 .titleArea h1 {
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin: 0 0 8px 0;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    margin: 0 0 6px 0;
     display: flex;
     align-items: center;
     gap: 12px;
-    background: linear-gradient(135deg, #fff 40%, #d8b4fe 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--ink);
     cursor: pointer;
 }
 
 .titleArea p {
-    font-size: 0.9rem;
-    color: var(--text-sub);
+    font-size: 0.92rem;
+    color: rgba(34, 32, 30, 0.8);
     margin: 0;
 }
 
-/* 메인 탭 (자유게시판 / 공지사항 / FAQ / Q&A) */
 .tabNav {
     display: flex;
-    gap: 10px;
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 2px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .tabBtn {
-    background: none;
+    background: var(--sand);
     border: none;
     color: var(--text-sub);
-    font-size: 1.05rem;
-    font-weight: 700;
-    padding: 12px 20px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    padding: 12px 22px;
     cursor: pointer;
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border-radius: 9999px;
     transition: all 0.2s;
-    position: relative;
     text-decoration: none;
     display: inline-block;
 }
 
 .tabBtn:hover {
-    color: #fff;
+    background: var(--sand-hover);
+    color: var(--ink);
 }
 
-.tabBtnActive {
-    color: #c084fc;
-    border-bottom: 3px solid #a855f7;
-    margin-bottom: -2px;
+.tabBtnActive,
+.tabBtnActive:hover {
+    background: var(--ink);
+    color: var(--cream);
 }

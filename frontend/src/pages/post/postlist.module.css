@@ -347,3 +347,62 @@
     font-size: 2rem;
     color: rgba(168, 85, 247, 0.4);
 }
+
+
+/* ==========================================================================
+   BUMBLE STYLE POSTLIST OVERRIDES
+   ========================================================================== */
+.writeBtn {
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 9999px;
+    box-shadow: none;
+    font-weight: 800;
+}
+.writeBtn:hover { background: var(--honey); color: var(--ink); opacity: 1; }
+.categoryChip {
+    background: var(--sand);
+    border: 0;
+    color: var(--text-sub);
+    font-weight: 700;
+    border-radius: 9999px;
+}
+.categoryChip:hover { background: var(--sand-hover); color: var(--ink); }
+.categoryChipActive {
+    background: var(--honey);
+    color: var(--ink);
+    border: 0;
+    font-weight: 800;
+}
+.searchSection { border: 0; border-radius: 24px; }
+.selectBox, .searchInput {
+    color: var(--ink);
+    border-radius: 9999px;
+}
+.searchBtn {
+    background: var(--ink);
+    color: var(--cream);
+    border: 0;
+    border-radius: 9999px;
+    font-weight: 800;
+}
+.searchBtn:hover { background: var(--honey); color: var(--ink); }
+.tableContainer { border: 0; box-shadow: none; border-radius: 28px; }
+.postTable th { background: var(--sand-hover); color: var(--ink); font-weight: 800; border-bottom: 1px solid var(--hairline); }
+.postTable td { border-bottom: 1px solid var(--hairline); color: var(--ink); }
+.postTable tr:hover td { background: #ffffff; }
+.noticeRow td { background: #fff8dc; }
+.noticeBadge { background: var(--ink); color: var(--honey); border: 0; border-radius: 9999px; padding: 3px 10px; }
+.categoryBadge { background: var(--honey); color: var(--ink); border: 0; border-radius: 9999px; padding: 3px 10px; font-weight: 800; }
+.secretBadge { color: var(--ink); }
+.answerPending { background: #fff1c2; color: var(--ink); border: 0; border-radius: 9999px; padding: 3px 10px; }
+.answerDone { background: var(--honey); color: var(--ink); border: 0; border-radius: 9999px; padding: 3px 10px; }
+.postTitle:hover { color: var(--text-sub); }
+.commentCount { color: var(--ink); background: var(--honey); padding: 1px 8px; border-radius: 9999px; font-size: 0.75rem; }
+.pageBtn { border-radius: 9999px; border: 0; background: var(--sand); color: var(--ink); font-weight: 700; }
+.pageBtn:hover { background: var(--sand-hover); color: var(--ink); }
+.pageBtnActive { background: var(--ink); color: var(--cream); box-shadow: none; }
+.faqItem { border: 0; border-radius: 22px; }
+.faqQuestion { color: var(--ink); }
+.faqQMark { color: var(--ink); }
+.emptyState i { color: var(--ink); }

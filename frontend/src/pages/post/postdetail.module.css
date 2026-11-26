@@ -525,3 +525,56 @@
 .emptyBackBtn {
     margin-top: 14px;
 }
+
+/* ==========================================================================
+   BUMBLE STYLE POSTDETAIL OVERRIDES
+   ========================================================================== */
+.detailCard { border: 0; box-shadow: none; border-radius: 32px; }
+.categoryBadge { background: var(--honey); color: var(--ink); border: 0; border-radius: 9999px; padding: 4px 12px; font-weight: 800; }
+.detailTitle { color: var(--ink); font-weight: 900; letter-spacing: -0.03em; }
+.detailMeta strong { color: var(--ink); }
+.recommendStrong { color: var(--ink) !important; font-weight: 800; }
+.writerLink:hover { color: var(--ink) !important; }
+.attachedFileBox { color: var(--ink); border-radius: 18px; }
+.attachedFileLink:hover { color: var(--text-sub); }
+.likeBtn {
+    background: #ffffff;
+    border: 0;
+    color: var(--ink);
+    border-radius: 9999px;
+    font-weight: 800;
+}
+.likeBtn:hover, .likeBtnActive {
+    background: var(--honey);
+    color: var(--ink);
+    box-shadow: none;
+}
+.backToListBtn {
+    background: #ffffff;
+    border: 0;
+    border-radius: 9999px;
+    color: var(--ink);
+    font-weight: 800;
+}
+.backToListBtn:hover { background: var(--honey); color: var(--ink); }
+.deletePostBtn {
+    background: #fdecea;
+    border: 0;
+    border-radius: 9999px;
+    color: #b42318;
+    font-weight: 800;
+}
+.deletePostBtn:hover { background: #f9d7d3; }
+.commentTitle { color: var(--ink); font-weight: 800; }
+.commentItem { background: #ffffff; border-radius: 20px; }
+.replyItem { background: #fff8dc; border-left: 4px solid var(--honey); }
+.commentAuthor { color: var(--ink); font-weight: 800; }
+.myBadge { background: var(--honey); color: var(--ink); border: 0; border-radius: 9999px; padding: 2px 8px; }
+.commentActionLink:hover { color: var(--ink); font-weight: 700; }
+.commentInput { color: var(--ink); border-radius: 9999px; }
+.commentInput:focus { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey); }
+.commentSubmitBtn { background: var(--ink); color: var(--cream); border-radius: 9999px; font-weight: 800; }
+.commentSubmitBtn:hover:not(:disabled) { background: var(--honey); color: var(--ink); }
+.editTextarea { background: #ffffff; color: var(--ink); border-radius: 16px; border-color: var(--honey); }
+.editCancelBtn { border-radius: 9999px; border: 0; background: var(--sand); font-weight: 700; }
+.editSaveBtn { border-radius: 9999px; background: var(--ink); color: var(--cream); font-weight: 800; }

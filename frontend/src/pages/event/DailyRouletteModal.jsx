@@ -4,12 +4,12 @@ import styles from './event.module.css';
 
 // 룰렛 칸 6개 데이터 (백엔드 보상: 10, 20, 30, 50, 100M과 100% 일치)
 const ROULETTE_SECTORS = [
-  { reward: 10, label: '10M', color: '#ff7597' },
-  { reward: 30, label: '30M', color: '#5e9bf7' },
-  { reward: 20, label: '20M', color: '#f7b267' },
-  { reward: 50, label: '50M', color: '#9b87f5' },
-  { reward: 10, label: '10M', color: '#34d399' },
-  { reward: 100, label: '100M', color: '#f6c445' },
+  { reward: 10, label: '10M', color: '#ffd34e' },
+  { reward: 30, label: '30M', color: '#22201e' },
+  { reward: 20, label: '20M', color: '#ffe074' },
+  { reward: 50, label: '50M', color: '#383531' },
+  { reward: 10, label: '10M', color: '#ffd34e' },
+  { reward: 100, label: '100M', color: '#22201e' },
 ];
 
 const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
@@ -121,8 +121,8 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
     >
       <div
         style={{
-          background: 'var(--card-bg, #1c1f38)',
-          border: '1px solid var(--card-border, rgba(255,255,255,0.2))',
+          background: 'var(--cream, #fffdf6)',
+          border: '1px solid var(--hairline, #e7e0ce)',
           borderRadius: '24px',
           padding: '32px 24px',
           maxWidth: '430px',
@@ -139,9 +139,9 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
             display: 'inline-block',
             fontSize: '12px',
             fontWeight: 700,
-            color: '#f47b9d',
-            background: 'rgba(244, 123, 157, 0.15)',
-            border: '1px solid rgba(244, 123, 157, 0.35)',
+            color: '#22201e',
+            background: '#ffd34e',
+            border: 'none',
             padding: '4px 12px',
             borderRadius: '9999px',
             marginBottom: '10px',
@@ -172,7 +172,7 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
               height: 0,
               borderLeft: '13px solid transparent',
               borderRight: '13px solid transparent',
-              borderTop: '22px solid #ff4b72',
+              borderTop: '22px solid #22201e',
               filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.6))',
             }}
           />
@@ -244,7 +244,7 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
               cy={cy}
               r={radius}
               fill="none"
-              stroke="#f47b9d"
+              stroke="#22201e"
               strokeWidth="5"
             />
           </svg>
@@ -259,8 +259,8 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
               width: '74px',
               height: '74px',
               borderRadius: '50%',
-              background: '#181a30',
-              border: '3px solid #f47b9d',
+              background: '#22201e',
+              border: '3px solid #ffd34e',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -279,8 +279,8 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
         {winResult && (
           <div
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              background: '#f7f3e6',
+              border: '1px solid #e7e0ce',
               padding: '16px',
               borderRadius: '16px',
               marginBottom: '18px',

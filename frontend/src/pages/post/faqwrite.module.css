@@ -1,48 +1,30 @@
-/* FAQ 작성 · 수정 - 다크 테마, 색 직접 지정 */
+/* FAQ 작성 · 수정 — Bumble 스타일 */
 .card {
-    --fw-accent: #a78bfa;
-    --fw-bg: #1b1b22;
-    --fw-input: #24242d;
-    --fw-border: #33333f;
-    --fw-text: #f3f3f7;
-    --fw-sub: #a9a9b8;
+    --fw-accent: #22201e;
+    --fw-bg: #f7f3e6;
+    --fw-input: #ffffff;
+    --fw-border: #e7e0ce;
+    --fw-text: #22201e;
+    --fw-sub: #5c5549;
     max-width: 760px;
     margin: 0 auto;
-    padding: 28px;
-    border-radius: 16px;
-    border: 1px solid var(--fw-border);
+    padding: 36px;
+    border-radius: 32px;
+    border: 0;
     background: var(--fw-bg);
     color: var(--fw-text);
 }
 
-.title {
-    margin: 0 0 24px;
-    font-size: 22px;
-    font-weight: 800;
-}
-
-.field {
-    flex: 1;
-    margin-bottom: 20px;
-}
-.label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--fw-text);
-}
-.hint {
-    margin: 6px 0 0;
-    font-size: 13px;
-    color: var(--fw-sub);
-}
+.title { margin: 0 0 24px; font-size: 24px; font-weight: 900; letter-spacing: -0.03em; }
+.field { flex: 1; margin-bottom: 20px; }
+.label { display: block; margin-bottom: 8px; font-size: 15px; font-weight: 800; color: var(--fw-text); }
+.hint { margin: 6px 0 0; font-size: 13px; color: var(--fw-sub); }
 
 .input, .textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 12px 14px;
-    border-radius: 10px;
+    padding: 13px 16px;
+    border-radius: 18px;
     border: 1px solid var(--fw-border);
     background: var(--fw-input);
     color: var(--fw-text);
@@ -50,42 +32,28 @@
     font-family: inherit;
     outline: none;
 }
-.input::placeholder, .textarea::placeholder { color: #7d7d8c; }
-.input:focus, .textarea:focus { border-color: var(--fw-accent); }
+.input::placeholder, .textarea::placeholder { color: #8a8173; }
+.input:focus, .textarea:focus { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey); }
 .textarea { resize: vertical; line-height: 1.6; }
 
-.counter {
-    margin: 6px 0 0;
-    text-align: right;
-    font-size: 13px;
-    color: var(--fw-sub);
-}
-
-.row {
-    display: flex;
-    gap: 16px;
-}
-
-.chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
+.counter { margin: 6px 0 0; text-align: right; font-size: 13px; color: var(--fw-sub); }
+.row { display: flex; gap: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
     padding: 8px 16px;
     border-radius: 999px;
-    border: 1px solid var(--fw-border);
+    border: 0;
     background: var(--fw-input);
     color: var(--fw-sub);
     font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
 }
-.chip:hover { color: var(--fw-text); border-color: var(--fw-accent); }
+.chip:hover { background: #fff1c2; color: var(--ink); }
 .chipActive {
-    background: var(--fw-accent);
-    border-color: var(--fw-accent);
-    color: #15131c;
-    font-weight: 700;
+    background: var(--honey);
+    color: var(--ink);
+    font-weight: 800;
 }
 
 .checkLabel {
@@ -95,52 +63,35 @@
     padding: 12px 0;
     color: var(--fw-text);
     font-size: 15px;
-    cursor: pointer;
-}
-.checkLabel input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--fw-accent);
-}
-
-.error {
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    background: #3a2323;
-    color: #ffb4b4;
-    font-size: 14px;
-}
-
-.buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-.cancelBtn, .submitBtn {
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
 }
-.cancelBtn {
-    border: 1px solid var(--fw-border);
-    background: transparent;
-    color: var(--fw-sub);
-}
-.submitBtn {
-    border: none;
-    background: var(--fw-accent);
-    color: #15131c;
-}
-.cancelBtn:disabled, .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.checkLabel input { width: 18px; height: 18px; accent-color: var(--ink); }
 
-.notice {
-    padding: 40px 0;
-    text-align: center;
-    color: var(--fw-sub);
+.error {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: #fdecea;
+    color: #b42318;
+    font-size: 14px;
+    font-weight: 700;
 }
+
+.buttons { display: flex; justify-content: flex-end; gap: 10px; }
+.cancelBtn, .submitBtn {
+    padding: 12px 24px;
+    border-radius: 9999px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 0;
+}
+.cancelBtn { background: #ffffff; color: var(--ink); }
+.submitBtn { background: var(--ink); color: var(--cream); }
+.submitBtn:hover:not(:disabled) { background: var(--honey); color: var(--ink); }
+.cancelBtn:disabled, .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.notice { padding: 40px 0; text-align: center; color: var(--fw-sub); }
 
 @media (max-width: 600px) {
     .card { padding: 20px; }

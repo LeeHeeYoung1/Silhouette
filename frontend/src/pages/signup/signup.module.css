@@ -505,3 +505,87 @@
   line-height: 1.8;
   color: var(--text-main);
 }
+
+
+/* ==========================================================================
+   BUMBLE STYLE SIGNUP OVERRIDES
+   ========================================================================== */
+.card {
+  background: var(--sand);
+  border: 0;
+  border-radius: 32px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.stepItem.active .stepCircle {
+  background: var(--honey);
+  border-color: var(--honey);
+  color: var(--ink);
+  box-shadow: none;
+}
+.stepItem.completed .stepCircle {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+}
+.stepItem.active .stepLabel { color: var(--ink); font-weight: 800; }
+.input, .select {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+}
+.input:focus, .select:focus {
+  border-color: var(--honey);
+  box-shadow: 0 0 0 2px var(--honey);
+}
+.btnPrimary {
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 9999px;
+  box-shadow: none;
+  font-weight: 800;
+}
+.btnPrimary:hover:not(:disabled) {
+  background: var(--honey);
+  color: var(--ink);
+  box-shadow: none;
+}
+.btnSecondary {
+  background: var(--honey);
+  border: 0;
+  border-radius: 16px;
+  color: var(--ink);
+  font-weight: 800;
+}
+.btnSecondary:hover { background: var(--honey-bright); color: var(--ink); }
+.btnOutline {
+  background: #ffffff;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink);
+  font-weight: 800;
+}
+.btnOutline:hover { background: var(--sand-hover); color: var(--ink); }
+.allAgreeCard {
+  background: #fff1c2;
+  border: 0;
+  border-radius: 20px;
+}
+.allAgreeTitle { color: var(--ink); font-weight: 800; }
+.termsCard { background: #ffffff; border: 0; border-radius: 20px; }
+.termsCheckboxWrap input[type="checkbox"]:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.termsCheckboxWrap input[type="checkbox"]:checked::after { color: var(--honey); }
+.termsTagReq { background: var(--honey); color: var(--ink); }
+.termsTagOpt { background: var(--sand); color: var(--text-sub); }
+.successIconWrap {
+  background: var(--honey);
+  border: 0;
+  color: var(--ink);
+  box-shadow: none;
+}
+.summaryCard { background: #ffffff; border: 0; border-radius: 20px; }
+.summaryCardTitle { color: var(--ink); }

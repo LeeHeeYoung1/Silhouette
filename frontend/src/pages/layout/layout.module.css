@@ -123,7 +123,7 @@
   object-fit: cover;
   flex-shrink: 0;
   border: 1.5px solid var(--accent-pink);
-  box-shadow: 0 0 8px rgba(244, 123, 157, 0.3);
+  box-shadow: 0 0 8px rgba(255, 211, 78, 0.3);
 }
 
 .userNickname {
@@ -186,7 +186,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(244, 123, 157, 0.45);
+  box-shadow: 0 0 20px rgba(255, 211, 78, 0.45);
   font-size: 17px;
   animation: heartFlutter 3.2s infinite ease-in-out;
 }
@@ -252,7 +252,7 @@
   background: var(--primary-gradient);
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 16px rgba(244, 123, 157, 0.35);
+  box-shadow: 0 4px 16px rgba(255, 211, 78, 0.35);
 }
 
 .themeToggleBtn {
@@ -406,7 +406,7 @@
 }
 
 .notificationUnread {
-  background: rgba(255,77,136,.055);
+  background: rgba(255, 211, 78,.055);
 }
 
 .notificationIcon {
@@ -416,7 +416,7 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: rgba(255,77,136,.12);
+  background: rgba(255, 211, 78,.12);
   font-size: 15px;
 }
 
@@ -484,7 +484,7 @@
   flex-shrink: 0;
   margin-top: 5px;
   border-radius: 50%;
-  background: #ff4d88;
+  background: #ffd34e;
 }
 
 /* 알림 하나만 화면에서 숨기는 X 버튼 */
@@ -507,8 +507,8 @@
 }
 
 .notificationDelete:hover {
-  background: rgba(255, 77, 136, 0.12);
-  color: #ff4d88;
+  background: rgba(255, 211, 78, 0.12);
+  color: #22201e;
 }
 
 /* 화면 폭이 줄어들면(하단 친구목록 사이드바가 내려가는 1100px 분기점) 상단 메뉴도 단을 맞춥니다. */
@@ -553,3 +553,100 @@
   }
 }
  
+
+/* ==========================================================================
+   BUMBLE STYLE HEADER (맨 아래에서 기존 헤더 스타일을 덮어씁니다)
+   ========================================================================== */
+.appContainer { padding-top: 24px; background: transparent; }
+.appContainer::before { display: none; }
+
+/* 홈: 헤더 + 히어로 뒤에 깔리는 허니 옐로 띠 */
+.homeMode::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 650px;
+  background: var(--honey);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.headerRow { margin-bottom: 8px; }
+
+.header {
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.brandLogo { flex: 1; }
+.brandWordmark {
+  font-family: 'Archivo Black', 'Pretendard', sans-serif;
+  font-size: 26px;
+  letter-spacing: -0.05em;
+  color: var(--ink);
+}
+
+.headerRight { flex: 1; justify-content: flex-end; }
+
+.navLinks {
+  flex: 0 0 auto;
+  margin: 0;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(34, 32, 30, 0.06);
+}
+.navBtn {
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.navBtn:hover { background: var(--sand); color: var(--ink); border-color: transparent; transform: none; }
+.navBtnActive,
+.navBtnActive:hover { background: var(--ink); color: var(--cream) !important; border: 0; box-shadow: none; }
+
+.userBar {
+  flex: 0 0 auto;
+  width: auto;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 2px 8px rgba(34, 32, 30, 0.06);
+}
+.userProfileGroup:hover { background: var(--sand); }
+.userAvatar { border: 0; box-shadow: none; }
+.userNickname { font-weight: 800; }
+.userActionBtn {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-weight: 800;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.userActionBtn:hover { background: var(--sand); color: var(--ink); border: 0; transform: none; }
+.logoutBtn { color: var(--text-sub); }
+.logoutBtn:hover { background: var(--ink); color: var(--cream); border: 0; }
+
+.notificationBell { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--sand); box-shadow: none; }
+.notificationBell:hover { background: var(--honey); border: 0; transform: none; }
+.bellIcon { width: 17px; height: 17px; }
+.notificationCount { background: var(--ink); color: var(--honey); border-color: #fff; }

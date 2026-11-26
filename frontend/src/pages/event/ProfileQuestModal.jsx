@@ -115,8 +115,8 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
     >
       <div
         style={{
-          background: 'var(--card-bg, #1c1f38)',
-          border: '1px solid var(--card-border, rgba(255,255,255,0.2))',
+          background: 'var(--cream, #fffdf6)',
+          border: '1px solid var(--hairline, #e7e0ce)',
           borderRadius: '24px',
           padding: '32px 24px',
           maxWidth: '440px',
@@ -132,9 +132,9 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
               display: 'inline-block',
               fontSize: '12px',
               fontWeight: 700,
-              color: '#34d399',
-              background: 'rgba(52, 211, 153, 0.15)',
-              border: '1px solid rgba(52, 211, 153, 0.35)',
+              color: '#22201e',
+              background: '#ffd34e',
+              border: 'none',
               padding: '4px 12px',
               borderRadius: '9999px',
               marginBottom: '10px',
@@ -155,16 +155,16 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
         <div style={{ marginBottom: '22px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
             <span style={{ color: 'var(--text-sub, #c8d0e7)' }}>전체 퀘스트 달성률</span>
-            <span style={{ color: '#f47b9d', fontWeight: 800 }}>
+            <span style={{ color: '#22201e', fontWeight: 800 }}>
               {completedCount} / 4 완료 ({completedCount * 25}%)
             </span>
           </div>
-          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '8px', background: '#f7f3e6', borderRadius: '10px', overflow: 'hidden' }}>
             <div
               style={{
                 width: `${completedCount * 25}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #ffa28e, #f47b9d, #9b87f5)',
+                background: '#22201e',
                 borderRadius: '10px',
                 transition: 'width 0.4s ease',
               }}
@@ -181,8 +181,8 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: m.done ? 'rgba(52, 211, 153, 0.08)' : 'rgba(255, 255, 255, 0.06)',
-                border: `1px solid ${m.done ? 'rgba(52, 211, 153, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                background: m.done ? '#fff1c2' : '#f7f3e6',
+                border: '1px solid #e7e0ce',
                 padding: '12px 16px',
                 borderRadius: '14px',
               }}
@@ -193,7 +193,7 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
                   style={{
                     fontSize: '13.5px',
                     fontWeight: 600,
-                    color: m.done ? '#34d399' : 'var(--text-main, #f8faff)',
+                    color: '#22201e',
                     textDecoration: m.done ? 'line-through' : 'none',
                   }}
                 >
@@ -208,9 +208,9 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
                     navi(m.link);
                   }}
                   style={{
-                    background: 'rgba(244, 123, 157, 0.15)',
-                    color: '#f47b9d',
-                    border: '1px solid rgba(244, 123, 157, 0.35)',
+                    background: '#ffd34e',
+                    color: '#22201e',
+                    border: 'none',
                     borderRadius: '8px',
                     padding: '4px 10px',
                     fontSize: '12px',
