@@ -52,8 +52,7 @@ public class ChatbotService {
         }
 
         List<ChatbotDTO> knowledgeList = chatbotDAO.searchChatbot(keywords);
-        System.out.println("검색 키워드: " + keywords + " / 결과 " + (knowledgeList == null ? 0 : knowledgeList.size()) + "건");
-
+        
         // 재작성 검색 결과가 없으면 현재 질문 키워드로 한 번 더 검색
         if ((knowledgeList == null || knowledgeList.isEmpty())
                 && !searchQuestion.equals(question)) {
