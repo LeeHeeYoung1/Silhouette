@@ -8,7 +8,7 @@
   align-items: center;
   padding: 30px 16px 50px;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* 은은한 배경 오로라 */
