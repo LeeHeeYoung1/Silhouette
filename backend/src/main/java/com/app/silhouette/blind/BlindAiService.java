@@ -29,7 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
  *  - 사용자가 👻 버튼을 눌렀을 때만 호출 (자동 호출 X)
  *  - 최근 대화를 "나 / 상대"로만 구분해서 전달 (아이디·닉네임 등은 보내지 않음)
  *  - 서로 다른 톤 3개: EMPATHY(공감) / QUESTION(질문) / HUMOR(유머)
- *  - 호출 제한: 같은 방에서 5초에 1번, 최대 10번 / 응답 8초 넘으면 실패 처리
+ *  - 호출 제한: 같은 방에서 5초에 1번, 최대 10번 / 응답 15초 넘으면 실패 처리
  *  - API 키가 없으면(spring.ai.model.chat=none) 서버는 정상 실행되고 이 기능만 "준비 중"
  *  - 생성한 추천은 AI_REPLY_SUGGESTION에 저장, 골라서 보내면 SELECTED_YN='Y'
  */
@@ -40,7 +40,7 @@ public class BlindAiService {
 
     private static final long COOLDOWN_MS = 5_000;
     private static final int MAX_PER_ROOM = 10;
-    private static final long TIMEOUT_SECONDS = 8;
+    private static final long TIMEOUT_SECONDS = 15;     // 최신 Gemini 모델은 8초를 자주 넘김
     private static final int CONTEXT_MESSAGES = 10;      // 프롬프트에 넣을 최근 메시지 수
     private static final int CONTEXT_MESSAGE_MAX = 200;  // 메시지 하나당 최대 글자
     private static final int SUGGESTION_MAX = 60;        // 추천 한 개 최대 글자 (넘으면 자름)
