@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,10 +15,10 @@ public class ChatbotService {
     @Autowired
     private ChatbotDAO chatbotDAO;
 
-    private final ChatClient chatClient;
+    private final AiCaller aiCaller;
 
-    public ChatbotService(ChatClient.Builder chatClientBuilder) {
-        this.chatClient = chatClientBuilder.build();
+    public ChatbotService(AiCaller aiCaller) {
+        this.aiCaller = aiCaller;
     }
 
     public ChatbotResponseDTO chat(ChatbotRequestDTO request) {
@@ -37,8 +36,8 @@ public class ChatbotService {
 
         if (conversation == null || conversation.isBlank()) {
             conversation = "이전 대화가 없습니다.";
-        } else if (conversation.length() > 10000) {
-            conversation = conversation.substring(conversation.length() - 10000);
+        } else if (conversation.length() > 2000) {
+            conversation = conversation.substring(conversation.length() - 2000);
         }
 
         // 1. 이전 대화와 현재 질문을 함께 보고 DB 검색용 질문으로 재작성
@@ -53,7 +52,7 @@ public class ChatbotService {
         }
 
         List<ChatbotDTO> knowledgeList = chatbotDAO.searchChatbot(keywords);
-
+        
         // 재작성 검색 결과가 없으면 현재 질문 키워드로 한 번 더 검색
         if ((knowledgeList == null || knowledgeList.isEmpty())
                 && !searchQuestion.equals(question)) {
@@ -171,19 +170,9 @@ public class ChatbotService {
         String answer;
 
         try {
-            answer = chatClient.prompt()
-                    .system(systemPrompt)
-                    .user(userPrompt)
-                    .call()
-                    .content();
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "챗봇 응답을 생성하지 못했습니다. Gemini API 키와 서버 설정을 확인해 주세요.",
-                    e
-            );
+            answer = aiCaller.call(systemPrompt, userPrompt);
+        } catch (AiCaller.AiException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, e.getUserMessage(), e);
         }
 
         ChatbotResponseDTO response = new ChatbotResponseDTO();
@@ -199,27 +188,30 @@ public class ChatbotService {
             return question;
         }
 
-        try {
-            String rewritten = chatClient.prompt()
-                    .system("""
-                            너는 대화형 서비스의 검색 질문 재작성기야.
-                            이전 대화와 현재 질문을 읽고, 현재 질문이 무엇을 묻는지 파악해.
-                            현재 질문에 생략된 주제나 대상을 이전 대화에서 찾아 완전한 검색 질문 한 문장으로 바꿔.
-                            예를 들어 이전 대화 주제가 블라인드 채팅이고 현재 질문이 "어떤 식으로 진행하는 거야?"라면
-                            "실루엣의 블라인드 채팅은 어떤 절차와 방식으로 진행되는가?"로 바꿔.
-                            새로운 주제의 질문이면 이전 주제를 억지로 붙이지 마.
-                            검색에 필요한 핵심 명사와 조건을 유지해.
-                            설명, 인사, 따옴표 없이 재작성한 질문만 출력해.
-                            """)
-                    .user("""
-                            [이전 대화]
-                            %s
+        // 질문이 길면 주어가 생략된 후속 질문이 아니므로 재작성(AI 호출)을 생략
+        if (question.length() >= 15) {
+            return question;
+        }
 
-                            [현재 질문]
-                            %s
-                            """.formatted(conversation, question))
-                    .call()
-                    .content();
+        try {
+            String rewritten = aiCaller.call(
+                    """
+                    너는 대화형 서비스의 검색 질문 재작성기야.
+                    이전 대화와 현재 질문을 읽고, 현재 질문이 무엇을 묻는지 파악해.
+                    현재 질문에 생략된 주제나 대상을 이전 대화에서 찾아 완전한 검색 질문 한 문장으로 바꿔.
+                    예를 들어 이전 대화 주제가 블라인드 채팅이고 현재 질문이 "어떤 식으로 진행하는 거야?"라면
+                    "실루엣의 블라인드 채팅은 어떤 절차와 방식으로 진행되는가?"로 바꿔.
+                    새로운 주제의 질문이면 이전 주제를 억지로 붙이지 마.
+                    검색에 필요한 핵심 명사와 조건을 유지해.
+                    설명, 인사, 따옴표 없이 재작성한 질문만 출력해.
+                    """,
+                    """
+                    [이전 대화]
+                    %s
+
+                    [현재 질문]
+                    %s
+                    """.formatted(conversation, question));
 
             if (rewritten == null || rewritten.isBlank()) {
                 return question;
@@ -236,6 +228,22 @@ public class ChatbotService {
         }
     }
 
+    // 조사·어미 목록 (긴 것부터 검사)
+    private static final String[] SUFFIXES = {
+            "하고싶어", "에서는", "으로는", "이라고", "이라는", "입니다", "인가요", "하려면", "하나요", "이에요",
+            "에서", "으로", "에게", "한테", "까지", "부터", "하고", "하는", "하면", "예요", "에요", "나요",
+            "은", "는", "이", "가", "을", "를", "의", "에", "와", "과", "도", "로", "요"
+    };
+
+    private String stripSuffix(String word) {
+        for (String s : SUFFIXES) {
+            if (word.endsWith(s) && word.length() - s.length() >= 2) {
+                return word.substring(0, word.length() - s.length());
+            }
+        }
+        return word;
+    }
+
     private List<String> extractKeywords(String question) {
         List<String> keywords = new ArrayList<>();
 
@@ -247,7 +255,9 @@ public class ChatbotService {
                 "실루엣", "사이트", "기능", "알려줘", "알려주세요",
                 "궁금해", "궁금합니다", "무엇", "뭐야", "무엇인가요",
                 "어떻게", "어떤", "인가요", "있나요", "해주세요",
-                "해주세요", "대한", "대해서", "관련", "그리고"
+                "대한", "대해서", "관련", "그리고",
+                "뭐예요", "뭐에요", "뭔가요", "싶어", "싶어요", "있어",
+                "되나요", "하나요", "방법", "어디서", "해줘"
         };
 
         for (String word : question.split("\\s+")) {
@@ -257,6 +267,13 @@ public class ChatbotService {
                 continue;
             }
 
+            // 조사·어미를 뗀 단어를 먼저 넣고, 원래 단어도 함께 넣음
+            String stripped = stripSuffix(keyword);
+            if (stripped.length() >= 2
+                    && !containsStopWord(stripped, stopWords)
+                    && !keywords.contains(stripped)) {
+                keywords.add(stripped);
+            }
             if (!keywords.contains(keyword)) {
                 keywords.add(keyword);
             }
