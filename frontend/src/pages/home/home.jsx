@@ -23,10 +23,10 @@ const MOCK_POPULAR_POSTS = [
 
 // 챗봇 추천 퀵 질문 칩
 const CHATBOT_QUICK_CHIPS = [
-  '📍 안전한 만남 장소 추천',
-  '🛡️ 첫 만남 안전 수칙 TOP 3',
-  '📱 연락처는 언제 교환하나요?',
-  '🎁 QR 안심 인증 혜택'
+  '📍 강남 맛집 2곳 추천해 줘',
+  '🍖 강남 고깃집 추천해 줘',
+  '🐟 홍대 횟집 추천해 줘',
+  '☕ 성수 데이트 장소 추천해 줘'
 ];
 
 // 공통 매칭 카드 컴포넌트
@@ -144,7 +144,7 @@ function Home() {
     {
       id: 1,
       sender: 'ai',
-      text: '안녕하세요! 실루엣 AI 안전 도우미입니다. 🛡️\n안전한 만남 장소, 데이트 매너, 안심 수칙 등 무엇이든 물어보세요!',
+      text: '안녕하세요! 실루엣 AI 챗봇입니다. 😊\n지역별 맛집과 데이트 장소를 추천해 드리고, 추천한 가게의 메뉴나 영업 정보에 관한 질문도 답변해 드릴게요. 다만 실시간 검색은 하지 않으므로 최신 정보는 방문 전에 확인해 주세요!',
       time: '방금 전'
     }
   ]);
@@ -763,55 +763,69 @@ function Home() {
   });
 
   // AI 챗봇 메시지 전송
-  const handleSendChatMessage = (textToSend) => {
-    const text = typeof textToSend === 'string' ? textToSend : chatInput;
+ 
+const handleSendChatMessage = async (textToSend) => {
+  const text = typeof textToSend === 'string' ? textToSend : chatInput;
 
-    if (!text.trim()) return;
+  if (!text.trim()) return;
 
-    const time = new Date().toLocaleTimeString('ko-KR', {
+  const userMessage = {
+    id: Date.now(),
+    sender: 'user',
+    text: text.trim(),
+    time: new Date().toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
+    })
+  };
+
+  const conversation = chatMessages
+    .slice(-20)
+    .map((message) => {
+      const speaker = message.sender === 'ai' ? '챗봇' : '사용자';
+      return `${speaker}: ${message.text}`;
+    })
+    .join('\n');
+
+  setChatMessages((prev) => [...prev, userMessage]);
+  setChatInput('');
+
+  try {
+    const response = await Client.post('/api/chatbot/chat', {
+      question: text.trim(),
+      conversation: conversation
     });
 
     setChatMessages((prev) => [
       ...prev,
       {
-        id: Date.now(),
-        sender: 'user',
-        text: text.trim(),
-        time
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: response.data.answer,
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
       }
     ]);
+  } catch (error) {
+    console.error('챗봇 오류:', error);
 
-    if (typeof textToSend !== 'string') {
-      setChatInput('');
-    }
-
-    setTimeout(() => {
-      let reply = `✨ 실루엣 AI: "${text.trim()}"에 대해 안내드립니다. 첫 만남에서는 서로의 안전과 존중을 최우선으로 고려해주세요.`;
-      const q = text.toLowerCase();
-
-      if (q.includes('장소') || q.includes('카페') || q.includes('어디') || q.includes('추천')) {
-        reply = '💡 [AI 추천 만남 장소]\n유동인구가 많고 조용한 프랜차이즈 북카페나 오픈형 라운지를 추천드려요. 이동이 편리한 지하철역 인근 공공장소가 가장 안전합니다.';
-      } else if (q.includes('주의') || q.includes('안전') || q.includes('조심') || q.includes('수칙')) {
-        reply = '🛡️ [첫 만남 안심 수칙 TOP 3]\n1. 첫 만남은 낮이나 초저녁 공공장소에서 진행하기\n2. 개인 연락처는 대화방에서 신뢰가 쌓인 후 공유하기\n3. 만남 장소와 귀가 시간을 지인에게 미리 공유하기';
-      } else if (q.includes('연락처') || q.includes('번호') || q.includes('카톡')) {
-        reply = '📱 [연락처 공유 가이드]\n실루엣 앱 내 안심 채팅방에서 충분히 대화를 나눈 뒤, 첫 대면 만남 이후에 연락처를 교환하는 것을 강력히 권장합니다.';
-      } else if (q.includes('인증') || q.includes('qr') || q.includes('실물') || q.includes('혜택')) {
-        reply = '🎉 [실물 및 QR 인증 혜택]\nAI 얼굴 실물 인증을 완료하시면 신뢰도 배지가 부여되며, 실제 만남 시 QR 인증을 완료하면 무료 대화권 5장이 즉시 지급됩니다!';
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: '챗봇 연결에 실패했어요. 잠시 후 다시 시도해 주세요.',
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
       }
+    ]);
+  }
+};
 
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          sender: 'ai',
-          text: reply,
-          time
-        }
-      ]);
-    }, 350);
-  };
 
   // 홈 화면 UI
   return (
@@ -1305,12 +1319,12 @@ function Home() {
       <div
         className={`${styles.chatbotFab} ${isChatOpen ? styles.chatbotFabActive : ''}`}
         onClick={() => setIsChatOpen(!isChatOpen)}
-        title="AI 안전 도우미 챗봇 열기"
+        title="AI 맛집·데이트 추천 챗봇 열기"
       >
         <span className={styles.chatbotFabIcon}>{isChatOpen ? '✕' : '🤖'}</span>
 
         {!isChatOpen && (
-          <span className={styles.chatbotFabBadge}>AI 안전</span>
+          <span className={styles.chatbotFabBadge}>AI 추천</span>
         )}
 
         <span className={styles.chatbotOnlineDot}></span>
@@ -1323,8 +1337,8 @@ function Home() {
               <div className={styles.chatbotAvatar}>🤖</div>
 
               <div>
-                <h4 className={styles.chatbotTitle}>실루엣 AI 안전 도우미</h4>
-                <span className={styles.chatbotStatus}>🟢 실시간 안전 가이드 가동 중</span>
+                <h4 className={styles.chatbotTitle}>실루엣 AI 추천 도우미</h4>
+                <span className={styles.chatbotStatus}>🟢 맛집·데이트 추천 상담</span>
               </div>
             </div>
 
@@ -1382,7 +1396,7 @@ function Home() {
             <input
               type="text"
               className={styles.chatbotInput}
-              placeholder="궁금한 안전 매너나 만남 팁을 입력하세요..."
+              placeholder="지역과 먹고 싶은 음식 또는 궁금한 가게를 입력하세요..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               autoFocus

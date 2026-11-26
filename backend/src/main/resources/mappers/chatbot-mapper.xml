@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Chatbot">
+
+    <select id="searchChatbot" parameterType="map"
+            resultType="com.app.silhouette.chatbot.ChatbotDTO">
+        select chatbot_seq,
+               question,
+               answer,
+               category,
+               activity,
+               region,
+               food
+          from (
+                select chatbot_seq,
+                       question,
+                       answer,
+                       category,
+                       activity,
+                       region,
+                       food
+                  from chatbot
+                 where
+                 <foreach collection="keywords" item="keyword"
+                          open="(" separator=" or " close=")">
+                       instr(lower(nvl(question, ' ')), lower(#{keyword})) > 0
+                    or instr(lower(nvl(answer, ' ')), lower(#{keyword})) > 0
+                    or instr(lower(nvl(category, ' ')), lower(#{keyword})) > 0
+                    or instr(lower(nvl(activity, ' ')), lower(#{keyword})) > 0
+                    or instr(lower(nvl(region, ' ')), lower(#{keyword})) > 0
+                    or instr(lower(nvl(food, ' ')), lower(#{keyword})) > 0
+                 </foreach>
+                 order by
+                 (
+                    <foreach collection="keywords" item="keyword" separator=" + ">
+                        case
+                            when instr(lower(nvl(question, ' ')), lower(#{keyword})) > 0 then 3
+                            when instr(lower(nvl(category, ' ')), lower(#{keyword})) > 0 then 2
+                            when instr(lower(nvl(activity, ' ')), lower(#{keyword})) > 0 then 2
+                            when instr(lower(nvl(answer, ' ')), lower(#{keyword})) > 0 then 1
+                            when instr(lower(nvl(region, ' ')), lower(#{keyword})) > 0 then 1
+                            when instr(lower(nvl(food, ' ')), lower(#{keyword})) > 0 then 1
+                            else 0
+                        end
+                    </foreach>
+                 ) desc,
+                 chatbot_seq desc
+               )
+         where rownum &lt; = 10
+    </select>
+
+</mapper>
+
