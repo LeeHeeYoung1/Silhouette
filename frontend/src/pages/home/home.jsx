@@ -780,7 +780,8 @@ const handleSendChatMessage = async (textToSend) => {
   };
 
   const conversation = chatMessages
-    .slice(-20)
+    .slice(1)
+    .slice(-6)
     .map((message) => {
       const speaker = message.sender === 'ai' ? '챗봇' : '사용자';
       return `${speaker}: ${message.text}`;
@@ -816,7 +817,7 @@ const handleSendChatMessage = async (textToSend) => {
       {
         id: Date.now() + 1,
         sender: 'ai',
-        text: '챗봇 연결에 실패했어요. 잠시 후 다시 시도해 주세요.',
+        text: error.response?.data?.message || '챗봇 연결에 실패했어요. 잠시 후 다시 시도해 주세요.',
         time: new Date().toLocaleTimeString([], {
           hour: '2-digit',
           minute: '2-digit'
