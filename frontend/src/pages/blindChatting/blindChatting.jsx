@@ -20,6 +20,9 @@ import styles from './blindChatting.module.css';
 
 // AI 추천 톤 → 화면 표시
 const TONE_LABELS = { EMPATHY: '공감', QUESTION: '질문', HUMOR: '유머' };
+// 서버 에러 → 화면에 보여줄 문구 (문자열이 아닌 응답(500 에러 JSON 등)은 기본 문구로)
+const errorText = (error, fallback) =>
+    typeof error?.response?.data === 'string' && error.response.data ? error.response.data : fallback;
 
 // 초 → "mm:ss"
 const formatClock = (seconds) => {
@@ -113,7 +116,7 @@ const BlindChatting = () => {
         } catch (error) {
             const status = error.response?.status;
             if (status === 403 || status === 404) {
-                alert(error.response?.data || '참여할 수 없는 대화방이에요.');
+                alert(errorText(error, '참여할 수 없는 대화방이에요.'));
                 navi('/', { replace: true });
             }
         } finally {
@@ -232,7 +235,7 @@ const BlindChatting = () => {
             setInput('');
             setChosen(null);
         } catch (error) {
-            alert(error.response?.data || '메시지를 보내지 못했어요.');
+            alert(errorText(error, '메시지를 보내지 못했어요.'));
             refresh();
         } finally {
             setBusy(false);
@@ -259,7 +262,7 @@ const BlindChatting = () => {
             const { data } = await getBlindSuggestions(roomSeq);
             setGhost({ open: true, loading: false, error: '', list: data });
         } catch (error) {
-            setGhost({ open: true, loading: false, error: error.response?.data || '추천을 불러오지 못했어요.', list: [] });
+            setGhost({ open: true, loading: false, error: errorText(error, '추천을 불러오지 못했어요.'), list: [] });
         }
     };
 
@@ -283,7 +286,7 @@ const BlindChatting = () => {
             const { data } = await voteBlind(roomSeq, 'GO');
             applyState(data);
         } catch (error) {
-            alert(error.response?.data || '선택을 저장하지 못했어요.');
+            alert(errorText(error, '선택을 저장하지 못했어요.'));
             refresh();
         } finally {
             setBusy(false);
