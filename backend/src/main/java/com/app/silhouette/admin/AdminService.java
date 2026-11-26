@@ -180,10 +180,17 @@ public class AdminService {
 		authMemberService.adminMember(authorization);
 		adminDao.updatePhotoReviewDecision(photoReviewDto);
 
-		// 심사 승인/반려 시 해당 회원의 PROFILE_IMAGE 상태도 함께 동기화
+		// 심사 승인/반려 시 해당 회원의 PROFILE_IMAGE 상태도 함께 동기화 (심사된 사진 1장 우선)
 		PhotoReviewDTO photo = adminDao.selectPhotoReviewBySeq(photoReviewDto.getPhotoReviewSeq());
 		if (photo != null && photo.getMemberSeq() != null) {
-			adminDao.updateProfileImageStatus(photo.getMemberSeq(), photoReviewDto.getStatus());
+			Long profileImageSeq = null;
+			if (photo.getPhotoUrl() != null && photo.getPhotoUrl().contains("/api/profile/image/")) {
+				try {
+					String seqStr = photo.getPhotoUrl().substring(photo.getPhotoUrl().lastIndexOf("/") + 1);
+					profileImageSeq = Long.parseLong(seqStr);
+				} catch (NumberFormatException ignored) {}
+			}
+			adminDao.updateProfileImageStatus(photo.getMemberSeq(), profileImageSeq, photoReviewDto.getStatus());
 		}
 	}
 

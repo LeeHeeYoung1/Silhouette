@@ -89,14 +89,6 @@ public class AdminMemberDTO {
 		this.admin_seq = admin_seq;
 	}
 
-	public Long getAdmin_seq() {
-		return admin_seq;
-	}
-
-	public void setAdmin_seq(Long admin_seq) {
-		this.admin_seq = admin_seq;
-	}
-
 	public String getBlacklistReason() {
 		return blacklist_reason;
 	}

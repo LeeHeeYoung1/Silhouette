@@ -183,10 +183,19 @@
         )
     </insert>
 
-    <!-- 8. 관리자 사진 승인/반려 시 회원의 PROFILE_IMAGE 상태 동기화 -->
+    <!-- 8. 관리자 사진 승인/반려 시 회원의 PROFILE_IMAGE 상태 동기화 (심사된 사진 1장 우선, 없으면 회원 전체) -->
     <update id="updateProfileImageStatus" parameterType="map">
         UPDATE PROFILE_IMAGE
         SET REVIEW_STATUS = #{status}
-        WHERE MEMBER_SEQ = #{memberSeq}
+        <where>
+            <choose>
+                <when test="profileImageSeq != null">
+                    PROFILE_IMAGE_SEQ = #{profileImageSeq}
+                </when>
+                <otherwise>
+                    MEMBER_SEQ = #{memberSeq}
+                </otherwise>
+            </choose>
+        </where>
     </update>
 </mapper>

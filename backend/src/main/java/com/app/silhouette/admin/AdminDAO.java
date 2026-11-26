@@ -83,7 +83,15 @@ public class AdminDAO {
 		return mybatis.insert("Admin.insertPhotoReview", dto);
 	}
 
+	public int updateProfileImageStatus(Long memberSeq, Long profileImageSeq, String status) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("memberSeq", memberSeq);
+		params.put("profileImageSeq", profileImageSeq);
+		params.put("status", status);
+		return mybatis.update("Admin.updateProfileImageStatus", params);
+	}
+
 	public int updateProfileImageStatus(Long memberSeq, String status) {
-		return mybatis.update("Admin.updateProfileImageStatus", Map.of("memberSeq", memberSeq, "status", status));
+		return updateProfileImageStatus(memberSeq, null, status);
 	}
 }
