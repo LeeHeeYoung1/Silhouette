@@ -33,7 +33,7 @@ spring.servlet.multipart.max-request-size=25MB
 #  - 키가 없으면 none 그대로 두세요 → 서버는 정상 실행, AI 추천 버튼만 '준비 중'
 #  - 키가 있으면 google-genai로 바꾸고 아래 두 줄 주석 해제 (키 없이 google-genai로 두면 서버가 안 켜짐)
 #  - 키는 Google AI Studio에서 발급, 절대 Git에 올리지 않기
-spring.ai.model.chat=none
+
 #spring.ai.google.genai.api-key=
 #spring.ai.google.genai.chat.options.model=gemini-2.5-flash
 
@@ -47,3 +47,8 @@ ai.server.url=
 sightengine.api.url=
 sightengine.api.user=
 sightengine.api.secret=
+
+# Gemini
+spring.ai.model.chat=google-genai
+spring.ai.google.genai.api-key=
+spring.ai.google.genai.chat.model=gemini-3.5-flash-lite
