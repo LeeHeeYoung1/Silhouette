@@ -26,11 +26,27 @@ public class MemberFriendDTO {
         this.member_friend_seq = member_friend_seq;
     }
 
+    public Long getMemberFriendSeq() {
+        return member_friend_seq;
+    }
+
+    public void setMemberFriendSeq(Long member_friend_seq) {
+        this.member_friend_seq = member_friend_seq;
+    }
+
     public Long getMember_seq() {
         return member_seq;
     }
 
     public void setMember_seq(Long member_seq) {
+        this.member_seq = member_seq;
+    }
+
+    public Long getMemberSeq() {
+        return member_seq;
+    }
+
+    public void setMemberSeq(Long member_seq) {
         this.member_seq = member_seq;
     }
 
@@ -42,11 +58,27 @@ public class MemberFriendDTO {
         this.friend_member_seq = friend_member_seq;
     }
 
+    public Long getFriendMemberSeq() {
+        return friend_member_seq;
+    }
+
+    public void setFriendMemberSeq(Long friend_member_seq) {
+        this.friend_member_seq = friend_member_seq;
+    }
+
     public String getFriend_status() {
         return friend_status;
     }
 
     public void setFriend_status(String friend_status) {
+        this.friend_status = friend_status;
+    }
+
+    public String getFriendStatus() {
+        return friend_status;
+    }
+
+    public void setFriendStatus(String friend_status) {
         this.friend_status = friend_status;
     }
 
@@ -58,6 +90,14 @@ public class MemberFriendDTO {
         this.requester_member_seq = requester_member_seq;
     }
 
+    public Long getRequesterMemberSeq() {
+        return requester_member_seq;
+    }
+
+    public void setRequesterMemberSeq(Long requester_member_seq) {
+        this.requester_member_seq = requester_member_seq;
+    }
+
     public Long getRequested_member_seq() {
         return requested_member_seq;
     }
@@ -66,11 +106,27 @@ public class MemberFriendDTO {
         this.requested_member_seq = requested_member_seq;
     }
 
+    public Long getRequestedMemberSeq() {
+        return requested_member_seq;
+    }
+
+    public void setRequestedMemberSeq(Long requested_member_seq) {
+        this.requested_member_seq = requested_member_seq;
+    }
+
     public String getLogin_id() {
         return login_id;
     }
 
     public void setLogin_id(String login_id) {
+        this.login_id = login_id;
+    }
+
+    public String getLoginId() {
+        return login_id;
+    }
+
+    public void setLoginId(String login_id) {
         this.login_id = login_id;
     }
 
@@ -87,6 +143,14 @@ public class MemberFriendDTO {
     }
 
     public void setProfile_image(String profile_image) {
+        this.profile_image = profile_image;
+    }
+
+    public String getProfileImage() {
+        return profile_image;
+    }
+
+    public void setProfileImage(String profile_image) {
         this.profile_image = profile_image;
     }
 }
