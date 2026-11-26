@@ -1,65 +1,51 @@
-/* ===== 공지사항 상세 (NoticeDetail) ===== */
-
+/* ===== 공지사항 상세 (NoticeDetail) — Bumble 스타일 ===== */
 .card {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    padding: 32px;
-    border-radius: 16px;
-    background: var(--bg-card, #16161f);
-    border: 1px solid var(--border-color, rgba(168, 85, 247, 0.18));
-    color: var(--text-main, #e8e8f0);
+    padding: 36px;
+    border-radius: 32px;
+    background: var(--sand);
+    border: 0;
+    color: var(--ink);
 }
 
-.loading {
-    margin: 0;
-    padding: 40px 0;
-    text-align: center;
-    color: var(--text-dim, #8a8aa0);
-}
+.loading { margin: 0; padding: 40px 0; text-align: center; color: var(--text-muted); }
 
-/* ===== 헤더 ===== */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
     padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-bottom: 1px solid var(--hairline);
 }
 
-.headerInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-}
+.headerInfo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
 .badge {
     align-self: flex-start;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border-radius: 999px;
     font-size: 0.8rem;
-    font-weight: 600;
-    background: rgba(168, 85, 247, 0.12);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    color: #c084fc;
+    font-weight: 800;
+    background: var(--honey);
+    color: var(--ink);
 }
 
-/* 고정 공지는 핑크 강조 */
 .badgePinned {
-    background: rgba(236, 72, 153, 0.12);
-    border-color: rgba(236, 72, 153, 0.35);
-    color: #f472b6;
+    background: var(--ink);
+    color: var(--honey);
 }
 
 .title {
     margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
     line-height: 1.4;
     word-break: keep-all;
-    color: var(--text-main, #ffffff);
+    color: var(--ink);
 }
 
 .meta {
@@ -68,36 +54,23 @@
     align-items: center;
     gap: 8px;
     font-size: 0.88rem;
-    color: var(--text-dim, #8a8aa0);
+    color: var(--text-sub);
 }
 
-.meta strong {
-    color: var(--text-sub, #c8c8d8);
-    font-weight: 600;
-}
+.meta strong { color: var(--ink); font-weight: 800; }
+.dot { opacity: 0.5; }
+.edited { margin-left: 6px; font-size: 0.8rem; color: var(--text-muted); }
 
-.dot {
-    opacity: 0.5;
-}
-
-.edited {
-    margin-left: 6px;
-    font-size: 0.8rem;
-    color: var(--text-dim, #8a8aa0);
-}
-
-/* ===== 본문 ===== */
 .content {
     min-height: 200px;
     padding: 8px 4px;
     font-size: 1rem;
     line-height: 1.8;
-    white-space: pre-wrap;     /* 줄바꿈 그대로 */
+    white-space: pre-wrap;
     word-break: break-word;
-    color: var(--text-main, #e8e8f0);
+    color: var(--ink);
 }
 
-/* ===== 하단 버튼 ===== */
 .actions {
     display: flex;
     justify-content: space-between;
@@ -105,78 +78,42 @@
     flex-wrap: wrap;
     gap: 12px;
     padding-top: 20px;
-    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-top: 1px solid var(--hairline);
 }
 
-.adminButtons {
-    display: flex;
-    gap: 8px;
-}
+.adminButtons { display: flex; gap: 8px; }
 
-/* 공통 버튼 모양 */
-.listBtn,
-.editBtn,
-.deleteBtn {
+.listBtn, .editBtn, .deleteBtn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 9px 16px;
-    border-radius: 8px;
+    padding: 10px 18px;
+    border-radius: 9999px;
     font-size: 0.88rem;
-    font-weight: 600;
+    font-weight: 800;
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    border: 0;
 }
 
-.listBtn {
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
-    background: var(--bg-input, #23232f);
-    color: var(--text-sub, #c8c8d8);
-}
+.listBtn { background: #ffffff; color: var(--ink); }
+.listBtn:hover { background: var(--honey); }
+.editBtn { background: var(--honey); color: var(--ink); }
+.editBtn:hover { background: var(--honey-bright); }
+.deleteBtn { background: #fdecea; color: #b42318; }
+.deleteBtn:hover { background: #f9d7d3; }
 
-.listBtn:hover {
-    border-color: rgba(168, 85, 247, 0.5);
-    color: #c084fc;
-}
-
-.editBtn {
-    border: 1px solid rgba(168, 85, 247, 0.5);
-    background: transparent;
-    color: #c084fc;
-}
-
-.editBtn:hover {
-    background: rgba(168, 85, 247, 0.12);
-}
-
-.deleteBtn {
-    border: 1px solid rgba(239, 68, 68, 0.5);
-    background: transparent;
-    color: #f87171;
-}
-
-.deleteBtn:hover {
-    background: rgba(239, 68, 68, 0.12);
-}
-
-/* ===== 없는 공지 ===== */
 .emptyState {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 14px;
     padding: 60px 0;
-    color: var(--text-dim, #8a8aa0);
+    color: var(--text-muted);
 }
+.emptyState i { font-size: 2.4rem; color: var(--ink); }
 
-.emptyState i {
-    font-size: 2.4rem;
-    opacity: 0.6;
-}
-
-/* ===== 모바일 ===== */
 @media (max-width: 640px) {
     .card { padding: 22px 18px; }
     .header { flex-direction: column; }

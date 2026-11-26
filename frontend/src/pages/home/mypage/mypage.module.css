@@ -1,26 +1,24 @@
-
-
 .mypage {
-    --bg-body: #0b0a13;
-    --bg-header: #121020;
-    --bg-card: #171528;
-    --bg-card-sub: #1f1c35;
-    --bg-input: #100e1c;
-    --primary: #9333ea;
-    --primary-light: #a855f7;
-    --primary-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-    --primary-soft: rgba(168, 85, 247, 0.12);
-    --secondary: #ec4899;
-    --text-main: #f9fafb;
-    --text-sub: #a1a1aa;
-    --text-dim: #71717a;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(168, 85, 247, 0.45);
-    --danger: #ef4444;
-    --success: #10b981;
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
+    --bg-body: #fffdf6;
+    --bg-header: #fffdf6;
+    --bg-card: #f7f3e6;
+    --bg-card-sub: #ffffff;
+    --bg-input: #ffffff;
+    --primary: #22201e;
+    --primary-light: #22201e;
+    --primary-gradient: linear-gradient(#22201e, #22201e);
+    --primary-soft: #ffd34e;
+    --secondary: #22201e;
+    --text-main: #22201e;
+    --text-sub: #5c5549;
+    --text-dim: #8a8173;
+    --border: #e7e0ce;
+    --border-hover: #22201e;
+    --danger: #d64545;
+    --success: #1f9d6b;
+    --radius-sm: 14px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
 }
 
 /* :where() 로 감싸 우선순위를 0으로 → Font Awesome 아이콘 글꼴을 덮어쓰지 않음 */
@@ -1044,3 +1042,47 @@
 .cal-td.sun { color: #f87171; }
 .cal-td.sat { color: #93c5fd; }
 .cal-td.active.sun, .cal-td.active.sat { color: #fff; }
+
+
+/* ==========================================================================
+   BUMBLE STYLE MYPAGE OVERRIDES
+   ========================================================================== */
+.gnb { background-color: rgba(255, 253, 246, 0.95); }
+.logo, .side-nick, .card-title, .sched-card-title, .asset-chip .val, .side-asset-val { color: var(--ink); }
+.logo-icon { background: var(--honey); color: var(--ink); box-shadow: none; }
+.logo span { background: none; -webkit-text-fill-color: var(--ink); color: var(--ink); }
+.nav-link:hover, .nav-link.active { background: var(--sand); color: var(--ink); }
+.profile-sidecard, .dash-card { box-shadow: none; border: 0; }
+.avatar-img { border-color: var(--honey); box-shadow: none; }
+.badge-pill { background: var(--honey); color: var(--ink); border: 0; font-weight: 800; }
+.badge-pill.pink { background: #ffffff; color: var(--ink); border: 0; }
+.side-asset-box { border: 0; }
+.lnb-menu { border: 0; }
+.lnb-item:hover { background: #ffffff; color: var(--ink); }
+.lnb-item.active { background: var(--ink); color: var(--cream); border: 0; }
+.lnb-badge { background: var(--honey); color: var(--ink); }
+.page-title-icon, .card-title i { color: var(--ink); }
+.card-link { color: var(--ink); font-weight: 800; }
+.card-link:hover { color: var(--text-sub); }
+.info-cell { border: 1px solid var(--hairline); }
+.ideal-row, .sched-card { border-left: 4px solid var(--honey); }
+.cal-td { background: var(--sand); color: var(--ink); }
+.cal-td:hover { background: #fff1c2; color: var(--ink); }
+.cal-td.active { background: var(--ink); color: var(--cream); box-shadow: none; }
+.cal-td.has-dot::after { background: var(--honey); }
+.cal-td.today:not(.active) { border-color: var(--ink); color: var(--ink); }
+.bm-rate-badge { background: var(--honey); color: var(--ink); }
+.chat-web-item:hover { background: #fff1c2; border-color: var(--honey); }
+.chat-web-avatar { background: var(--ink); color: var(--honey); }
+.custom-table td { border-bottom: 1px solid var(--hairline); }
+.custom-table tr:hover td { background: #fffdf6; }
+.web-input { color: var(--ink); border-radius: 9999px; }
+.btn-secondary { border-radius: 9999px; font-weight: 800; }
+.btn-secondary:hover { background: var(--honey); color: var(--ink); border-color: var(--honey); }
+.btn-primary-gradient { background: var(--ink); color: var(--cream); border-radius: 9999px; box-shadow: none; }
+.btn-primary-gradient:hover { background: var(--honey); color: var(--ink); opacity: 1; }
+.btn-table-action:hover { background: var(--honey); color: var(--ink); border-color: var(--honey); }
+.modal-window { box-shadow: 0 25px 60px rgba(34, 32, 30, 0.25); }
+.mp-toast { background: var(--ink); color: var(--honey); border: 0; border-radius: 9999px; box-shadow: 0 12px 30px rgba(34, 32, 30, 0.25); }
+.empty-state { border-color: var(--hairline); }
+.empty-state i { color: var(--ink); }

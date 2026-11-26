@@ -1,24 +1,22 @@
-/* 신고 버튼 + 신고 창 - 다크 테마, 색 직접 지정 */
+/* 신고 버튼 + 신고 창 — Bumble 스타일 */
 .reportBtn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 7px 12px;
-    border-radius: 8px;
-    border: 1px solid #5b3a3a;
-    background: transparent;
-    color: #f87171;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    border: 0;
+    background: #fdecea;
+    color: #b42318;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
     white-space: nowrap;
 }
-.reportBtn:hover { background: rgba(248, 113, 113, 0.1); }
-.small { padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; }
-.done { border-color: #3a3a46; color: #8a8a99; cursor: default; }
-.done:hover { background: transparent; }
+.reportBtn:hover { background: #f9d7d3; }
+.small { padding: 4px 10px; font-size: 0.75rem; }
+.done { background: var(--sand); color: var(--text-muted); cursor: default; }
 
-/* 화면 전체를 덮는 어두운 배경 */
 .overlay {
     position: fixed;
     inset: 0;
@@ -27,75 +25,79 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(34, 32, 30, 0.65);
+    backdrop-filter: blur(4px);
 }
 
 .modal {
     width: 100%;
     max-width: 440px;
-    padding: 24px;
-    border-radius: 16px;
-    border: 1px solid #33333f;
-    background: #1b1b22;
-    color: #f3f3f7;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    padding: 28px;
+    border-radius: 28px;
+    border: 1px solid var(--hairline);
+    background: var(--cream);
+    color: var(--ink);
+    box-shadow: 0 25px 60px rgba(34, 32, 30, 0.3);
 }
 
-.title { margin: 0 0 6px; font-size: 1.15rem; font-weight: 800; }
-.desc { margin: 0 0 16px; font-size: 0.85rem; color: #a9a9b8; }
+.title { margin: 0 0 6px; font-size: 1.2rem; font-weight: 900; }
+.desc { margin: 0 0 16px; font-size: 0.85rem; color: var(--text-sub); }
 
 .reasons { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .reason {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 11px 14px;
-    border-radius: 10px;
-    border: 1px solid #33333f;
-    background: #24242d;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 0;
+    background: var(--sand);
     font-size: 0.92rem;
+    font-weight: 700;
     cursor: pointer;
 }
-.reason:hover { border-color: #f87171; }
-.reason input { width: 16px; height: 16px; accent-color: #f87171; }
-.reasonActive { border-color: #f87171; background: #2c1f22; }
+.reason:hover { background: var(--sand-hover); }
+.reason input { width: 16px; height: 16px; accent-color: var(--ink); }
+.reasonActive { background: var(--honey); }
 
 .textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 11px 13px;
-    border-radius: 10px;
-    border: 1px solid #33333f;
-    background: #24242d;
-    color: #f3f3f7;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--hairline);
+    background: #ffffff;
+    color: var(--ink);
     font-size: 0.9rem;
     font-family: inherit;
     line-height: 1.5;
     resize: vertical;
     outline: none;
 }
-.textarea::placeholder { color: #7d7d8c; }
-.textarea:focus { border-color: #f87171; }
+.textarea::placeholder { color: var(--text-muted); }
+.textarea:focus { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey); }
 
-.counter { margin: 6px 0 0; text-align: right; font-size: 0.78rem; color: #a9a9b8; }
+.counter { margin: 6px 0 0; text-align: right; font-size: 0.78rem; color: var(--text-muted); }
 
 .error {
     margin: 10px 0 0;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: #3a2323;
-    color: #ffb4b4;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #fdecea;
+    color: #b42318;
     font-size: 0.85rem;
+    font-weight: 700;
 }
 
 .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .cancelBtn, .submitBtn {
     padding: 10px 18px;
-    border-radius: 10px;
+    border-radius: 9999px;
     font-size: 0.9rem;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
+    border: 0;
 }
-.cancelBtn { border: 1px solid #33333f; background: transparent; color: #a9a9b8; }
-.submitBtn { border: none; background: #f87171; color: #1b1b22; }
+.cancelBtn { background: var(--sand); color: var(--ink); }
+.submitBtn { background: var(--ink); color: var(--cream); }
 .cancelBtn:disabled, .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }

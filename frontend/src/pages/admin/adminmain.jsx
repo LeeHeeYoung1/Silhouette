@@ -189,9 +189,10 @@ function AdminMain() {
           style={{
             padding: '8px 14px',
             borderRadius: '8px',
-            background: '#3b2323',
-            color: '#ffb4b4',
-            border: '1px solid #f87171',
+            background: '#ffd34e',
+            color: '#22201e',
+            border: 'none',
+            fontWeight: 800,
             cursor: 'pointer',
             fontSize: '0.85rem'
           }}
@@ -234,7 +235,7 @@ function AdminMain() {
           <div style={{ overflowX: 'auto', marginTop: '12px' }}>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #33333f', color: '#a9a9b8' }}>
+                <tr style={{ borderBottom: '2px solid #e7e0ce', color: '#5c5549' }}>
                   <th style={{ padding: '10px' }}>번호</th>
                   <th>닉네임</th>
                   <th>이메일</th>
@@ -245,7 +246,7 @@ function AdminMain() {
               </thead>
               <tbody>
                 {members.map((m) => (
-                  <tr key={m.memberSeq} style={{ borderBottom: '1px solid #2a2a34' }}>
+                  <tr key={m.memberSeq} style={{ borderBottom: '1px solid #e7e0ce' }}>
                     <td style={{ padding: '10px' }}>{m.memberSeq}</td>
                     <td style={{ fontWeight: 'bold' }}>{m.nickname}</td>
                     <td>{m.email}</td>
@@ -273,7 +274,7 @@ function AdminMain() {
                       )}
                       <button
                         onClick={() => handleDeleteMember(m.memberSeq)}
-                        style={{ padding: '4px 8px', borderRadius: '4px', background: '#3a2323', color: '#f87171', border: '1px solid #f87171', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', background: '#fdecea', color: '#b42318', border: 'none', fontWeight: 700, cursor: 'pointer' }}
                       >
                         삭제
                       </button>
@@ -370,11 +371,11 @@ function AdminMain() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px', marginTop: '16px' }}>
             {photos.map((p) => (
-              <div key={p.photoReviewSeq} style={{ background: '#24242d', borderRadius: '10px', padding: '12px', textAlign: 'center', border: '1px solid #33333f' }}>
+              <div key={p.photoReviewSeq} style={{ background: '#ffffff', borderRadius: '20px', padding: '14px', textAlign: 'center', border: 'none' }}>
                 <img
                   src={p.photoUrl}
                   alt="프로필"
-                  style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px', background: '#1b1b22' }}
+                  style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px', background: '#f7f3e6' }}
                 />
                 <div style={{ margin: '8px 0 4px', fontWeight: 'bold', fontSize: '0.95rem' }}>
                   {p.nickname} (회원 #{p.memberSeq})
@@ -401,13 +402,13 @@ function AdminMain() {
                   </button>
                   <button
                     onClick={() => handleDecidePhoto(p.photoReviewSeq, 'APPROVED')}
-                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#1c3829', color: '#34d399', border: '1px solid #34d399', cursor: 'pointer' }}
+                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#ffd34e', color: '#22201e', border: 'none', fontWeight: 700, cursor: 'pointer' }}
                   >
                     승인
                   </button>
                   <button
                     onClick={() => handleDecidePhoto(p.photoReviewSeq, 'REJECTED')}
-                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#3b2323', color: '#ffb4b4', border: '1px solid #f87171', cursor: 'pointer' }}
+                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#fdecea', color: '#b42318', border: 'none', fontWeight: 700, cursor: 'pointer' }}
                   >
                     반려
                   </button>
