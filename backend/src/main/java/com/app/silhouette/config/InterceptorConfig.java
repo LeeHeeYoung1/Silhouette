@@ -23,10 +23,10 @@ public class InterceptorConfig implements WebMvcConfigurer{
                 "/members/idCheck",
                 "/chat",
                 "/chat/**",
+                "/blind",                  // 블라인드 채팅 STOMP 핸드셰이크
+                "/blind/**",
                 "/live",                   // 라이브 채팅 STOMP 엔드포인트
-                "/api/livekit/webhook",   // LiveKit 서명으로 따로 검증
-                "/api/profile/image/**",  // 프로필 사진 이미지 바이너리 (img 태그 등)
-                "/api/posts/files/**");   // 게시글 첨부파일 다운로드
+                "/api/livekit/webhook");   // LiveKit 서명으로 따로 검증
 	}
 
 }
