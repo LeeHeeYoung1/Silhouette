@@ -44,7 +44,7 @@ spring.ai.retry.max-attempts=1
 ai.models=gemini-3.5-flash-lite,gemini-3.1-flash-lite
 ai.hedge-ms=8000
 ai.timeout-ms=20000
-spring.ai.retry.max-attempts=2
+
 
 #  - retry.max-attempts=2: 한도 초과(429) 등 에러 시 30초 넘게 재시도하지 않고 바로 실패 처리
 
