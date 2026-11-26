@@ -176,11 +176,21 @@ public class BlindAiService {
     }
 
     private String callModel(ChatModel chatModel, String conversation) {
+        long startedAt = System.currentTimeMillis();
+        CompletableFuture<String> future = CompletableFuture
+                .supplyAsync(() -> chatModel.call(new SystemMessage(SYSTEM_PROMPT), new UserMessage(conversation)));
         try {
-            return CompletableFuture
-                    .supplyAsync(() -> chatModel.call(new SystemMessage(SYSTEM_PROMPT), new UserMessage(conversation)))
-                    .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
+            // 시간 초과로 포기한 요청도 결국 어떻게 끝났는지 로그로 남김 (원인 파악용)
+            future.whenComplete((result, error) -> {
+                long took = System.currentTimeMillis() - startedAt;
+                if (error != null) {
+                    log.warn("AI 추천 시간 초과 후 실패 ({}ms)", took, error);
+                } else {
+                    log.warn("AI 추천 시간 초과 후 응답 도착 ({}ms)", took);
+                }
+            });
             throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "AI 응답이 늦어요. 다시 시도해주세요.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
