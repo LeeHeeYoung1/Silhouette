@@ -149,6 +149,34 @@ function AdminMain() {
   };
 
   // ========================================================
+  // [A001] 블라인드 채팅방 설정 데이터 & 함수
+  // ========================================================
+  const [blindConfig, setBlindConfig] = useState({ timeLimitMin: 15, voteSeconds: 30 });
+
+  const loadBlindConfig = () => {
+    Client.get('/api/admin/blind-config')
+      .then((res) => {
+        if (res.data) setBlindConfig(res.data);
+      })
+      .catch((err) => console.error('블라인드 설정 조회 실패:', err));
+  };
+
+  const handleSaveBlindConfig = (e) => {
+    e.preventDefault();
+    if (blindConfig.timeLimitMin <= 0 || blindConfig.voteSeconds <= 0) {
+      alert('대화 제한 시간과 투표 시간은 1 이상이어야 합니다.');
+      return;
+    }
+
+    Client.put('/api/admin/blind-config', blindConfig)
+      .then((res) => {
+        alert('블라인드 채팅 설정이 저장되었습니다.');
+        setBlindConfig(res.data);
+      })
+      .catch((err) => alert('설정 저장 실패: ' + (err.response?.data?.message || err.message)));
+  };
+
+  // ========================================================
   // 관리자 권한 확인 (useAuthStore의 role로 즉시 확인)
   // ========================================================
   useEffect(() => {
@@ -173,6 +201,7 @@ function AdminMain() {
     if (currentTab === 'MEMBERS') loadMembers();
     if (currentTab === 'WORDS') loadWords();
     if (currentTab === 'PHOTOS') loadPhotos();
+    if (currentTab === 'BLIND') loadBlindConfig();
   }, [currentTab, photoFilter, isAdmin]);
 
   if (!isAdmin) {
@@ -189,9 +218,10 @@ function AdminMain() {
           style={{
             padding: '8px 14px',
             borderRadius: '8px',
-            background: '#3b2323',
-            color: '#ffb4b4',
-            border: '1px solid #f87171',
+            background: '#ffd34e',
+            color: '#22201e',
+            border: 'none',
+            fontWeight: 800,
             cursor: 'pointer',
             fontSize: '0.85rem'
           }}
@@ -220,6 +250,12 @@ function AdminMain() {
         >
           🖼️ AI 사진 심사 (A001)
         </button>
+        <button
+          className={`${styles.tab} ${currentTab === 'BLIND' ? styles.tabActive : ''}`}
+          onClick={() => setCurrentTab('BLIND')}
+        >
+          💬 블라인드 설정 (A001)
+        </button>
       </div>
        
       {/* =========================================================
@@ -234,7 +270,7 @@ function AdminMain() {
           <div style={{ overflowX: 'auto', marginTop: '12px' }}>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #33333f', color: '#a9a9b8' }}>
+                <tr style={{ borderBottom: '2px solid #e7e0ce', color: '#5c5549' }}>
                   <th style={{ padding: '10px' }}>번호</th>
                   <th>닉네임</th>
                   <th>이메일</th>
@@ -244,42 +280,45 @@ function AdminMain() {
                 </tr>
               </thead>
               <tbody>
-                {members.map((m) => (
-                  <tr key={m.memberSeq} style={{ borderBottom: '1px solid #2a2a34' }}>
-                    <td style={{ padding: '10px' }}>{m.memberSeq}</td>
-                    <td style={{ fontWeight: 'bold' }}>{m.nickname}</td>
-                    <td>{m.email}</td>
-                    <td>
-                      <span className={m.status === 'BLACKLIST' ? styles.badgeRed : styles.badgeGray}>
-                        {m.status}
-                      </span>
-                    </td>
-                    <td className={styles.dim}>{m.blacklistReason || '-'}</td>
-                    <td>
-                      {m.status === 'BLACKLIST' ? (
+                {members.map((m) => {
+                  const isBlocked = m.status === 'SUSPENDED' || m.status === 'BLACKLIST' || m.blacklistStatus === 'ACTIVE';
+                  return (
+                    <tr key={m.memberSeq} style={{ borderBottom: '1px solid #e7e0ce' }}>
+                      <td style={{ padding: '10px' }}>{m.memberSeq}</td>
+                      <td style={{ fontWeight: 'bold' }}>{m.nickname}</td>
+                      <td>{m.email}</td>
+                      <td>
+                        <span className={isBlocked ? styles.badgeRed : styles.badgeGray}>
+                          {isBlocked ? 'SUSPENDED (차단됨)' : (m.status || 'ACTIVE')}
+                        </span>
+                      </td>
+                      <td className={styles.dim}>{m.blacklistReason || '-'}</td>
+                      <td>
+                        {isBlocked ? (
+                          <button
+                            onClick={() => handleRelease(m.memberSeq)}
+                            style={{ marginRight: '6px', padding: '4px 8px', borderRadius: '4px', background: '#ffd34e', color: '#22201e', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            해제
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBlacklist(m.memberSeq)}
+                            style={{ marginRight: '6px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            차단
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleRelease(m.memberSeq)}
-                          style={{ marginRight: '6px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => handleDeleteMember(m.memberSeq)}
+                          style={{ padding: '4px 8px', borderRadius: '4px', background: '#fdecea', color: '#b42318', border: 'none', fontWeight: 700, cursor: 'pointer' }}
                         >
-                          해제
+                          삭제
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => handleBlacklist(m.memberSeq)}
-                          style={{ marginRight: '6px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                        >
-                          차단
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteMember(m.memberSeq)}
-                        style={{ padding: '4px 8px', borderRadius: '4px', background: '#3a2323', color: '#f87171', border: '1px solid #f87171', cursor: 'pointer' }}
-                      >
-                        삭제
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {members.length === 0 && (
                   <tr>
                     <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#a9a9b8' }}>
@@ -370,49 +409,12 @@ function AdminMain() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px', marginTop: '16px' }}>
             {photos.map((p) => (
-              <div key={p.photoReviewSeq} style={{ background: '#24242d', borderRadius: '10px', padding: '12px', textAlign: 'center', border: '1px solid #33333f' }}>
-                <img
-                  src={p.photoUrl}
-                  alt="프로필"
-                  style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px', background: '#1b1b22' }}
-                />
-                <div style={{ margin: '8px 0 4px', fontWeight: 'bold', fontSize: '0.95rem' }}>
-                  {p.nickname} (회원 #{p.memberSeq})
-                </div>
-
-                {/* AI 점수 & 의심 뱃지 */}
-                <div style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span className={styles.dim}>AI 확률: {p.aiScore || 0}% </span>
-                  {p.isAiSuspect === 'Y' && <span className={styles.badgeRed} style={{ marginLeft: '4px' }}>AI 의심</span>}
-                </div>
-
-                <div style={{ fontSize: '0.85rem', marginBottom: '10px' }}>
-                  상태: <strong>{p.status}</strong>
-                  {p.rejectReason && <div style={{ color: '#f87171', fontSize: '0.78rem' }}>{p.rejectReason}</div>}
-                </div>
-
-                {/* 관리 버튼들 */}
-                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => handleAiCheck(p.photoReviewSeq)}
-                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    AI 재검사
-                  </button>
-                  <button
-                    onClick={() => handleDecidePhoto(p.photoReviewSeq, 'APPROVED')}
-                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#1c3829', color: '#34d399', border: '1px solid #34d399', cursor: 'pointer' }}
-                  >
-                    승인
-                  </button>
-                  <button
-                    onClick={() => handleDecidePhoto(p.photoReviewSeq, 'REJECTED')}
-                    style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#3b2323', color: '#ffb4b4', border: '1px solid #f87171', cursor: 'pointer' }}
-                  >
-                    반려
-                  </button>
-                </div>
-              </div>
+              <AdminPhotoCard
+                key={p.photoReviewSeq}
+                p={p}
+                onAiCheck={handleAiCheck}
+                onDecidePhoto={handleDecidePhoto}
+              />
             ))}
             {photos.length === 0 && (
               <div className={styles.notice} style={{ gridColumn: '1 / -1' }}>
@@ -422,6 +424,175 @@ function AdminMain() {
           </div>
         </div>
       )}
+
+      {/* =========================================================
+          탭 4. [A001] 블라인드 채팅방 설정
+      ========================================================= */}
+      {currentTab === 'BLIND' && (
+        <div className={styles.card}>
+          <div className={styles.topRow}>
+            <h3 style={{ margin: 0 }}>💬 블라인드 채팅방 환경설정</h3>
+            <button className={styles.btnGhost} onClick={loadBlindConfig}>새로고침</button>
+          </div>
+          <p className={styles.dim} style={{ fontSize: '0.88rem', margin: '10px 0 24px' }}>
+            * 설정된 대화 제한 시간과 최종 투표 시간은 새로 생성되는 모든 블라인드 채팅방에 실시간으로 적용됩니다.
+          </p>
+
+          <form onSubmit={handleSaveBlindConfig} style={{ maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                대화 제한 시간 (분 단위)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={blindConfig.timeLimitMin}
+                onChange={(e) => setBlindConfig({ ...blindConfig, timeLimitMin: parseInt(e.target.value, 10) || 0 })}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: '#1c1c24',
+                  border: '1px solid #33333f',
+                  color: '#fff',
+                  borderRadius: '6px',
+                  fontSize: '0.95rem'
+                }}
+              />
+              <span className={styles.dim} style={{ fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                기본값: 1분 (운영 시 15분 권장)
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                최종 매칭 투표 제한 시간 (초 단위)
+              </label>
+              <input
+                type="number"
+                min="5"
+                max="300"
+                value={blindConfig.voteSeconds}
+                onChange={(e) => setBlindConfig({ ...blindConfig, voteSeconds: parseInt(e.target.value, 10) || 0 })}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: '#1c1c24',
+                  border: '1px solid #33333f',
+                  color: '#fff',
+                  borderRadius: '6px',
+                  fontSize: '0.95rem'
+                }}
+              />
+              <span className={styles.dim} style={{ fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                기본값: 30초 (대화 제한 시간 종료 후 GO / STOP 투표)
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              style={{ marginTop: '10px', padding: '10px', fontSize: '0.95rem', cursor: 'pointer' }}
+            >
+              설정 저장하기
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminPhotoCard({ p, onAiCheck, onDecidePhoto }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let url = null;
+
+    let targetUrl = p.photoUrl;
+    if (targetUrl) {
+      // 혹시 DB에 http://localhost:8080 또는 http://localhost:5173 등으로 저장되어 있는 경우 정규화
+      if (targetUrl.includes(':8080')) {
+        targetUrl = targetUrl.replace(/https?:\/\/[^/]+(:8080)?/, '');
+      } else if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+        try {
+          const parsed = new URL(targetUrl);
+          targetUrl = parsed.pathname + parsed.search;
+        } catch {
+          // ignore
+        }
+      }
+
+      Client.get(targetUrl, { responseType: 'blob' })
+        .then((res) => {
+          if (cancelled) return;
+          url = URL.createObjectURL(res.data);
+          setBlobUrl(url);
+          setFailed(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setFailed(true);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [p.photoUrl]);
+
+  return (
+    <div style={{ background: '#ffffff', borderRadius: '20px', padding: '14px', textAlign: 'center', border: 'none' }}>
+      {blobUrl && !failed ? (
+        <img
+          src={blobUrl}
+          alt="프로필"
+          style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px', background: '#f7f3e6' }}
+        />
+      ) : (
+        <div style={{ width: '100%', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f7f3e6', borderRadius: '6px', fontSize: '2.5rem', color: '#a39d8f' }}>
+          👤
+        </div>
+      )}
+      <div style={{ margin: '8px 0 4px', fontWeight: 'bold', fontSize: '0.95rem' }}>
+        {p.nickname} (회원 #{p.memberSeq})
+      </div>
+
+      {/* AI 점수 & 의심 뱃지 */}
+      <div style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
+        <span className={styles.dim}>AI 확률: {p.aiScore || 0}% </span>
+        {p.isAiSuspect === 'Y' && <span className={styles.badgeRed} style={{ marginLeft: '4px' }}>AI 의심</span>}
+      </div>
+
+      <div style={{ fontSize: '0.85rem', marginBottom: '10px' }}>
+        상태: <strong>{p.status}</strong>
+        {p.rejectReason && <div style={{ color: '#f87171', fontSize: '0.78rem' }}>{p.rejectReason}</div>}
+      </div>
+
+      {/* 관리 버튼들 */}
+      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => onAiCheck(p.photoReviewSeq)}
+          style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          AI 재검사
+        </button>
+        <button
+          onClick={() => onDecidePhoto(p.photoReviewSeq, 'APPROVED')}
+          style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#ffd34e', color: '#22201e', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+        >
+          승인
+        </button>
+        <button
+          onClick={() => onDecidePhoto(p.photoReviewSeq, 'REJECTED')}
+          style={{ fontSize: '0.75rem', padding: '4px 6px', borderRadius: '4px', background: '#fdecea', color: '#b42318', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+        >
+          반려
+        </button>
+      </div>
     </div>
   );
 }

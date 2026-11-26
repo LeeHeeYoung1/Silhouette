@@ -1042,3 +1042,267 @@
 .ownerBadge + .addFriendBtn {
   margin-left: 8px;
 }
+
+/* ==========================================================================
+   BUMBLE STYLE CHATTING OVERRIDES (1:1 & 그룹 채팅방)
+   ========================================================================== */
+.silhouetteContainer {
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.chatWrapper {
+  background: var(--sand);
+  border: 0;
+  border-radius: 32px;
+  box-shadow: 0 16px 48px rgba(34, 32, 30, 0.08);
+}
+
+.chatHeader {
+  background: var(--honey);
+  border-bottom: 0;
+  padding: 16px 22px;
+}
+
+.backButton, .menuButton {
+  color: var(--ink);
+}
+.backButton:hover, .menuButton:hover {
+  color: var(--ink-hover);
+}
+
+.title {
+  color: var(--ink);
+  font-weight: 900;
+  text-shadow: none;
+}
+
+.statusOnline { color: #1f9d6b; font-weight: 800; }
+.statusOffline { color: #b42318; font-weight: 800; }
+
+.menuPanel {
+  background: var(--cream);
+  border: 1px solid var(--hairline);
+  border-radius: 0 0 0 24px;
+  box-shadow: -8px 14px 36px rgba(34, 32, 30, 0.16);
+}
+
+.menuActionButton {
+  background: var(--sand);
+  border: 0;
+  border-radius: 16px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.menuActionButton span { color: var(--ink); }
+.menuActionButton:hover {
+  background: var(--honey);
+  color: var(--ink);
+}
+.menuActionButton.deleteButton,
+.menuActionButton.deleteButton span {
+  color: #b42318;
+}
+.menuActionButton.deleteButton:hover {
+  background: #fdecea;
+}
+
+.invitePanel {
+  background: var(--sand);
+  border: 0;
+  border-radius: 18px;
+}
+.inviteSearch input {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 9999px;
+  color: var(--ink);
+  padding: 10px 14px;
+}
+.inviteSearch button, .searchMember button {
+  background: var(--ink);
+  border: 0;
+  border-radius: 9999px;
+  color: var(--cream);
+  font-weight: 800;
+  padding: 8px 14px;
+}
+.inviteSearch button:hover, .searchMember button:hover {
+  background: var(--honey);
+  color: var(--ink);
+}
+.inviteMessage { color: var(--text-sub); }
+.searchMember { border-bottom: 1px solid var(--hairline); color: var(--ink); }
+
+.roomMembers { border-top: 1px solid var(--hairline); }
+.roomMembers h3 { color: var(--ink); font-weight: 800; }
+
+.memberProfilePlaceholder {
+  background: var(--sand);
+  border: 0;
+  border-radius: 16px;
+}
+.profileAvatarPlaceholder, .roomMemberAvatarFallback, .senderAvatarFallback {
+  background: var(--ink);
+  color: var(--honey);
+  font-weight: 800;
+}
+.profileInfoPlaceholder strong, .roomMemberNickname {
+  color: var(--ink);
+  font-weight: 700;
+}
+.profileInfoPlaceholder span { color: var(--text-sub); }
+.roomMemberItem { border-bottom: 1px solid var(--hairline); }
+.ownerBadge {
+  background: var(--honey);
+  color: var(--ink);
+  border-radius: 9999px;
+  font-weight: 800;
+}
+
+.messageDisplay {
+  background: var(--sand);
+}
+.messageDisplay::-webkit-scrollbar-thumb {
+  background: #dcd3be;
+}
+
+.sender, .senderProfile {
+  color: var(--text-sub);
+  font-weight: 700;
+}
+
+.messageBubble {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 18px;
+}
+.myMessage .messageBubble {
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 600;
+}
+.otherMessage .messageBubble {
+  border: 0;
+}
+.timestamp { color: var(--text-muted); }
+
+.inputArea {
+  background: var(--sand);
+  border-top: 1px solid var(--hairline);
+}
+.addButton {
+  background: #ffffff;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+}
+.addButton:hover {
+  background: var(--honey);
+}
+.textInput {
+  background: #ffffff;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--ink);
+  padding: 0 18px;
+}
+.textInput:focus {
+  box-shadow: 0 0 0 2px var(--honey);
+}
+.textInput::placeholder { color: var(--text-muted); }
+
+.sendButton {
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 9999px;
+  font-weight: 800;
+}
+.sendButton:hover:not(:disabled) {
+  background: var(--honey);
+  color: var(--ink);
+}
+.sendButton:disabled {
+  background: var(--sand-hover);
+  color: var(--text-muted);
+}
+
+.uploadButton {
+  background: #ffffff;
+  border: 0;
+  border-radius: 20px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.uploadButton span:first-child {
+  background: var(--honey);
+  color: var(--ink);
+}
+.uploadButton:hover {
+  background: #fff1c2;
+}
+.uploadButton:hover span:first-child {
+  background: var(--ink);
+  color: var(--honey);
+}
+
+.fileMessage a { color: var(--ink); font-weight: 700; }
+.pendingFile { background: #ffffff; color: var(--ink); }
+
+.partnerPanel {
+  background: var(--sand);
+  border: 0;
+  border-radius: 32px;
+  box-shadow: 0 16px 48px rgba(34, 32, 30, 0.08);
+}
+.partnerBadge {
+  background: var(--honey);
+  color: var(--ink);
+  border: 0;
+  font-weight: 800;
+}
+.partnerAvatar {
+  background: var(--ink);
+  color: var(--honey);
+  border: 3px solid var(--honey);
+}
+.partnerName { color: var(--ink); font-weight: 900; }
+.partnerMeta { color: var(--text-sub); }
+.partnerSection { border-top: 1px solid var(--hairline); }
+.partnerLabel { color: var(--text-muted); }
+.partnerIntro { color: var(--ink); }
+.partnerTag {
+  background: #ffffff;
+  border: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.systemMessage {
+  background: #ffffff;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+.chatSearchBar {
+  background: #fff1c2;
+  border-bottom: 1px solid var(--hairline);
+}
+.chatSearchBar input {
+  border-radius: 9999px;
+  border: 0;
+}
+.chatSearchBar button {
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 9999px;
+  font-weight: 700;
+}
+.addFriendBtn {
+  background: var(--honey);
+  border: 0;
+  color: var(--ink);
+}
+.addFriendBtn:hover {
+  background: var(--ink);
+  color: var(--cream);
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
 import {
@@ -21,6 +21,31 @@ const MOCK_POPULAR_POSTS = [
   { id: 4, title: 'AI 안전 도우미가 알려준 첫 만남 안전 수칙 3가지', comments: 8, time: '2시간 전' }
 ];
 
+// 히어로 인기 프로필 (임시 목데이터: 인기 프로필 기능 연동 전까지 사용)
+const HERO_PROFILES = [
+  {
+    id: 1,
+    name: '서연, 26세',
+    badge: '인기 1위 · 서울 성수',
+    job: '전시회 큐레이터 · INFP',
+    img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=85'
+  },
+  {
+    id: 2,
+    name: '민준, 28세',
+    badge: '인기 2위',
+    job: '건축 디자이너 · INFJ',
+    img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=85'
+  },
+  {
+    id: 3,
+    name: '지아, 25세',
+    badge: '인기 3위',
+    job: '플로리스트 · ENFP',
+    img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=85'
+  }
+];
+
 // 챗봇 추천 퀵 질문 칩
 const CHATBOT_QUICK_CHIPS = [
   '📍 강남 맛집 2곳 추천해 줘',
@@ -29,79 +54,9 @@ const CHATBOT_QUICK_CHIPS = [
   '☕ 성수 데이트 장소 추천해 줘'
 ];
 
-// 공통 매칭 카드 컴포넌트
-function MatchCard({
-  isIdeal,
-  badgeText,
-  title,
-  desc,
-  waitingLabel,
-  waitingCount,
-  isMatching,
-  onStart,
-  onCancel,
-  btnSubtitle,
-  guideContent,
-  searchingTitle,
-  searchingSubtitle,
-  icon
-}) {
-  return (
-    <div className={`${styles.matchCardWrapper} ${isIdeal ? styles.idealTheme : ''}`}>
-      <div className={styles.cardHeader}>
-        <span className={isIdeal ? styles.idealBadge : styles.blindBadge}>{badgeText}</span>
-        <h3 className={styles.cardHeaderTitle}>{title}</h3>
-        <p className={styles.cardHeaderDesc}>{desc}</p>
-      </div>
-
-      <div className={styles.ambientLight1}></div>
-      <div className={styles.ambientLight2}></div>
-
-      <div className={styles.blindMatchContent}>
-        {!isMatching ? (
-          <div className={styles.matchStandby}>
-            <div className={styles.waitingBadge}>
-              <span className={styles.waitingPulseDot}></span>
-              <span className={styles.waitingText}>
-                {waitingLabel} <b>{waitingCount.toLocaleString()}</b>명
-              </span>
-            </div>
-
-            <div className={styles.startBtnContainer} onClick={onStart}>
-              <div className={styles.startBtnPulse}></div>
-              <button type="button" className={styles.startBtn}>
-                <span className={styles.startTitle}>START</span>
-                <span className={styles.startSubtitle}>{btnSubtitle}</span>
-              </button>
-            </div>
-
-            {guideContent}
-          </div>
-        ) : (
-          <div className={styles.matchSearching}>
-            <div className={styles.radarWrapper}>
-              <div className={styles.radarWave1}></div>
-              <div className={styles.radarWave2}></div>
-              <div className={styles.radarWave3}></div>
-              <div className={styles.radarCenterCore}>{icon}</div>
-            </div>
-
-            <h3 className={styles.searchingTitle}>{searchingTitle}</h3>
-            <p className={styles.searchingSubtitle}>{searchingSubtitle}</p>
-
-            <button type="button" onClick={onCancel} className={styles.cancelBtn}>
-              취소하기
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // 홈 화면
 function Home() {
-  const { token, id } = useAuthStore();
+  const { token, id, role } = useAuthStore();
   const navi = useNavigate();
 
   const [stompClient, setStompClient] = useState(null);
@@ -150,6 +105,22 @@ function Home() {
   ]);
 
   const messagesEndRef = useRef(null);
+
+  // 실시간 매칭 오버레이 (경과 시간)
+  const isMatchingNow = isBlindMatching || isIdealMatching;
+  const [matchSeconds, setMatchSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isMatchingNow) {
+      setMatchSeconds(0);
+      return undefined;
+    }
+    const timer = setInterval(() => setMatchSeconds((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, [isMatchingNow]);
+
+  // 채팅방 안 읽은 메시지 합계
+  const totalUnread = myRoomList.reduce((acc, room) => acc + (Number(room.unread_count) || 0), 0);
 
   useEffect(() => {
     if (!token) navi('/login');
@@ -310,8 +281,8 @@ function Home() {
 
       const imageEntries = await Promise.all(
         friendList.map(async (friend) => {
-          const memberSeq = Number(friend.member_seq);
-          const imagePath = friend.profile_image;
+          const memberSeq = Number(friend.member_seq ?? friend.memberSeq);
+          const imagePath = friend.profile_image || friend.profileImage;
 
           if (!imagePath) {
             return [memberSeq, null];
@@ -422,12 +393,12 @@ function Home() {
           clearInterval(timer);
           handleIdealMatched(data);
         } else if (data.status === 'IDLE') {
-          // 대기열에서 빠짐 (오래 확인이 없어 서버가 정리한 경우)        ← 추가
+          // 대기열에서 빠짐 (오래 확인이 없어 서버가 정리한 경우)
           stopped = true;
           clearInterval(timer);
           isIdealWaitingRef.current = false;
           setIsIdealMatching(false);
-          alert('연결이 오래 끊겨 매칭 대기가 취소됐어요. 다시 신청해 주세요.');   // ← 추가
+          alert('연결이 오래 끊겨 매칭 대기가 취소됐어요. 다시 신청해 주세요.');
         }
       } catch {
         // 일시적인 오류는 다음 주기에 다시 확인
@@ -828,235 +799,236 @@ const handleSendChatMessage = async (textToSend) => {
 };
 
 
-  // 홈 화면 UI
   return (
-    <div className={styles.pageWrap}>
-    <div className={styles.container}>
-      {/* 1. 상단: 실시간 매칭 모드 */}
-      <section className={styles.topSection}>
-        <div className={styles.topHeader}>
-          <div className={styles.topTitleGroup}>
-            <div className={styles.topBadge}>✨ 실시간 랜덤 매칭</div>
-            <h2 className={styles.topTitle}>
-              매칭 모드 <span className={styles.topTitleHighlight}>선택</span>
-            </h2>
-            <p className={styles.topDesc}>
-              원하는 방식으로 인연을 찾아보세요. 조건 없는 블라인드 대화와 맞춤형 이상형 매칭을 지원합니다.
-            </p>
+    <div className={styles.page}>
+      {/* 1. 히어로: 로고가 먼저 뜨고 1초 뒤 인기 프로필 3장이 위에서 스르르 등장 */}
+      <section className={styles.hero}>
+        <div className={styles.heroStage}>
+          <div className={styles.wordmarkWrap}>
+            <h1 className={styles.heroWordmark}>Silhouette</h1>
           </div>
 
-          <div className={styles.refreshInfo}>
-            <span className={styles.pulseGreenDot}></span>
-            <span>실시간 매칭 가동 중</span>
+          <div className={styles.cardStage}>
+            {HERO_PROFILES.map((p, i) => (
+              <div
+                key={p.id}
+                className={`${styles.stackCard} ${[styles.cardFront, styles.cardMid, styles.cardBack][i]}`}
+              >
+                <img
+                  src={p.img}
+                  alt={p.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = `https://placehold.co/400x560/22201e/ffd34e?text=${encodeURIComponent(p.name)}`;
+                  }}
+                />
+                <div className={styles.cardShade} />
+
+                {i === 0 ? (
+                  <>
+                    <span className={styles.cardBadge}>{p.badge}</span>
+                    <div className={styles.cardInfo}>
+                      <div>
+                        <p className={styles.cardName}>{p.name}</p>
+                        <p className={styles.cardSub}>{p.job}</p>
+                      </div>
+                      <span className={styles.cardView}>VIEW</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className={styles.cardInfoSmall}>
+                    <span className={styles.cardRank}>TOP 0{i + 1}</span>
+                    <p className={styles.cardNameSmall}>{p.name}</p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className={styles.matchSplitGrid}>
-          {/* 블라인드 매칭 */}
-          <MatchCard
-            isIdeal={false}
-            badgeText="🎭 블라인드 매칭"
-            title="블라인드 랜덤 매칭"
-            desc="외모와 조건 없이, 오직 목소리와 대화로 통하는 인연"
-            waitingLabel="현재 접속자"
-            waitingCount={waitingBlindUsers}
-            isMatching={isBlindMatching}
-            onStart={handleBlindMatching}
-            onCancel={handleCancelBlindMatching}
-            btnSubtitle="BLIND MATCH"
-            guideContent={
-              <p className={styles.matchGuide}>
-                커튼 너머의 실루엣처럼,<br />얼굴 없는 진실된 대화를 시작해보세요.
-              </p>
-            }
-            searchingTitle="블라인드 상대를 찾는 중..."
-            searchingSubtitle="잠시만 기다려주세요"
-            icon={
-              <svg className={styles.radarSearchIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            }
-          />
-
-          {/* 이상형 매칭 */}
-          <MatchCard
-            isIdeal={true}
-            badgeText="💖 이상형 매칭"
-            title="이상형 랜덤 매칭"
-            desc="나의 가치관과 이상형 설정을 기반으로 최적의 상대 매칭"
-            waitingLabel="이상형 매칭"
-            waitingCount={waitingIdealUsers}
-            isMatching={isIdealMatching}
-            onStart={handleIdealStart}
-            onCancel={handleIdealCancel}
-            btnSubtitle="IDEAL MATCH"
-            guideContent={
-              <div className={styles.idealKeywords}>
-                <span>#가치관 90%↑</span>
-                <span>#관심사 일치</span>
-                <span>#AI 맞춤추천</span>
-              </div>
-            }
-            searchingTitle="취향 저격 이상형을 찾는 중..."
-            searchingSubtitle="가치관 및 프로필 데이터 매칭 중"
-            icon={
-              <svg className={styles.radarSearchIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            }
-          />
+        <div className={styles.ctaRow}>
+          <button type="button" className={styles.ctaDark} onClick={handleBlindMatching}>
+            <span className={`${styles.ctaDot} ${styles.ctaDotHoney}`} />
+            <span>블라인드 랜덤 매칭 START</span>
+            <span className={styles.ctaCountHoney}>{waitingBlindUsers.toLocaleString()}</span>
+          </button>
+          <button type="button" className={styles.ctaLight} onClick={handleIdealStart}>
+            <span className={`${styles.ctaDot} ${styles.ctaDotInk}`} />
+            <span>이상형 랜덤 매칭 START</span>
+            <span className={styles.ctaCountSoft}>{waitingIdealUsers.toLocaleString()}</span>
+          </button>
         </div>
       </section>
 
-      {/* 2. 메인 레이아웃 */}
-      <div className={styles.mainLayout}>
-        {/* 왼쪽: 주소지 기반 위치 추천 */}
-        <section className={styles.leftSection}>
-          <div className={styles.locationSection}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitleGroup}>
-                <h3 className={styles.sectionTitle}>
-                  <span>📍 내 주변 가까운 매칭</span>
-                </h3>
-
-                <span className={styles.sectionSub}>
-                  {myRegion
-                    ? `회원님의 거주지(${myRegion}) 기준 같은 동네 우선 추천 (최대 10명)`
-                    : '회원정보에 주소를 등록하면 가까운 이웃을 추천해드려요'}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                className={styles.randomShuffleBtn}
-                onClick={handleShuffleLocation}
-                disabled={isLocationLoading}
-                title="다른 추천 프로필 보기"
-              >
-                {isLocationLoading ? '불러오는 중...' : '🔄 새로운 이웃 추천'}
-              </button>
+      {/* 실시간 매칭 오버레이 (취소하기 전까지 화면 고정) */}
+      {isMatchingNow && (
+        <div className={styles.matchOverlay}>
+          <div className={styles.matchModal}>
+            <div className={styles.lockBadge}>
+              <span>LOCKED · LIVE MATCHING</span>
+              <span>
+                {String(Math.floor(matchSeconds / 60)).padStart(2, '0')}:{String(matchSeconds % 60).padStart(2, '0')}
+              </span>
             </div>
 
-            {!isLocationLoading && locationProfiles.length === 0 && (
-              <p className={styles.locEmpty}>
+            <h2 className={styles.matchModalTitle}>
+              {isIdealMatching ? '이상형 랜덤 매칭 탐색 중' : '블라인드 랜덤 매칭 탐색 중'}
+            </h2>
+            <p className={styles.matchModalDesc}>
+              {isIdealMatching
+                ? '가치관이 잘 맞는 상대를 AI가 찾고 있습니다. 상대가 연결되면 자동으로 입장합니다.'
+                : '외모와 조건 없이 대화로 연결됩니다. 상대가 연결되면 자동으로 입장합니다.'}
+            </p>
+
+            <div className={styles.radar}>
+              <span className={styles.radarRing} />
+              <span className={styles.radarRing} />
+              <span className={styles.radarRing} />
+              <div className={styles.radarCore}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={styles.radarIcon}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className={styles.waitingLine}>
+              <span>현재 실시간 대기 인원</span>
+              <strong>{(isIdealMatching ? waitingIdealUsers : waitingBlindUsers).toLocaleString()}명</strong>
+            </div>
+
+            <button
+              type="button"
+              className={styles.matchCancel}
+              onClick={isIdealMatching ? handleIdealCancel : handleCancelBlindMatching}
+            >
+              취소하기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 상단 메뉴 바 (브라우저 양쪽 끝까지, 친구/채팅 도크 위) */}
+      <nav className={styles.topNav}>
+        {[['/', '홈'], ['/event', '이벤트'], ['/post', '게시판'], ['/live', '라이브']].map(([to, label]) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => `${styles.topNavBtn} ${isActive ? styles.topNavActive : ''}`}
+          >
+            {label}
+          </NavLink>
+        ))}
+        {role === 'ROLE_ADMIN' && (
+          <NavLink to="/admin" className={styles.topNavBtn}>관리자</NavLink>
+        )}
+      </nav>
+
+      {/* 2. 레이아웃: 내 주변 매칭 (3열) + 친구 도크/커뮤니티 */}
+      <div className={styles.columns}>
+        {/* 가운데: 내 주변 가까운 매칭 */}
+        <section className={styles.centerCol}>
+          <div className={styles.nearHeader}>
+            <div>
+              <span className={styles.eyebrow}>NEARBY DISCOVERY</span>
+              <h2 className={styles.nearTitle}>내 주변 가까운 매칭</h2>
+              <p className={styles.nearSub}>
                 {myRegion
-                  ? '아직 근처에 추천할 회원이 없어요. 잠시 후 다시 확인해보세요!'
-                  : '주소 정보가 없어 추천할 수 없어요.'}
+                  ? `회원님의 거주지(${myRegion}) 기준 같은 동네 우선 추천 (최대 10명)`
+                  : '회원정보에 주소를 등록하면 가까운 이웃을 추천해드려요'}
               </p>
-            )}
+            </div>
 
-            <div className={styles.locationCardGrid}>
-              {locationProfiles.map((item) => (
-                <div key={item.memberSeq} className={styles.locCard}>
-                  <div className={styles.locCardImage}>
-                    <div className={styles.locAvatar}>👥</div>
-                    <span className={styles.distBadge}>
-                      {item.nearRank === 1 ? '같은 동네' : '같은 지역'}
-                    </span>
-                  </div>
+            <button
+              type="button"
+              className={styles.shuffleBtn}
+              onClick={handleShuffleLocation}
+              disabled={isLocationLoading}
+              title="다른 추천 프로필 보기"
+            >
+              {isLocationLoading ? '불러오는 중...' : '새로운 이웃 추천'}
+            </button>
+          </div>
 
-                  <div className={styles.locCardInfo}>
-                    <div className={styles.locMeta}>
-                      <span>{item.nickname}</span>
-                      <span>·</span>
-                      <span>{item.age}세</span>
+          {!isLocationLoading && locationProfiles.length === 0 && (
+            <p className={styles.locEmpty}>
+              {myRegion
+                ? '아직 근처에 추천할 회원이 없어요. 잠시 후 다시 확인해보세요!'
+                : '주소 정보가 없어 추천할 수 없어요.'}
+            </p>
+          )}
 
-                      {item.mbti && (
-                        <>
-                          <span>·</span>
-                          <span>{item.mbti}</span>
-                        </>
-                      )}
+          <div className={styles.nearGrid}>
+            {locationProfiles.map((item) => {
+              const photo = item.profileImage || item.profile_image || item.imageUrl || item.image_url;
+              const hasPhoto = typeof photo === 'string' && /^https?:\/\//i.test(photo);
+
+              return (
+                <article key={item.memberSeq} className={styles.nearCard}>
+                  <div className={styles.nearPhoto}>
+                    {hasPhoto ? (
+                      <img src={photo} alt={item.nickname} />
+                    ) : (
+                      <div className={styles.nearPhotoFallback}>{(item.nickname || '?').slice(0, 1)}</div>
+                    )}
+                    <div className={styles.nearShade} />
+
+                    <div className={styles.nearBadges}>
+                      <span className={styles.nearBadgeHoney}>
+                        {item.nearRank === 1 ? '같은 동네' : '같은 지역'}
+                      </span>
+                      {item.mbti && <span className={styles.nearBadgeDark}>{item.mbti}</span>}
                     </div>
 
-                    <span className={styles.locAddress}>{item.region}</span>
+                    <div className={styles.nearName}>
+                      <h3>
+                        {item.nickname}, <span>{item.age}세</span>
+                      </h3>
+                      <p>{item.region}</p>
+                    </div>
+                  </div>
 
-                    <p className={styles.locIntro}>
+                  <div className={styles.nearBody}>
+                    <p className={styles.nearIntro}>
                       {item.introduction || '아직 자기소개를 작성하지 않았어요.'}
                     </p>
-
                     <button
                       type="button"
-                      className={styles.locBtn}
+                      className={styles.nearBtn}
                       onClick={() => handleSendFriendRequest(item.memberSeq)}
                     >
                       친구 요청
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 
-        {/* 오른쪽: 이벤트 배너와 커뮤니티 인기글 */}
-        <aside className={styles.rightSection}>
-          <div
-            className={styles.eventBannerCard}
-            onClick={() => navi('/event')}
-          >
-            <span className={styles.eventBannerBadge}>DAILY ATTENDANCE</span>
-            <h4 className={styles.eventBannerTitle}>📅 매일 출석체크 & 혜택 충전</h4>
-
-            <span className={styles.eventBannerBadge}>SPECIAL EVENT</span>
-            <h4 className={styles.eventBannerTitle}>🎁 얼굴 실물 인증 이벤트</h4>
-
-            <p className={styles.eventBannerDesc}>
-              매일 출석체크하고 마일리지와<br />
-              <strong>무료 매칭 이용권</strong>을 받아보세요!
-            </p>
-
-            <div className={styles.eventBannerFooter}>
-              <span>출석체크 하러가기</span>
-              <span>→</span>
+        {/* 오른쪽: 친구/채팅 도크 + 커뮤니티 인기글 */}
+        <aside className={styles.rightCol}>
+          <div className={styles.dockWrap}>
+            <div className={styles.dockTabs}>
+              <button
+                type="button"
+                className={`${styles.dockTab} ${sidebarTab === 'friends' ? styles.dockTabActive : ''}`}
+                onClick={() => setSidebarTab('friends')}
+              >
+                친구 목록 ({friendList.length})
+              </button>
+              <button
+                type="button"
+                className={`${styles.dockTab} ${sidebarTab === 'rooms' ? styles.dockTabActive : ''}`}
+                onClick={() => setSidebarTab('rooms')}
+              >
+                <span>채팅방</span>
+                {totalUnread > 0 && <span className={styles.dockBadge}>{totalUnread}</span>}
+              </button>
             </div>
-          </div>
 
-          <div className={styles.sideBox}>
-            <h3 className={styles.sideBoxTitle}>
-              <span>🔥 커뮤니티 인기글</span>
-            </h3>
-
-            <div className={styles.postList}>
-              {MOCK_POPULAR_POSTS.map((post) => (
-                <div key={post.id} className={styles.postItem}>
-                  <div className={styles.postItemTitle}>{post.title}</div>
-
-                  <div className={styles.postItemMeta}>
-                    <span>댓글 {post.comments}개</span>
-                    <span>{post.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-      </div>
-
-    </div>
-
-      {/* 3. 오른쪽 사이드: 친구 목록 / 채팅방 (홈 container 밖) */}
-      <aside className={styles.friendDock}>
-        <div className={styles.chatFriendSidebar}>
-          <div className={styles.sidebarTabButtons}>
-            <button
-              type="button"
-              className={`${styles.sidebarTabButton} ${sidebarTab === 'friends' ? styles.sidebarTabActive : ''}`}
-              onClick={() => setSidebarTab('friends')}
-            >
-              친구 목록
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.sidebarTabButton} ${sidebarTab === 'rooms' ? styles.sidebarTabActive : ''}`}
-              onClick={() => setSidebarTab('rooms')}
-            >
-              채팅방
-            </button>
-          </div>
-
-          <div className={styles.sidebarListBox}>
+            <div className={styles.dockBody}>
+              <div className={styles.sidebarListBox}>
             {sidebarTab === 'friends' && (
               <>
                 {/* 위쪽 고정 영역: 검색 2개 (내 친구 검색 / 아이디로 친구 추가 검색) */}
@@ -1144,27 +1116,32 @@ const handleSendChatMessage = async (textToSend) => {
                     <p className={styles.sidebarEmpty}>검색 결과가 없습니다.</p>
                   )}
 
-                  {filteredMyFriends.map((friend) => (
-                    <div
-                      className={styles.sidebarPerson}
-                      key={friend.member_seq}
-                      onClick={() => setProfileTargetSeq(friend.member_seq)}
-                      style={{ cursor: 'pointer' }}
-                      title="프로필 보기"
-                    >
-                      {friendImageUrls[Number(friend.member_seq)] ? (
-                        <img
-                          src={friendImageUrls[Number(friend.member_seq)]}
-                          alt=""
-                          className={styles.sidebarAvatar}
-                        />
-                      ) : (
-                        <div className={styles.sidebarAvatarFallback}>👤</div>
-                      )}
 
-                      <span className={styles.sidebarPersonName}>{friend.nickname || friend.login_id}</span>
-                    </div>
-                  ))}
+                  {filteredMyFriends.map((friend) => {
+                    const friendSeq = friend.member_seq ?? friend.memberSeq;
+                    return (
+                      <div
+                        className={styles.sidebarPerson}
+                        key={friendSeq ?? friend.login_id ?? friend.loginId}
+                        onClick={() => setProfileTargetSeq(friendSeq)}
+                        style={{ cursor: 'pointer' }}
+                        title="프로필 보기"
+                      >
+                        {friendImageUrls[Number(friendSeq)] ? (
+                          <img
+                            src={friendImageUrls[Number(friendSeq)]}
+                            alt=""
+                            className={styles.sidebarAvatar}
+                          />
+                        ) : (
+                          <div className={styles.sidebarAvatarFallback}>👤</div>
+                        )}
+
+
+                        <span className={styles.sidebarPersonName}>{friend.nickname || friend.login_id || friend.loginId}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -1238,7 +1215,7 @@ const handleSendChatMessage = async (textToSend) => {
                                   className={styles.sidebarAvatar}
                                 />
                               ) : (
-                                <div className={styles.sidebarAvatarFallback}>👤</div>
+                                <div className={styles.sidebarAvatarFallback}>{(friend.nickname || friend.login_id || '?').slice(0, 1)}</div>
                               )}
 
                               <span className={styles.sidebarPersonName}>{friend.nickname || friend.login_id}</span>
@@ -1258,7 +1235,7 @@ const handleSendChatMessage = async (textToSend) => {
                 {/* 받은 채팅 초대 */}
                 {invitations.length > 0 && (
                   <div className={styles.inviteSection}>
-                    <h4 className={styles.inviteSectionTitle}>💌 받은 채팅 초대</h4>
+                    <h4 className={styles.inviteSectionTitle}>받은 채팅 초대</h4>
 
                     {invitations.map((invitation) => (
                       <div key={invitation.chat_invitation_seq} className={styles.inviteItem}>
@@ -1313,16 +1290,43 @@ const handleSendChatMessage = async (textToSend) => {
               </>
             )}
           </div>
-        </div>
-      </aside>
+            </div>
+          </div>
 
-      {/* 3. 오른쪽 하단 AI 안전 도우미 챗봇 */}
+          <div className={styles.communityCard}>
+            <div className={styles.communityHead}>
+              <div>
+                <span className={styles.eyebrow}>COMMUNITY</span>
+                <h3 className={styles.communityTitle}>커뮤니티 인기글</h3>
+              </div>
+              <span className={styles.top4}>TOP 04</span>
+            </div>
+
+            <div className={styles.postList}>
+              {MOCK_POPULAR_POSTS.map((post) => (
+                <div key={post.id} className={styles.postItem} onClick={() => navi('/post')}>
+                  <div className={styles.postRow}>
+                    <span className={styles.postRank}>{String(post.id).padStart(2, '0')}</span>
+                    <p className={styles.postItemTitle}>{post.title}</p>
+                  </div>
+                  <div className={styles.postItemMeta}>
+                    <span>댓글 {post.comments}개</span>
+                    <span>{post.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* 3. 오른쪽 하단 AI 맛집·데이트 추천 챗봇 */}
       <div
         className={`${styles.chatbotFab} ${isChatOpen ? styles.chatbotFabActive : ''}`}
         onClick={() => setIsChatOpen(!isChatOpen)}
         title="AI 맛집·데이트 추천 챗봇 열기"
       >
-        <span className={styles.chatbotFabIcon}>{isChatOpen ? '✕' : '🤖'}</span>
+        <span className={styles.chatbotFabIcon}>{isChatOpen ? '✕' : 'AI'}</span>
 
         {!isChatOpen && (
           <span className={styles.chatbotFabBadge}>AI 추천</span>
@@ -1335,7 +1339,7 @@ const handleSendChatMessage = async (textToSend) => {
         <div className={styles.chatbotWindow}>
           <div className={styles.chatbotHeader}>
             <div className={styles.chatbotHeaderLeft}>
-              <div className={styles.chatbotAvatar}>🤖</div>
+              <div className={styles.chatbotAvatar}>AI</div>
 
               <div>
                 <h4 className={styles.chatbotTitle}>실루엣 AI 추천 도우미</h4>
@@ -1372,7 +1376,7 @@ const handleSendChatMessage = async (textToSend) => {
                 className={`${styles.chatBubbleRow} ${msg.sender === 'user' ? styles.userRow : styles.aiRow}`}
               >
                 {msg.sender === 'ai' && (
-                  <div className={styles.chatBotAvatarSmall}>🤖</div>
+                  <div className={styles.chatBotAvatarSmall}>AI</div>
                 )}
 
                 <div

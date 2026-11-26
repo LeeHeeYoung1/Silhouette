@@ -19,6 +19,7 @@ const Event = () => {
   const [attendance, setAttendance] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // 특별 혜택 모달 제어
   const [isRouletteOpen, setIsRouletteOpen] = useState(false);
@@ -325,6 +326,9 @@ const Event = () => {
             </div>
           </div>
 
+          {errorMsg && (
+            <p style={{ color: '#f43f5e', fontSize: '13px', marginBottom: '8px' }}>{errorMsg}</p>
+          )}
           <div className={styles.attendCard}>
             <div className={styles.attendLeft}>
               <div className={styles.attendTitleRow}>

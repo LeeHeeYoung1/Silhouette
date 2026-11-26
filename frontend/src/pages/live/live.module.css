@@ -869,3 +869,74 @@
     font-size: 0.85em;
   }
 }
+
+
+/* ==========================================================================
+   BUMBLE STYLE LIVE OVERRIDES
+   ========================================================================== */
+.primaryButton {
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 9999px;
+  font-weight: 800;
+  box-shadow: none;
+}
+.primaryButton:hover:not(:disabled) {
+  background: var(--honey);
+  color: var(--ink);
+}
+.ghostButton {
+  background: var(--sand);
+  border: 0;
+  border-radius: 9999px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ghostButton:hover:not(:disabled) { background: var(--sand-hover); }
+.dangerButton { border-radius: 9999px; font-weight: 800; }
+.linkButton { color: var(--ink); font-weight: 800; text-decoration: underline; }
+.tag { background: #ffffff; color: var(--ink); font-weight: 700; }
+.searchBar input, .form input, .form select, .chatInput input {
+  border-radius: 9999px;
+  padding: 11px 16px;
+}
+.searchBar input:focus, .form input:focus, .form select:focus, .chatInput input:focus, .textarea:focus {
+  border-color: var(--honey);
+  box-shadow: 0 0 0 2px var(--honey);
+}
+.tab {
+  background: var(--sand);
+  border: 0;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.tab:hover { background: var(--sand-hover); color: var(--ink); }
+.tabActive {
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 800;
+  border: 0;
+}
+.card {
+  background: var(--sand);
+  border: 0;
+  border-radius: 26px;
+  box-shadow: none;
+}
+.card:hover:not(:disabled) {
+  background: var(--sand-hover);
+  transform: translateY(-3px);
+}
+.mineBadge { background: var(--honey); color: var(--ink); font-weight: 800; }
+.modal {
+  background: var(--cream);
+  border: 1px solid var(--hairline);
+  border-radius: 28px;
+  box-shadow: 0 25px 60px rgba(34, 32, 30, 0.25);
+}
+.quote { border-left-color: var(--honey); background: var(--sand); }
+.cameraOff, .stageMessage { background: var(--ink); color: var(--cream); }
+.startAudio { background: var(--honey); color: var(--ink); font-weight: 800; box-shadow: none; }
+.chat, .viewerPanel { border: 0; border-radius: 26px; background: var(--sand); }
+.chatNick { color: var(--ink); font-weight: 800; }
+.hostBadge { background: var(--honey); color: var(--ink); border-radius: 9999px; padding: 2px 8px; }

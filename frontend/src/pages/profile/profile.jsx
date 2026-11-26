@@ -236,6 +236,8 @@ function Profile() {
 
     // 대표 사진 서버 주소 (/api/profile/image/21)
     const mainFileUrl = getMainFileUrl(data?.images);
+    const currentImage = data?.images && data.images.length > 0 ? data.images[0] : null;
+    const reviewStatus = currentImage?.reviewStatus || currentImage?.review_status;
 
     /* ===================== 불러오기 ===================== */
     const loadProfile = () =>
@@ -325,6 +327,8 @@ function Profile() {
             });
             await loadProfile();                 // 새 사진 정보(번호·주소) 받기
             setPhotoVersion((v) => v + 1);       // 주소가 같아도 서버에서 새 사진 다시 받기
+            window.dispatchEvent(new Event('silhouette-profile-updated'));
+            window.dispatchEvent(new Event('profileUpdated'));
             alert('프로필 사진이 변경되었습니다.');
         } catch (err) {
             setPhotoVersion((v) => v + 1);       // 실패하면 원래 사진으로 되돌리기
@@ -529,6 +533,21 @@ function Profile() {
                         <button type="button" className={styles.photoBtn} onClick={openPicker} disabled={uploading}>
                             📷 사진 바꾸기
                         </button>
+                        {reviewStatus === 'WAITING' && (
+                            <div style={{ color: '#f59e0b', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
+                                ⏳ 심사 대기 중<br /><span style={{ fontSize: '0.72rem', color: '#888' }}>(승인 후 다른 회원에게 공개됩니다)</span>
+                            </div>
+                        )}
+                        {reviewStatus === 'APPROVED' && (
+                            <div style={{ color: '#10b981', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
+                                ✅ 사진 승인 완료
+                            </div>
+                        )}
+                        {reviewStatus === 'REJECTED' && (
+                            <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
+                                ❌ 심사 반려됨<br /><span style={{ fontSize: '0.72rem', color: '#ffb4b4' }}>(사진을 다시 변경해 주세요)</span>
+                            </div>
+                        )}
                         <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePhotoChange} />
                     </div>
 

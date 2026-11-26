@@ -167,6 +167,16 @@
 		 where member_seq = #{memberSeq}
 		 order by sort_order
 	</select>
+
+	<!-- 다른 회원이 보는 승인된 사진 목록 (순서대로) -->
+	<select id="selectApprovedProfileImages" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
+		select profile_image_seq, member_seq, original_name, stored_name,
+		       file_url, review_status, sort_order
+		  from profile_image
+		 where member_seq = #{memberSeq}
+		   and review_status = 'APPROVED'
+		 order by sort_order
+	</select>
  
 	<!-- 사진 한 장 (화면에 보여줄 때) -->
 	<select id="selectProfileImageOne" parameterType="long" resultType="com.app.silhouette.profile.ProfileImageDTO">
@@ -191,7 +201,7 @@
 			file_url, review_status, sort_order
 		) values (
 			#{profileImageSeq}, #{memberSeq}, #{originalName}, #{storedName},
-			'/api/profile/image/' || #{profileImageSeq}, 'PENDING', #{sortOrder}
+			'/api/profile/image/' || #{profileImageSeq}, 'WAITING', #{sortOrder}
 		)
 	</insert>
  
@@ -200,7 +210,7 @@
 		update profile_image
 		   set original_name = #{originalName},
 		       stored_name   = #{storedName},
-		       review_status = 'PENDING'
+		       review_status = 'WAITING'
 		 where member_seq = #{memberSeq}
 		   and sort_order = #{sortOrder}
 	</update>

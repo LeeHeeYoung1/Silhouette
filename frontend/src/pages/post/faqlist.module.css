@@ -1,72 +1,61 @@
-/* FAQ 목록 - 다크 테마, 색 직접 지정 (흐려 보이지 않게) */
+/* FAQ 목록 — Bumble 스타일 */
 .wrap {
-    --faq-accent: #a78bfa;          /* 포인트 색: 이 한 줄만 바꾸면 전체 변경 */
-    --faq-bg: #1b1b22;
-    --faq-bg-open: #22222b;
-    --faq-border: #33333f;
-    --faq-text: #f3f3f7;
-    --faq-sub: #a9a9b8;
+    --faq-accent: #22201e;
+    --faq-bg: #f7f3e6;
+    --faq-bg-open: #ffffff;
+    --faq-border: #e7e0ce;
+    --faq-text: #22201e;
+    --faq-sub: #5c5549;
     color: var(--faq-text);
     padding: 8px 0 24px;
 }
 
-.topBar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-}
+.topBar { display: flex; gap: 10px; margin-bottom: 16px; }
 
 .search {
     flex: 1;
-    padding: 12px 14px;
-    border-radius: 10px;
+    padding: 13px 18px;
+    border-radius: 9999px;
     border: 1px solid var(--faq-border);
-    background: var(--faq-bg);
+    background: #ffffff;
     color: var(--faq-text);
     font-size: 15px;
     outline: none;
 }
-.search::placeholder { color: #7d7d8c; }
-.search:focus { border-color: var(--faq-accent); }
+.search::placeholder { color: #8a8173; }
+.search:focus { border-color: var(--honey); box-shadow: 0 0 0 2px var(--honey); }
 
 .writeBtn {
-    padding: 0 18px;
+    padding: 0 22px;
     border: none;
-    border-radius: 10px;
-    background: var(--faq-accent);
-    color: #15131c;
-    font-weight: 700;
+    border-radius: 9999px;
+    background: var(--ink);
+    color: var(--cream);
+    font-weight: 800;
     font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
 }
-.writeBtn:hover { filter: brightness(1.1); }
+.writeBtn:hover { background: var(--honey); color: var(--ink); }
 
-/* 카테고리 탭 */
-.tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 18px;
-}
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .tab {
-    padding: 8px 16px;
+    padding: 9px 18px;
     border-radius: 999px;
-    border: 1px solid var(--faq-border);
+    border: 0;
     background: var(--faq-bg);
     color: var(--faq-sub);
     font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
 }
-.tab:hover { color: var(--faq-text); border-color: var(--faq-accent); }
+.tab:hover { background: var(--sand-hover); color: var(--ink); }
 .tabActive {
-    background: var(--faq-accent);
-    border-color: var(--faq-accent);
-    color: #15131c;
-    font-weight: 700;
+    background: var(--honey);
+    color: var(--ink);
+    font-weight: 800;
 }
 
-/* 목록 */
 .list {
     list-style: none;
     margin: 0;
@@ -76,23 +65,23 @@
     gap: 10px;
 }
 .item {
-    border: 1px solid var(--faq-border);
-    border-radius: 12px;
+    border: 0;
+    border-radius: 22px;
     background: var(--faq-bg);
     overflow: hidden;
 }
 .itemOpen {
     background: var(--faq-bg-open);
-    border-color: var(--faq-accent);
+    box-shadow: 0 0 0 2px var(--honey) inset;
 }
-.itemHidden { border-style: dashed; }
+.itemHidden { opacity: 0.7; }
 
 .question {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 16px 18px;
+    padding: 18px 22px;
     background: transparent;
     border: none;
     color: var(--faq-text);
@@ -100,61 +89,48 @@
     text-align: left;
     cursor: pointer;
 }
-.qMark, .aMark {
-    flex-shrink: 0;
-    font-weight: 800;
-    font-size: 17px;
-}
-.qMark { color: var(--faq-accent); }
-.aMark { color: #4ade80; }
+.qMark, .aMark { flex-shrink: 0; font-weight: 900; font-size: 17px; }
+.qMark { color: var(--ink); }
+.aMark { color: var(--ink); }
 
 .badge {
     flex-shrink: 0;
-    padding: 3px 9px;
-    border-radius: 6px;
-    background: #2d2a3e;
-    color: #d6ccff;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    background: var(--honey);
+    color: var(--ink);
     font-size: 12px;
+    font-weight: 800;
 }
 .hiddenBadge {
     flex-shrink: 0;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: #3a2a2a;
-    color: #ffb4b4;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: #fdecea;
+    color: #b42318;
     font-size: 12px;
+    font-weight: 800;
 }
-.qText {
-    flex: 1;
-    font-weight: 600;
-    line-height: 1.5;
-}
-.arrow {
-    flex-shrink: 0;
-    color: var(--faq-sub);
-    font-size: 12px;
-}
+.qText { flex: 1; font-weight: 800; line-height: 1.5; }
+.arrow { flex-shrink: 0; color: var(--faq-sub); font-size: 12px; }
 
-/* 답변 */
 .answer {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 4px 18px 18px;
+    padding: 16px 22px 22px;
     border-top: 1px solid var(--faq-border);
-    padding-top: 16px;
 }
 .aText {
     flex: 1;
     margin: 0;
-    color: #e4e4ec;
+    color: var(--text-sub);
     font-size: 15px;
     line-height: 1.7;
-    white-space: pre-wrap;      /* 줄바꿈 그대로 */
+    white-space: pre-wrap;
     word-break: break-word;
 }
 
-/* 관리자 버튼 */
 .adminButtons {
     width: 100%;
     display: flex;
@@ -163,32 +139,19 @@
     gap: 8px;
     margin-top: 6px;
 }
-.sortInfo {
-    margin-right: auto;
-    color: var(--faq-sub);
-    font-size: 13px;
-}
+.sortInfo { margin-right: auto; color: var(--faq-sub); font-size: 13px; }
 .subBtn, .editBtn, .deleteBtn {
     padding: 7px 14px;
-    border-radius: 8px;
+    border-radius: 9999px;
     font-size: 13px;
+    font-weight: 800;
     cursor: pointer;
-    background: transparent;
+    border: 0;
 }
-.subBtn { border: 1px solid var(--faq-border); color: var(--faq-sub); }
-.editBtn { border: 1px solid var(--faq-accent); color: var(--faq-accent); }
-.deleteBtn { border: 1px solid #f87171; color: #f87171; }
-.subBtn:hover, .editBtn:hover, .deleteBtn:hover { filter: brightness(1.25); }
+.subBtn { background: var(--sand); color: var(--ink); }
+.editBtn { background: var(--honey); color: var(--ink); }
+.deleteBtn { background: #fdecea; color: #b42318; }
 
-.notice {
-    padding: 40px 0;
-    text-align: center;
-    color: var(--faq-sub);
-}
-.footer {
-    margin-top: 24px;
-    text-align: center;
-    color: var(--faq-sub);
-    font-size: 14px;
-}
-.footer strong { color: var(--faq-accent); }
+.notice { padding: 40px 0; text-align: center; color: var(--faq-sub); }
+.footer { margin-top: 24px; text-align: center; color: var(--faq-sub); font-size: 14px; }
+.footer strong { color: var(--ink); }

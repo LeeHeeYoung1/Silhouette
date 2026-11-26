@@ -122,7 +122,8 @@
 		       case when p.board_type= 'ANON' then null
 		       	else (select max(pi.file_url) keep (dense_rank first order by pi.sort_order)
 		       		from profile_image pi
-		       		where pi.member_seq = p.member_seq)
+		       		where pi.member_seq = p.member_seq
+		       		  and pi.review_status = 'APPROVED')
 		       end as profile_image_url
 		  from post p
 		  join member m on p.member_seq = m.member_seq

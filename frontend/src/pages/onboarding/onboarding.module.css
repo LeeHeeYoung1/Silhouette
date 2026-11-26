@@ -1,6 +1,5 @@
 /* =========================================================
-   온보딩 (프로필 수정 화면도 같이 사용)
-   - 라이트/다크 모드와 상관없이 선명하게 보이도록 색을 전부 직접 지정
+   온보딩 (프로필 수정 화면도 같이 사용) — Bumble 에디토리얼 스타일
    ========================================================= */
 
 .page {
@@ -8,33 +7,33 @@
     display: flex;
     justify-content: center;
     padding: 40px 16px 80px;
-    background: #0f0f17;
+    background: var(--cream);
 }
 
 .card {
     width: 100%;
-    max-width: 640px;
+    max-width: 680px;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    padding: 32px;
-    border-radius: 18px;
-    background: #181822;
-    border: 1px solid rgba(168, 85, 247, 0.25);
-    color: #f2f2f7;
+    padding: 40px 36px;
+    border-radius: 32px;
+    background: var(--sand);
+    border: 0;
+    color: var(--ink);
 }
 
 .notice {
     margin: 0;
-    padding: 12px 16px;
-    border-radius: 10px;
-    background: rgba(168, 85, 247, 0.1);
-    color: #e4d4fb;
+    padding: 14px 18px;
+    border-radius: 18px;
+    background: #fff1c2;
+    color: var(--ink);
     font-size: 0.9rem;
+    font-weight: 600;
     line-height: 1.6;
 }
 
-/* ===== 진행 상황 ===== */
 .header {
     display: flex;
     flex-direction: column;
@@ -44,25 +43,24 @@
 .stepLabel {
     margin: 0;
     font-size: 0.95rem;
-    font-weight: 700;
-    color: #d8b4fe;
+    font-weight: 800;
+    color: var(--ink);
 }
 
 .progress {
-    height: 8px;
+    height: 10px;
     border-radius: 999px;
-    background: #2a2a38;
+    background: #ffffff;
     overflow: hidden;
 }
 
 .progressBar {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #a855f7, #ec4899);
+    background: var(--ink);
     transition: width 0.3s ease;
 }
 
-/* ===== 입력 칸 묶음 ===== */
 .field {
     display: flex;
     flex-direction: column;
@@ -73,14 +71,14 @@
 
 .label {
     font-size: 0.95rem;
-    font-weight: 700;
-    color: #ffffff;
+    font-weight: 800;
+    color: var(--ink);
 }
 
 .hint {
     margin: -2px 0 0;
     font-size: 0.82rem;
-    color: #b8b8cc;
+    color: var(--text-sub);
 }
 
 .row {
@@ -88,16 +86,15 @@
     gap: 14px;
 }
 
-/* ===== 글자 입력칸 / 선택 상자 / 여러 줄 ===== */
 .input,
 .textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid #3a3a4c;
-    background: #22222e;
-    color: #ffffff;
+    padding: 13px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--hairline);
+    background: #ffffff;
+    color: var(--ink);
     font-size: 0.95rem;
     font-family: inherit;
     outline: none;
@@ -106,13 +103,13 @@
 
 .input::placeholder,
 .textarea::placeholder {
-    color: #8c8ca3;
+    color: var(--text-muted);
 }
 
 .input:focus,
 .textarea:focus {
-    border-color: #a855f7;
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+    border-color: var(--honey);
+    box-shadow: 0 0 0 2px var(--honey);
 }
 
 .textarea {
@@ -120,25 +117,16 @@
     line-height: 1.6;
 }
 
-/* 선택 상자 목록도 어둡게 (흰 바탕에 흰 글씨 방지) */
-select.input {
-    color-scheme: dark;
-    cursor: pointer;
-}
-
-select.input option {
-    background: #22222e;
-    color: #ffffff;
-}
+select.input { cursor: pointer; }
+select.input option { background: #ffffff; color: var(--ink); }
 
 .counter {
     margin: 0;
     align-self: flex-end;
     font-size: 0.8rem;
-    color: #b8b8cc;
+    color: var(--text-muted);
 }
 
-/* ===== 칩 선택 ===== */
 .chips {
     display: flex;
     flex-wrap: wrap;
@@ -146,29 +134,27 @@ select.input option {
 }
 
 .chip {
-    padding: 8px 14px;
+    padding: 9px 16px;
     border-radius: 999px;
-    border: 1px solid #3a3a4c;
-    background: #22222e;
-    color: #e6e6ef;
+    border: 0;
+    background: #ffffff;
+    color: var(--ink);
     font-size: 0.88rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s;
 }
 
 .chip:hover {
-    border-color: #a855f7;
-    color: #ffffff;
+    background: var(--honey);
 }
 
 .chipActive {
-    background: linear-gradient(135deg, #a855f7, #ec4899);
-    border-color: transparent;
-    color: #ffffff;
-    font-weight: 700;
+    background: var(--ink);
+    color: var(--cream);
+    font-weight: 800;
 }
 
-/* ===== 카드 선택 (병역) ===== */
 .optionGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -180,42 +166,29 @@ select.input option {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: 14px;
-    border-radius: 12px;
-    border: 1px solid #3a3a4c;
-    background: #22222e;
-    color: #f2f2f7;
+    padding: 16px;
+    border-radius: 18px;
+    border: 0;
+    background: #ffffff;
+    color: var(--ink);
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: background 0.15s;
 }
 
 .optionCard:hover {
-    border-color: #a855f7;
+    background: #fff1c2;
 }
 
 .optionCardActive {
-    border-color: #a855f7;
-    background: rgba(168, 85, 247, 0.18);
-    box-shadow: 0 0 0 1px #a855f7 inset;
+    background: var(--honey);
+    box-shadow: 0 0 0 2px var(--ink) inset;
 }
 
-.optionIcon {
-    font-size: 1.4rem;
-}
+.optionIcon { font-size: 1.4rem; }
+.optionTitle { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
+.optionDesc { font-size: 0.8rem; color: var(--text-sub); }
 
-.optionTitle {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.optionDesc {
-    font-size: 0.8rem;
-    color: #c4c4d6;
-}
-
-/* ===== 프로필 사진 (증명사진 3:4) ===== */
 .photoGrid {
     display: flex;
     gap: 12px;
@@ -225,19 +198,20 @@ select.input option {
     position: relative;
     width: 120px;
     height: 160px;
-    border-radius: 12px;
-    border: 2px dashed #4a4a60;
-    background: #22222e;
+    border-radius: 18px;
+    border: 2px dashed #d9cfb5;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.2s;
 }
 
 .photoSlot:hover {
-    border-color: #a855f7;
+    border-color: var(--honey);
+    background: #fff8dc;
 }
 
 .photoImg {
@@ -249,7 +223,7 @@ select.input option {
 
 .photoPlus {
     font-size: 2rem;
-    color: #c4c4d6;
+    color: var(--ink);
 }
 
 .photoRemove {
@@ -260,20 +234,18 @@ select.input option {
     height: 26px;
     border-radius: 50%;
     border: none;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(34, 32, 30, 0.8);
     color: #ffffff;
     font-size: 0.8rem;
     cursor: pointer;
 }
 
-/* ===== 회원 기본 정보 (닉네임 · 성별 · 나이) ===== */
 .infoBox {
     display: flex;
     gap: 10px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    background: #22222e;
-    border: 1px solid #3a3a4c;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: #ffffff;
 }
 
 .infoItem {
@@ -283,28 +255,19 @@ select.input option {
     gap: 4px;
 }
 
-.infoItem span {
-    font-size: 0.8rem;
-    color: #b8b8cc;
-}
+.infoItem span { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+.infoItem strong { font-size: 1rem; color: var(--ink); font-weight: 800; }
 
-.infoItem strong {
-    font-size: 1rem;
-    color: #ffffff;
-}
-
-/* ===== 에러 ===== */
 .error {
     margin: 0;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: #fdecea;
+    color: #b42318;
     font-size: 0.9rem;
+    font-weight: 700;
 }
 
-/* ===== 버튼 ===== */
 .buttons {
     display: flex;
     justify-content: flex-end;
@@ -315,40 +278,35 @@ select.input option {
 .prevBtn,
 .skipBtn,
 .nextBtn {
-    padding: 12px 22px;
-    border-radius: 10px;
+    padding: 13px 24px;
+    border-radius: 9999px;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
-    transition: opacity 0.2s, background 0.2s;
+    transition: all 0.2s;
 }
 
 .prevBtn {
-    border: 1px solid #4a4a60;
-    background: #22222e;
-    color: #f2f2f7;
+    border: 0;
+    background: #ffffff;
+    color: var(--ink);
 }
 
 .skipBtn {
-    border: 1px solid #4a4a60;
+    border: 0;
     background: transparent;
-    color: #d0d0de;
+    color: var(--text-sub);
 }
 
 .nextBtn {
     border: none;
-    background: linear-gradient(135deg, #a855f7, #ec4899);
-    color: #ffffff;
+    background: var(--ink);
+    color: var(--cream);
 }
 
 .prevBtn:hover,
-.skipBtn:hover {
-    background: #2c2c3a;
-}
-
-.nextBtn:hover {
-    opacity: 0.92;
-}
+.skipBtn:hover { background: var(--sand-hover); color: var(--ink); }
+.nextBtn:hover:not(:disabled) { background: var(--honey); color: var(--ink); }
 
 .prevBtn:disabled,
 .skipBtn:disabled,
@@ -357,9 +315,8 @@ select.input option {
     cursor: not-allowed;
 }
 
-/* ===== 모바일 ===== */
 @media (max-width: 560px) {
-    .card { padding: 22px 18px; }
+    .card { padding: 24px 18px; }
     .row { flex-direction: column; }
     .optionGrid { grid-template-columns: 1fr; }
 }

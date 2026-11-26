@@ -17,11 +17,11 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']; // 올릴 수 �
 
 // 등급별 문구 (D등급도 상처받지 않게 부드럽게)
 const GRADE_INFO = {
-  S: { title: '눈부신 실루엣', emoji: '👑', comment: '첫눈에 시선을 사로잡는 압도적인 분위기예요!' },
-  A: { title: '매력 넘치는 실루엣', emoji: '💖', comment: '누구에게나 호감을 주는 또렷한 매력을 가졌어요.' },
-  B: { title: '호감 가득 실루엣', emoji: '😊', comment: '편안하고 친근한 인상으로 대화가 즐거워지는 타입이에요.' },
-  C: { title: '은은한 매력 실루엣', emoji: '🌙', comment: '볼수록 빠져드는 은은한 매력이 있어요.' },
-  D: { title: '숨은 매력 실루엣', emoji: '🌱', comment: '사진보다 실제로 만났을 때 더 빛나는 타입이에요.' },
+  S: { title: '눈부신 실루엣', emoji: '', comment: '첫눈에 시선을 사로잡는 압도적인 분위기예요!' },
+  A: { title: '매력 넘치는 실루엣', emoji: '', comment: '누구에게나 호감을 주는 또렷한 매력을 가졌어요.' },
+  B: { title: '호감 가득 실루엣', emoji: '', comment: '편안하고 친근한 인상으로 대화가 즐거워지는 타입이에요.' },
+  C: { title: '은은한 매력 실루엣', emoji: '', comment: '볼수록 빠져드는 은은한 매력이 있어요.' },
+  D: { title: '숨은 매력 실루엣', emoji: '', comment: '사진보다 실제로 만났을 때 더 빛나는 타입이에요.' },
 };
 
 // 서버 날짜(LocalDateTime) → "2026.11.24 14:03"
@@ -111,7 +111,10 @@ const BeautyTest = () => {
 
   // 화면에 보여줄 결과: 방금 받은 결과 > 이번 주에 이미 했으면 최신 기록
   const shownResult = result || (status && !status.canTest ? history[0] : null);
-  const shownKey = shownResult ? `${shownResult.beautyTestSeq}-${shownResult.score100}` : '';
+  const shownGrade = shownResult?.grade || 'B';
+  const shownScore100 = Number(shownResult?.score100 ?? 0);
+  const shownScore = Number(shownResult?.score ?? 0);
+  const shownKey = shownResult ? `${shownResult.beautyTestSeq ?? 'new'}-${shownScore100}` : '';
 
   // 결과가 나오면 점수 막대 애니메이션
   useEffect(() => {
@@ -228,170 +231,181 @@ const BeautyTest = () => {
     result && Array.isArray(result.photoScores) && result.photoScores.length === photos.length;
 
   return (
-    <div className={styles.container}>
-      {/* 뒤로가기 */}
-      <button type="button" className={styles.backBtn} onClick={() => navi('/event')}>
-        ← 이벤트 목록으로
-      </button>
+    <div className={styles.page}>
+      {/* 1. 히어로: 허니 옐로 풀블리드 + 위에서 내려오는 등급 슬래브 */}
+      <section className={styles.hero}>
+        <div className={styles.heroInner}>
+          <div className={styles.heroText}>
+            <button type="button" className={styles.backPill} onClick={() => navi('/event')}>
+              ← 이벤트 목록으로
+            </button>
 
-      {/* 1. 상단 배너 */}
-      <section className={styles.heroBanner}>
-        <div className={styles.heroContent}>
-          <div className={styles.badge}>
-            <span>📸 SILHOUETTE AI BEAUTY TEST</span>
-          </div>
-          <h1 className={styles.heroTitle}>
-            AI가 분석하는 <br />
-            <span className={styles.titleHighlight}>나의 외모 등급 테스트</span>
-          </h1>
-          <p className={styles.heroDesc}>
-            본인 사진 1~4장을 올리면 AI가 모든 사진을 분석해 평균 점수와 등급을 알려드려요.
-            <br />
-            올린 사진은 저장되지 않고 분석이 끝나면 바로 삭제돼요.
-          </p>
-        </div>
+            <span className={styles.eyebrowDark}>SILHOUETTE AI BEAUTY TEST</span>
+            <h1 className={styles.heroTitle}>
+              AI가 보는
+              <br />
+              나의 <span className={styles.heroMark}>실루엣</span>
+            </h1>
+            <p className={styles.heroDesc}>
+              본인 사진 1~4장을 올리면 AI가 모든 사진을 분석해 평균 점수와 등급을 알려드려요.
+              올린 사진은 저장되지 않고 분석이 끝나면 바로 삭제돼요.
+            </p>
 
-        <div className={styles.heroStats}>
-          <div className={styles.statBox}>
-            <span className={styles.statLabel}>이번 주 참여</span>
-            <span className={`${styles.statValue} ${status?.canTest ? styles.statPink : ''}`}>
-              {status ? (status.canTest ? '가능 ✨' : '완료 💖') : '-'}
-            </span>
+            <div className={styles.heroStats}>
+              <span className={styles.statPill}>
+                <i className={`${styles.statDot} ${status?.canTest ? styles.statDotOn : ''}`} />
+                이번 주 참여 <b>{status ? (status.canTest ? '가능' : '완료') : '-'}</b>
+              </span>
+              <span className={styles.statPill}>
+                누적 테스트 <b>{history.length}회</b>
+              </span>
+            </div>
           </div>
-          <div className={styles.statBox}>
-            <span className={styles.statLabel}>누적 테스트</span>
-            <span className={styles.statValue}>{history.length}회</span>
+
+          <div className={styles.heroSlabs} aria-hidden="true">
+            <div className={`${styles.heroSlab} ${styles.heroSlab1}`}>
+              <span className={styles.slabLetter}>{shownResult?.grade || 'S'}</span>
+              <span className={styles.slabCap}>YOUR GRADE</span>
+            </div>
+            <div className={`${styles.heroSlab} ${styles.heroSlab2}`}>
+              <span className={styles.slabLetter}>A</span>
+            </div>
+            <div className={`${styles.heroSlab} ${styles.heroSlab3}`}>
+              <span className={styles.slabLetter}>B</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 2. 오류 안내 */}
-      {errorMsg && (
-        <div className={styles.errorBox} role="alert">
-          <span className={styles.errorIcon}>⚠️</span>
-          <span>{errorMsg}</span>
-        </div>
-      )}
+      <div className={styles.body}>
+        {/* 2. 오류 안내 */}
+        {errorMsg && (
+          <div className={styles.errorBar} role="alert">
+            <span className={styles.errorMark}>!</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
-      {isLoading ? (
-        <section className={styles.glassCard}>
-          <div className={styles.loadingBox}>
+        {isLoading ? (
+          <div className={styles.loading}>
             <div className={styles.spinner} />
             <span>테스트 정보를 불러오는 중이에요...</span>
           </div>
-        </section>
-      ) : shownResult ? (
-        /* 3. 결과 카드 */
-        <section className={`${styles.glassCard} ${styles.resultCard}`}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>{result ? '✨ 분석 결과' : '💌 이번 주 나의 결과'}</h2>
-            <span className={styles.cardSub}>{formatDate(shownResult.createdAt) || '방금 전'}</span>
-          </div>
+        ) : shownResult ? (
+          /* 3. 결과 */
+          <section className={styles.result}>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.eyebrow}>{result ? 'RESULT' : 'THIS WEEK'}</span>
+                <h2 className={styles.sectionTitle}>{result ? '분석 결과' : '이번 주 나의 결과'}</h2>
+              </div>
+              <span className={styles.datePill}>{formatDate(shownResult.createdAt) || '방금 전'}</span>
+            </div>
 
-          <div className={styles.resultMain}>
-            {/* 등급 원 */}
-            <div className={styles.gradeWrap}>
-              <div className={`${styles.gradeRing} ${styles[`grade${shownResult.grade}`] ?? ''}`}>
-                <div className={styles.gradeInner}>
-                  <span className={styles.gradeLetter}>{shownResult.grade}</span>
-                  <span className={styles.gradeCaption}>GRADE</span>
+            <div className={styles.resultGrid}>
+              <div className={`${styles.gradeSlab} ${styles[`grade${shownGrade}`] ?? ''}`}>
+                <span className={styles.gradeBig}>{shownGrade}</span>
+                <span className={styles.gradeCap}>GRADE</span>
+              </div>
+
+              <div className={styles.resultInfo}>
+                <h3 className={styles.gradeName}>{gradeInfo?.title}</h3>
+
+                <div className={styles.scoreRow}>
+                  <span className={styles.scoreBig}>{shownScore100}</span>
+                  <span className={styles.scoreUnit}>점</span>
+                </div>
+
+                <div className={styles.scoreBar}>
+                  <div
+                    className={styles.scoreFill}
+                    style={{ width: barReady ? `${Math.min(100, Math.max(0, shownScore100))}%` : '0%' }}
+                  />
+                </div>
+                <p className={styles.scoreMeta}>
+                  AI 평균 점수 <b>{shownScore.toFixed(2)}</b> / 5.00 · 사진 {shownResult.photoCount ?? 1}장 평가
+                </p>
+
+                <p className={styles.comment}>{gradeInfo?.comment}</p>
+
+                <div className={styles.celebNotice}>
+                  <span className={styles.celebBadge}>AI 채점 기준 안내</span>
+                  <p className={styles.celebText}>
+                    이 AI 모델은 학술 논문용 데이터셋 기준으로 매우 엄격하게 채점되어,{' '}
+                    <b>실제 최상위권 연예인·모델 사진도 보통 65~75점 사이</b>로 측정됩니다. 점수가 낮게 느껴지더라도 절대 낙담하지 마세요!
+                  </p>
                 </div>
               </div>
-              <div className={styles.gradeTitle}>
-                {gradeInfo.emoji} {gradeInfo.title}
-              </div>
             </div>
 
-            {/* 점수 */}
-            <div className={styles.scoreWrap}>
-              <div className={styles.scoreRow}>
-                <span className={styles.scoreBig}>{shownResult.score100}</span>
-                <span className={styles.scoreUnit}>점</span>
-              </div>
-              <div className={styles.scoreBar}>
-                <div
-                  className={styles.scoreFill}
-                  style={{ width: barReady ? `${Math.min(100, Math.max(0, shownResult.score100))}%` : '0%' }}
-                />
-              </div>
-              <div className={styles.scoreMeta}>
-                AI 평균 점수 <b>{Number(shownResult.score).toFixed(2)}</b> / 5.00 · 사진 {shownResult.photoCount ?? 1}장 평가
-              </div>
-              <p className={styles.gradeComment}>{gradeInfo.comment}</p>
-            </div>
-          </div>
-
-          {/* 사진별 점수 (방금 테스트한 경우만, 사진은 브라우저 안에서만 보여줌) */}
-          {showPhotoScores && (
-            <div className={styles.photoScoreRow}>
-              {photos.map((p, idx) => (
-                <div key={p.url} className={styles.photoScoreItem}>
-                  <img src={p.url} alt={`${idx + 1}번째 사진`} className={styles.photoScoreImg} />
-                  <span className={styles.photoScoreLabel}>
-                    {idx + 1}번 · <b>{Number(result.photoScores[idx]).toFixed(2)}</b>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <p className={styles.disclaimer}>
-            이 결과는 공개 연구용 데이터셋으로 학습한 AI의 추정치로, 재미로만 봐 주세요. 사람의 매력은 점수로 다
-            표현할 수 없어요 💫
-          </p>
-
-          <div className={styles.resultActions}>
-            {status?.canTest ? (
-              <button type="button" className={styles.primaryBtn} onClick={handleRetry}>
-                다시 테스트하기 📸
-              </button>
-            ) : (
-              <div className={styles.lockNote}>
-                🔒 다음 테스트는 <b>{status?.nextAvailableText}</b>부터 가능해요
+            {showPhotoScores && (
+              <div className={styles.photoScores}>
+                {photos.map((p, idx) => (
+                  <div key={p.url} className={styles.photoScore}>
+                    <img src={p.url} alt={`${idx + 1}번째 사진`} />
+                    <span className={styles.photoScoreChip}>
+                      {idx + 1}번 · <b>{Number(result.photoScores[idx]).toFixed(2)}</b>
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
-            <button type="button" className={styles.ghostBtn} onClick={() => navi('/event')}>
-              이벤트로 돌아가기
-            </button>
-          </div>
-        </section>
-      ) : status?.canTest ? (
-        /* 4. 업로드 카드 */
-        <section className={`${styles.glassCard} ${styles.uploadCard}`}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>📷 사진 올리기</h2>
-            <span className={styles.cardSub}>
-              {photos.length} / {MAX_PHOTOS}장
-            </span>
-          </div>
 
-          <div className={styles.uploadLayout}>
-            {/* 촬영 가이드 */}
-            <ul className={styles.guideList}>
-              <li>
-                <span className={styles.guideIcon}>🙂</span>얼굴이 잘 보이는 <b>정면 사진</b>
-              </li>
-              <li>
-                <span className={styles.guideIcon}>👤</span>사진마다 <b>본인 1명만</b> 나오게
-              </li>
-              <li>
-                <span className={styles.guideIcon}>💡</span>밝은 곳에서, 선글라스·마스크 없이
-              </li>
-              <li>
-                <span className={styles.guideIcon}>🖼️</span>jpg · png · webp, 1장당 10MB 이하
-              </li>
-              <li>
-                <span className={styles.guideIcon}>🔍</span>여러 장이면 <b>같은 사람인지</b> AI가 확인해요
-              </li>
+            <p className={styles.disclaimer}>
+              이 결과는 공개 연구용 데이터셋으로 학습한 AI의 추정치로, 재미로만 봐 주세요. 사람의 매력은 점수로 다
+              표현할 수 없어요
+            </p>
+
+            <div className={styles.actions}>
+              {status?.canTest ? (
+                <button type="button" className={styles.ctaDark} onClick={handleRetry}>
+                  다시 테스트하기
+                </button>
+              ) : (
+                <span className={styles.nextPill}>
+                  다음 테스트는 <b>{status?.nextAvailableText}</b>부터 가능해요
+                </span>
+              )}
+              <button type="button" className={styles.ctaLight} onClick={() => navi('/event')}>
+                이벤트로 돌아가기
+              </button>
+            </div>
+          </section>
+        ) : status?.canTest ? (
+          /* 4. 업로드 */
+          <section className={styles.upload}>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.eyebrow}>STEP 01</span>
+                <h2 className={styles.sectionTitle}>사진을 올려 주세요</h2>
+              </div>
+              <span className={styles.datePill}>
+                {photos.length} / {MAX_PHOTOS}장
+              </span>
+            </div>
+
+            <ul className={styles.guideChips}>
+              <li>얼굴이 잘 보이는 <b>정면 사진</b></li>
+              <li>사진마다 <b>본인 1명만</b></li>
+              <li>밝은 곳에서, 선글라스·마스크 없이</li>
+              <li>jpg · png · webp, 1장당 10MB 이하</li>
+              <li>여러 장이면 <b>같은 사람인지</b> AI가 확인해요</li>
             </ul>
 
-            {/* 사진 4칸 */}
-            <div className={styles.slotGrid}>
+            <div className={styles.celebBanner}>
+              <span className={styles.celebBadge}>알고 시작하세요!</span>
+              <p className={styles.celebText}>
+                이 AI는 학술 기준의 매우 깐깐한 채점 모델을 사용합니다.{' '}
+                <b>유명 연예인 사진도 평균 65~75점대</b>로 나오니 점수가 박하더라도 절대 낙담하지 마세요!
+              </p>
+            </div>
+
+            <div className={styles.slotRow}>
               {Array.from({ length: MAX_PHOTOS }).map((_, idx) => {
                 const photo = photos[idx];
                 return photo ? (
                   <div key={photo.url} className={`${styles.slot} ${styles.slotFilled}`}>
-                    <img src={photo.url} alt={`${idx + 1}번째 사진 미리보기`} className={styles.slotImg} />
+                    <img src={photo.url} alt={`${idx + 1}번째 사진 미리보기`} />
                     <span className={styles.slotIndex}>{idx + 1}</span>
                     <button
                       type="button"
@@ -417,92 +431,101 @@ const BeautyTest = () => {
                 );
               })}
             </div>
-          </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            hidden
-            onChange={handleSelectFiles}
-          />
-
-          {/* 동의 */}
-          <label className={styles.agreeBox}>
             <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              disabled={isAnalyzing}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              hidden
+              onChange={handleSelectFiles}
             />
-            <span>
-              올린 사진은 <b>AI 분석(얼굴 검출·본인 사진 확인·점수 계산)에만 사용</b>되고, 서버에 저장되지 않으며 분석이
-              끝나면 즉시 삭제되는 것에 동의합니다.
-            </span>
-          </label>
 
-          <div className={styles.weekNotice}>💡 외모 등급 테스트는 일주일에 1번만 참여할 수 있어요.</div>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.eyebrow}>STEP 02</span>
+                <h2 className={styles.sectionTitle}>동의하고 분석 시작</h2>
+              </div>
+            </div>
 
-          <button type="button" className={styles.primaryBtn} onClick={handleSubmit} disabled={!canSubmit}>
-            {isAnalyzing
-              ? 'AI가 분석하는 중...'
-              : photos.length === 0
-              ? '사진을 1장 이상 올려 주세요'
-              : !agreed
-              ? '동의에 체크해 주세요'
-              : `사진 ${photos.length}장으로 AI 분석 시작 ✨`}
-          </button>
-        </section>
-      ) : (
-        /* 5. 잠금 카드 (이번 주 참여 완료, 기록을 못 불러온 경우) */
-        <section className={`${styles.glassCard} ${styles.lockCard}`}>
-          <span className={styles.lockIcon}>🔒</span>
-          <p className={styles.lockTitle}>이번 주 외모 등급 테스트에 이미 참여했어요</p>
-          {status?.nextAvailableText && (
-            <p className={styles.lockSub}>
-              다음 테스트는 <b>{status.nextAvailableText}</b>부터 가능해요
-            </p>
-          )}
-        </section>
-      )}
+            <label className={`${styles.agree} ${agreed ? styles.agreeOn : ''}`}>
+              <input
+                type="checkbox"
+                className={styles.agreeInput}
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                disabled={isAnalyzing}
+              />
+              <span className={styles.agreeCheck} aria-hidden="true">✓</span>
+              <span className={styles.agreeText}>
+                올린 사진은 <b>AI 분석(얼굴 검출·본인 사진 확인·점수 계산)에만 사용</b>되고, 서버에 저장되지 않으며
+                분석이 끝나면 즉시 삭제되는 것에 동의합니다.
+              </span>
+            </label>
 
-      {/* 6. 내 테스트 기록 */}
-      {!isLoading && (
-        <section className={styles.sectionBlock}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>🗂️ 나의 테스트 기록</h2>
-            <span className={styles.sectionSubtitle}>점수와 등급만 기록되고 사진은 남지 않아요</span>
-          </div>
+            <p className={styles.weekNotice}>외모 등급 테스트는 일주일에 1번만 참여할 수 있어요.</p>
 
-          {history.length === 0 ? (
-            <div className={styles.emptyHistory}>아직 테스트 기록이 없어요. 첫 테스트에 도전해 보세요!</div>
-          ) : (
-            <ul className={styles.historyList}>
-              {history.map((item) => (
-                <li key={item.beautyTestSeq} className={styles.historyItem}>
-                  <span className={`${styles.historyGrade} ${styles[`grade${item.grade}`] ?? ''}`}>{item.grade}</span>
-                  <div className={styles.historyInfo}>
-                    <span className={styles.historyTitle}>
-                      {(GRADE_INFO[item.grade] ?? GRADE_INFO.B).title}
-                    </span>
-                    <span className={styles.historyDate}>{formatDate(item.createdAt)}</span>
-                  </div>
-                  <div className={styles.historyScore}>
-                    <b>{item.score100}점</b>
-                    <span>사진 {item.photoCount ?? 1}장</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+            <button type="button" className={styles.cta} onClick={handleSubmit} disabled={!canSubmit}>
+              {isAnalyzing
+                ? 'AI가 분석하는 중...'
+                : photos.length === 0
+                ? '사진을 1장 이상 올려 주세요'
+                : !agreed
+                ? '동의에 체크해 주세요'
+                : `사진 ${photos.length}장으로 AI 분석 시작`}
+            </button>
+          </section>
+        ) : (
+          /* 5. 잠금 */
+          <section className={styles.lock}>
+            <span className={styles.lockBadge}>LOCKED</span>
+            <p className={styles.lockTitle}>이번 주 외모 등급 테스트에 이미 참여했어요</p>
+            {status?.nextAvailableText && (
+              <p className={styles.lockSub}>
+                다음 테스트는 <b>{status.nextAvailableText}</b>부터 가능해요
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* 6. 내 테스트 기록 */}
+        {!isLoading && (
+          <section className={styles.history}>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.eyebrow}>HISTORY</span>
+                <h2 className={styles.sectionTitle}>나의 테스트 기록</h2>
+                <p className={styles.sectionSub}>점수와 등급만 기록되고 사진은 남지 않아요</p>
+              </div>
+            </div>
+
+            {history.length === 0 ? (
+              <div className={styles.emptyHistory}>아직 테스트 기록이 없어요. 첫 테스트에 도전해 보세요!</div>
+            ) : (
+              <ul className={styles.historyGrid}>
+                {history.map((item, idx) => (
+                  <li key={item.beautyTestSeq ?? idx} className={styles.historyCard}>
+                    <span className={`${styles.historyGrade} ${styles[`grade${item.grade}`] ?? ''}`}>{item.grade}</span>
+                    <div className={styles.historyInfo}>
+                      <span className={styles.historyTitle}>{(GRADE_INFO[item.grade] ?? GRADE_INFO.B).title}</span>
+                      <span className={styles.historyDate}>{formatDate(item.createdAt)}</span>
+                    </div>
+                    <div className={styles.historyScore}>
+                      <b>{item.score100}점</b>
+                      <span>사진 {item.photoCount ?? 1}장</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+      </div>
 
       {/* 7. 분석 중 화면 */}
       {isAnalyzing && (
-        <div className={styles.analyzingOverlay} role="status" aria-live="polite">
-          <div className={styles.analyzingCard}>
+        <div className={styles.analyzing} role="status" aria-live="polite">
+          <div className={styles.analyzingInner}>
             <div className={styles.scanFrame}>
               {photos[0] && <img src={photos[0].url} alt="" className={styles.scanImg} />}
               <div className={styles.scanLine} />
