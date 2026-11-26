@@ -84,7 +84,12 @@ public class ProfileDAO {
 	public List<ProfileImageDTO> selectProfileImages(Long memberSeq) {
 		return mybatis.selectList("Profile.selectProfileImages", memberSeq);
 	}
- 
+
+	// 다른 회원이 보는 승인된 사진 목록
+	public List<ProfileImageDTO> selectApprovedProfileImages(Long memberSeq) {
+		return mybatis.selectList("Profile.selectApprovedProfileImages", memberSeq);
+	}
+
 	// 사진 한 장
 	public ProfileImageDTO selectProfileImageOne(Long profileImageSeq) {
 		return mybatis.selectOne("Profile.selectProfileImageOne", profileImageSeq);

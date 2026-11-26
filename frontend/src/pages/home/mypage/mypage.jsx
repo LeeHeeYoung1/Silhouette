@@ -697,6 +697,8 @@ function MyPage() {
             });
             await Promise.all([loadMember(), loadMyProfile()]);   // 새 사진 번호 · 주소 받기
             setPhotoVersion((v) => v + 1);
+            window.dispatchEvent(new Event('silhouette-profile-updated'));
+            window.dispatchEvent(new Event('profileUpdated'));
             showToast('프로필 사진이 변경되었습니다. (관리자 심사 대기)');
         } catch (err) {
             const status = err.response?.status;

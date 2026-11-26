@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import Client from '../../api/client';
 import { INITIAL_TERMS } from '../../mockData';
 import styles from './signup.module.css';
 
@@ -143,8 +143,8 @@ function Signup() {
     }
 
     try {
-      const resp = await axios.get(
-        'http://localhost:80/members/idCheck',
+      const resp = await Client.get(
+        '/members/idCheck',
         {
           params: {
             loginId: formData.loginId
@@ -375,8 +375,8 @@ function Signup() {
     }
 
     try {
-     const resp = await axios.post(
-  'http://localhost:80/members/signup',
+     const resp = await Client.post(
+  '/members/signup',
   {
     member_Seq: null,
     login_Id: formData.loginId,
@@ -876,14 +876,11 @@ function Signup() {
           {/* 전체 동의 */}
           <div className={styles.allAgreeCard}>
             <div className={styles.termsHeaderRow}>
-              <label
-                className={styles.termsCheckboxWrap}
-                onClick={handleToggleAllTerms}
-              >
+              <label className={styles.termsCheckboxWrap}>
                 <input
                   type="checkbox"
                   checked={Object.values(agreedTerms).every(Boolean)}
-                  onChange={() => {}}
+                  onChange={handleToggleAllTerms}
                 />
 
                 <span className={`${styles.termsTitleText} ${styles.allAgreeTitle}`}>
@@ -900,14 +897,11 @@ function Signup() {
               className={styles.termsCard}
             >
               <div className={styles.termsHeaderRow}>
-                <label
-                  className={styles.termsCheckboxWrap}
-                  onClick={() => handleToggleTerm(term.termsSeq)}
-                >
+                <label className={styles.termsCheckboxWrap}>
                   <input
                     type="checkbox"
                     checked={!!agreedTerms[term.termsSeq]}
-                    onChange={() => {}}
+                    onChange={() => handleToggleTerm(term.termsSeq)}
                   />
 
                   <span className={styles.termsTitleText}>

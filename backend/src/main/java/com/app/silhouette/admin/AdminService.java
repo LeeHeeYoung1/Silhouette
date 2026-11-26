@@ -11,7 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.app.silhouette.blind.BlindChatService;
 import com.app.silhouette.commons.AuthMemberService;
+import com.app.silhouette.profile.ProfileDAO;
+import com.app.silhouette.profile.ProfileImageDTO;
+import com.app.silhouette.profile.ProfileService;
 
 @Service
 public class AdminService {
@@ -19,11 +23,17 @@ public class AdminService {
 	private final AdminDAO adminDao;
 	private final SightEngineService sightEngineService;
 	private final AuthMemberService authMemberService;
+	private final ProfileDAO profileDao;
+	private final ProfileService profileService;
+	private final BlindChatService blindChatService;
 
-	public AdminService(AdminDAO adminDao, SightEngineService sightEngineService, AuthMemberService authMemberService) {
+	public AdminService(AdminDAO adminDao, SightEngineService sightEngineService, AuthMemberService authMemberService, ProfileDAO profileDao, ProfileService profileService, BlindChatService blindChatService) {
 		this.adminDao = adminDao;
 		this.sightEngineService = sightEngineService;
 		this.authMemberService = authMemberService;
+		this.profileDao = profileDao;
+		this.profileService = profileService;
+		this.blindChatService = blindChatService;
 	}
 
 	@Transactional(readOnly = true)
@@ -34,15 +44,19 @@ public class AdminService {
 
 	@Transactional
 	public void addBlacklist(String authorization, AdminMemberDTO adminMemberDto) {
-		authMemberService.adminMember(authorization);
+		com.app.silhouette.commons.AuthMemberDTO admin = authMemberService.adminMember(authorization);
+		if (admin != null) {
+			adminMemberDto.setAdminSeq(admin.getMemberSeq());
+		}
 		adminDao.insertBlacklist(adminMemberDto);
 		adminDao.updateMemberStatus(adminMemberDto.getMemberSeq(), "SUSPENDED");
 	}
 
 	@Transactional
 	public void releaseBlacklist(String authorization, Long memberSeq) {
-		authMemberService.adminMember(authorization);
-		adminDao.releaseBlacklist(memberSeq);
+		com.app.silhouette.commons.AuthMemberDTO admin = authMemberService.adminMember(authorization);
+		Long adminSeq = admin != null ? admin.getMemberSeq() : null;
+		adminDao.releaseBlacklist(memberSeq, adminSeq);
 		adminDao.updateMemberStatus(memberSeq, "ACTIVE");
 	}
 
@@ -125,7 +139,34 @@ public class AdminService {
 		if (photo == null) {
 			throw new IllegalArgumentException("존재하지 않는 심사 대상 사진입니다");
 		}
-		double aiScore = sightEngineService.detectAiGeneratedScoreByUrl(photo.getPhotoUrl());
+
+		double aiScore = 0.0;
+		if (photo.getMemberSeq() != null) {
+			Long imgSeq = null;
+			if (photo.getPhotoUrl() != null && photo.getPhotoUrl().contains("/image/")) {
+				try {
+					String seqPart = photo.getPhotoUrl().substring(photo.getPhotoUrl().lastIndexOf("/") + 1);
+					imgSeq = Long.parseLong(seqPart);
+				} catch (Exception ignored) {}
+			}
+			ProfileImageDTO targetImage = null;
+			if (imgSeq != null) {
+				try {
+					targetImage = profileService.selectProfileImageOne(imgSeq);
+				} catch (Exception ignored) {}
+			}
+			if (targetImage == null) {
+				List<ProfileImageDTO> images = profileDao.selectProfileImages(photo.getMemberSeq());
+				if (images != null && !images.isEmpty()) {
+					targetImage = images.get(0);
+				}
+			}
+			if (targetImage != null) {
+				byte[] imageBytes = profileService.readImageBytes(targetImage.getStoredName());
+				aiScore = sightEngineService.detectAiGeneratedScore(imageBytes, targetImage.getOriginalName());
+			}
+		}
+
 		String isAiSuspect = aiScore >= 70.0 ? "Y" : "N";
 
 		adminDao.updatePhotoAiScore(photoReviewSeq, aiScore, isAiSuspect);
@@ -138,5 +179,33 @@ public class AdminService {
 	public void decidePhotoReview(String authorization, PhotoReviewDTO photoReviewDto) {
 		authMemberService.adminMember(authorization);
 		adminDao.updatePhotoReviewDecision(photoReviewDto);
+
+		// 심사 승인/반려 시 해당 회원의 PROFILE_IMAGE 상태도 함께 동기화 (심사된 사진 1장 우선)
+		PhotoReviewDTO photo = adminDao.selectPhotoReviewBySeq(photoReviewDto.getPhotoReviewSeq());
+		if (photo != null && photo.getMemberSeq() != null) {
+			Long profileImageSeq = null;
+			if (photo.getPhotoUrl() != null && photo.getPhotoUrl().contains("/api/profile/image/")) {
+				try {
+					String seqStr = photo.getPhotoUrl().substring(photo.getPhotoUrl().lastIndexOf("/") + 1);
+					profileImageSeq = Long.parseLong(seqStr);
+				} catch (NumberFormatException ignored) {}
+			}
+			adminDao.updateProfileImageStatus(photo.getMemberSeq(), profileImageSeq, photoReviewDto.getStatus());
+		}
+	}
+
+	public BlindConfigDTO getBlindConfig(String authorization) {
+		authMemberService.adminMember(authorization);
+		return new BlindConfigDTO(blindChatService.getTimeLimitMin(), blindChatService.getVoteSeconds());
+	}
+
+	public BlindConfigDTO updateBlindConfig(String authorization, BlindConfigDTO dto) {
+		authMemberService.adminMember(authorization);
+		if (dto.getTimeLimitMin() <= 0 || dto.getVoteSeconds() <= 0) {
+			throw new IllegalArgumentException("제한 시간과 투표 시간은 1 이상이어야 합니다.");
+		}
+		blindChatService.setTimeLimitMin(dto.getTimeLimitMin());
+		blindChatService.setVoteSeconds(dto.getVoteSeconds());
+		return new BlindConfigDTO(blindChatService.getTimeLimitMin(), blindChatService.getVoteSeconds());
 	}
 }
