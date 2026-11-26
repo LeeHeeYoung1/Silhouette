@@ -35,7 +35,8 @@ public class AttendanceService {
 
         List<AttendanceDTO> records = attendanceDao.selectWeeklyAttendance(memberSeq, monday, sunday);
         Map<LocalDate, AttendanceDTO> recordMap = records.stream()
-                .collect(Collectors.toMap(AttendanceDTO::getAttendDate, dto -> dto));
+                .filter(dto -> dto.getAttendDate() != null)
+                .collect(Collectors.toMap(AttendanceDTO::getAttendDate, dto -> dto, (existing, replacement) -> existing));
 
         List weekDays = new ArrayList<>();
         for (int i = 0; i < 7; i++) {

@@ -31,10 +31,24 @@ public class SightEngineService {
 	@Value("${sightengine.api.secret:}")
 	private String apiSecret;
 	
-	private final RestTemplate restTemplate = new RestTemplate();
+	private final RestTemplate restTemplate;
 	private final ObjectMapper objectMapper = new ObjectMapper();
+
+	public SightEngineService() {
+		org.springframework.http.client.SimpleClientHttpRequestFactory factory = 
+				new org.springframework.http.client.SimpleClientHttpRequestFactory();
+		factory.setConnectTimeout(3000);
+		factory.setReadTimeout(5000);
+		this.restTemplate = new RestTemplate(factory);
+	}
 	
-	public double detectAiGeneratedScore(MultipartFile file) {
+	public double detectAiGeneratedScore(byte[] imageBytes, String filename) {
+		if (apiUrl == null || apiUrl.isBlank() || apiUser == null || apiUser.isBlank() || apiSecret == null || apiSecret.isBlank()) {
+			return 0.0;
+		}
+		if (imageBytes == null || imageBytes.length == 0) {
+			return 0.0;
+		}
 		try {
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -43,10 +57,10 @@ public class SightEngineService {
 			body.add("models", "genai");
 			body.add("api_user", apiUser);
 			body.add("api_secret", apiSecret);
-			body.add("media", new ByteArrayResource(file.getBytes()) {
+			body.add("media", new ByteArrayResource(imageBytes) {
 				@Override
 				public String getFilename() {
-					return file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload.jpg";
+					return (filename != null && !filename.isBlank()) ? filename : "upload.jpg";
 				}
 			});
 				
@@ -61,11 +75,25 @@ public class SightEngineService {
 			throw new IllegalStateException("Sightengine 응답 오류: " + root.path("error").path("message").asText());
 			
 		} catch (Exception e) {
-			throw new RuntimeException("AI 이미지 판별 API 호출 실패: " + e.getMessage(), e);
+			throw new RuntimeException("AI 이미지 판별 API 호출 실패/타임아웃: " + e.getMessage(), e);
+		}
+	}
+
+	public double detectAiGeneratedScore(MultipartFile file) {
+		try {
+			if (file == null || file.isEmpty()) {
+				return 0.0;
+			}
+			return detectAiGeneratedScore(file.getBytes(), file.getOriginalFilename());
+		} catch (Exception e) {
+			throw new RuntimeException("AI 이미지 파일 읽기 실패: " + e.getMessage(), e);
 		}
 	}
 	
 	public double detectAiGeneratedScoreByUrl(String imageUrl) {
+		if (apiUrl == null || apiUrl.isBlank() || apiUser == null || apiUser.isBlank() || apiSecret == null || apiSecret.isBlank() || imageUrl == null || imageUrl.isBlank()) {
+			return 0.0;
+		}
 		try {
 			URI requestUri = UriComponentsBuilder.fromUriString(apiUrl)
 					.queryParam("models", "genai")
@@ -84,7 +112,7 @@ public class SightEngineService {
 			}
 			throw new IllegalStateException("Sightengine 응답 오류: " + root.path("error").path("message").asText());
 		} catch (Exception e) {
-			throw new RuntimeException("AI 이미지 판별 URL 판별 실패: " + e.getMessage(), e);
+			throw new RuntimeException("AI 이미지 판별 URL 판별 실패/타임아웃: " + e.getMessage(), e);
 		}
 	}
 	

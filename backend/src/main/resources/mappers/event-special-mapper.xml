@@ -118,14 +118,14 @@
           AND SOURCE_TYPE = #{sourceType}
     </select>
 
-    <!-- 블라인드 채팅 완료 이력 확인 -->
+    <!-- 블라인드 채팅 완료 이력 확인 (상호 호감 성공 상태인 CONTINUED 검사) -->
 <select id="countCompletedBlindChat" parameterType="long" resultType="int">
     SELECT COUNT(*)
     FROM BLIND_CHAT_ROOM bcr
     JOIN BLIND_MATCHING bm
       ON bcr.BLIND_MATCHING_SEQ = bm.BLIND_MATCHING_SEQ
     WHERE (bm.MEMBER_SEQ_1 = #{memberSeq} OR bm.MEMBER_SEQ_2 = #{memberSeq})
-      AND bcr.STATUS = 'COMPLETED'
+      AND bcr.STATUS = 'CONTINUED'
 </select>
 
 </mapper>

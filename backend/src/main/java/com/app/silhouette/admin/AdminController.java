@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -111,5 +112,18 @@ public class AdminController {
 			@RequestBody PhotoReviewDTO photoReviewDto) {
 		adminService.decidePhotoReview(authorization, photoReviewDto);
 		return ResponseEntity.ok(Map.of("success", true, "message", "심사 결과가 반영되었습니다."));
+	}
+
+	@GetMapping("/blind-config")
+	public ResponseEntity<BlindConfigDTO> getBlindConfig(
+			@RequestHeader(value = "Authorization", required = false) String authorization) {
+		return ResponseEntity.ok(adminService.getBlindConfig(authorization));
+	}
+
+	@PutMapping("/blind-config")
+	public ResponseEntity<BlindConfigDTO> updateBlindConfig(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestBody BlindConfigDTO dto) {
+		return ResponseEntity.ok(adminService.updateBlindConfig(authorization, dto));
 	}
 }

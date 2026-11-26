@@ -26,9 +26,14 @@ public class AttendanceController {
     }
 
     @PostMapping("/check")
-    public ResponseEntity<?> checkInToday(@RequestBody Map<String, Long> body) {
+    public ResponseEntity<?> checkInToday(@RequestBody Map<String, Object> body) {
         try {
-            return ResponseEntity.ok(attendanceService.checkInToday(body.get("memberSeq")));
+            Object rawSeq = body != null ? body.get("memberSeq") : null;
+            if (rawSeq == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "회원 번호가 필요합니다."));
+            }
+            Long memberSeq = (rawSeq instanceof Number) ? ((Number) rawSeq).longValue() : Long.parseLong(rawSeq.toString());
+            return ResponseEntity.ok(attendanceService.checkInToday(memberSeq));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

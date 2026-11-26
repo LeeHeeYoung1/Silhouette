@@ -23,6 +23,8 @@ public class InterceptorConfig implements WebMvcConfigurer{
                 "/members/idCheck",
                 "/chat",
                 "/chat/**",
+                "/blind",                  // 블라인드 채팅 STOMP 핸드셰이크
+                "/blind/**",
                 "/live",                   // 라이브 채팅 STOMP 엔드포인트
                 "/api/livekit/webhook");   // LiveKit 서명으로 따로 검증
 	}
