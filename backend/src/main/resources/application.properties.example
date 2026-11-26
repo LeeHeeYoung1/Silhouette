@@ -29,14 +29,16 @@ live.max-viewers=50
 spring.servlet.multipart.max-file-size=20MB
 spring.servlet.multipart.max-request-size=25MB
 
-# Spring AI - Gemini (블라인드 채팅 AI 추천답변 / 고스트채팅)
-#  - 키가 없으면 none 그대로 두세요 → 서버는 정상 실행, AI 추천 버튼만 '준비 중'
-#  - 키가 있으면 google-genai로 바꾸고 아래 두 줄 주석 해제 (키 없이 google-genai로 두면 서버가 안 켜짐)
+# Spring AI - Gemini (AI 챗봇 / 블라인드 채팅 AI 추천답변)
+#  - 챗봇 기능 때문에 api-key가 비어 있으면 서버가 켜지지 않음 → 팀에서 공유한 키를 꼭 넣기
 #  - 키는 Google AI Studio에서 발급, 절대 Git에 올리지 않기
+#  - thinking-level=minimal: 답변 전 "생각" 단계를 줄여 응답 속도 향상 (모델이 지원 안 한다는 에러가 나면 이 줄 삭제)
 
 spring.ai.model.chat=google-genai
 spring.ai.google.genai.api-key=
-spring.ai.google.genai.chat.model=gemini-3.5-flash-lite
+spring.ai.google.genai.chat.options.model=gemini-3.5-flash-lite
+spring.ai.google.genai.chat.options.thinking-level=minimal
+
 
 # 블라인드 채팅 (기본값: 대화 15분, GO/STOP 선택 30초 / 테스트할 때 시간을 줄여서 사용)
 blind.time-limit-min=15
