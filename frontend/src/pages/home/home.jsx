@@ -310,8 +310,8 @@ function Home() {
 
       const imageEntries = await Promise.all(
         friendList.map(async (friend) => {
-          const memberSeq = Number(friend.member_seq);
-          const imagePath = friend.profile_image;
+          const memberSeq = Number(friend.member_seq ?? friend.memberSeq);
+          const imagePath = friend.profile_image || friend.profileImage;
 
           if (!imagePath) {
             return [memberSeq, null];
@@ -1129,27 +1129,30 @@ function Home() {
                     <p className={styles.sidebarEmpty}>검색 결과가 없습니다.</p>
                   )}
 
-                  {filteredMyFriends.map((friend) => (
-                    <div
-                      className={styles.sidebarPerson}
-                      key={friend.member_seq}
-                      onClick={() => setProfileTargetSeq(friend.member_seq)}
-                      style={{ cursor: 'pointer' }}
-                      title="프로필 보기"
-                    >
-                      {friendImageUrls[Number(friend.member_seq)] ? (
-                        <img
-                          src={friendImageUrls[Number(friend.member_seq)]}
-                          alt=""
-                          className={styles.sidebarAvatar}
-                        />
-                      ) : (
-                        <div className={styles.sidebarAvatarFallback}>👤</div>
-                      )}
+                  {filteredMyFriends.map((friend) => {
+                    const friendSeq = friend.member_seq ?? friend.memberSeq;
+                    return (
+                      <div
+                        className={styles.sidebarPerson}
+                        key={friendSeq ?? friend.login_id ?? friend.loginId}
+                        onClick={() => setProfileTargetSeq(friendSeq)}
+                        style={{ cursor: 'pointer' }}
+                        title="프로필 보기"
+                      >
+                        {friendImageUrls[Number(friendSeq)] ? (
+                          <img
+                            src={friendImageUrls[Number(friendSeq)]}
+                            alt=""
+                            className={styles.sidebarAvatar}
+                          />
+                        ) : (
+                          <div className={styles.sidebarAvatarFallback}>👤</div>
+                        )}
 
-                      <span className={styles.sidebarPersonName}>{friend.nickname || friend.login_id}</span>
-                    </div>
-                  ))}
+                        <span className={styles.sidebarPersonName}>{friend.nickname || friend.login_id || friend.loginId}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}

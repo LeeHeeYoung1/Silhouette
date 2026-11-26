@@ -769,8 +769,8 @@ const Chatting = () => {
  
       const imageEntries = await Promise.all(
         roomMembers.map(async (member) => {
-          const memberSeqValue = Number(member.member_seq);
-          const imagePath = member.profile_image;
+          const memberSeqValue = Number(member.member_seq ?? member.memberSeq);
+          const imagePath = member.profile_image || member.profileImage;
  
           if (!imagePath) {
             return [memberSeqValue, null];
@@ -1174,19 +1174,19 @@ const Chatting = () => {
               {roomMembers.map((member) => (
                 <div
                   className={styles.roomMemberItem}
-                  key={member.member_seq}
-                  onClick={() => setProfileTargetSeq(member.member_seq)}
+                  key={member.member_seq ?? member.memberSeq ?? member.login_id}
+                  onClick={() => setProfileTargetSeq(member.member_seq ?? member.memberSeq)}
                   style={{ cursor: 'pointer' }}
                   title="프로필 보기"
                 >
-                  {roomMemberImageUrls[Number(member.member_seq)] ? (
-                    <img src={roomMemberImageUrls[Number(member.member_seq)]} alt="" className={styles.roomMemberAvatar} />
+                  {roomMemberImageUrls[Number(member.member_seq ?? member.memberSeq)] ? (
+                    <img src={roomMemberImageUrls[Number(member.member_seq ?? member.memberSeq)]} alt="" className={styles.roomMemberAvatar} />
                   ) : (
                     <div className={styles.roomMemberAvatarFallback}>👤</div>
                   )}
                   <strong className={styles.roomMemberNickname}>
                     {member.nickname || member.login_id}
-                    {Number(member.member_seq) === Number(memberSeq) && ' (나)'}
+                    {Number(member.member_seq ?? member.memberSeq) === Number(memberSeq) && ' (나)'}
                   </strong>
                   {member.participant_role === 'OWNER' && (
                     <span className={styles.ownerBadge}>방장</span>
@@ -1253,8 +1253,8 @@ const Chatting = () => {
                       style={{ cursor: 'pointer' }}
                       title="프로필 보기"
                     >
-                      {roomMemberImageUrls[Number(sender?.member_seq)] ? (
-                        <img src={roomMemberImageUrls[Number(sender.member_seq)]} alt="" className={styles.senderAvatar} />
+                      {roomMemberImageUrls[Number(sender?.member_seq ?? sender?.memberSeq)] ? (
+                        <img src={roomMemberImageUrls[Number(sender?.member_seq ?? sender?.memberSeq)]} alt="" className={styles.senderAvatar} />
                       ) : (
                         <div className={styles.senderAvatarFallback}>👤</div>
                       )}

@@ -327,6 +327,8 @@ function Profile() {
             });
             await loadProfile();                 // 새 사진 정보(번호·주소) 받기
             setPhotoVersion((v) => v + 1);       // 주소가 같아도 서버에서 새 사진 다시 받기
+            window.dispatchEvent(new Event('silhouette-profile-updated'));
+            window.dispatchEvent(new Event('profileUpdated'));
             alert('프로필 사진이 변경되었습니다.');
         } catch (err) {
             setPhotoVersion((v) => v + 1);       // 실패하면 원래 사진으로 되돌리기
