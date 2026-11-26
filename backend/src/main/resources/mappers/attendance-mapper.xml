@@ -15,7 +15,7 @@
             REWARD_TICKET   AS rewardTicket
         FROM ATTENDANCE
         WHERE MEMBER_SEQ = #{memberSeq}
-          AND TRUNC(ATTEND_DATE) BETWEEN #{startDate} AND #{endDate}
+          AND TRUNC(ATTEND_DATE) BETWEEN #{startDate, jdbcType=DATE} AND #{endDate, jdbcType=DATE}
         ORDER BY ATTEND_DATE ASC
     </select>
 
@@ -30,7 +30,7 @@
             REWARD_TICKET   AS rewardTicket
         FROM ATTENDANCE
         WHERE MEMBER_SEQ = #{memberSeq}
-          AND TRUNC(ATTEND_DATE) = #{targetDate}
+          AND TRUNC(ATTEND_DATE) = #{targetDate, jdbcType=DATE}
     </select>
 
     <insert id="insertAttendance" parameterType="com.app.silhouette.attendance.AttendanceDTO">
@@ -45,7 +45,7 @@
         ) VALUES (
             SEQ_ATTENDANCE.NEXTVAL,
             #{memberSeq},
-            #{attendDate},
+            #{attendDate, jdbcType=DATE},
             #{continuousDays},
             #{rewardYn},
             #{rewardMileage},
