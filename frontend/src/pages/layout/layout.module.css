@@ -521,6 +521,8 @@
   }
 
   .header {
+    /* 세로 배치에서는 flex-basis 1140px이 높이로 적용돼 헤더 위아래가 크게 비므로 내용 높이로 */
+    flex: none;
     width: 100%;
     max-width: 1140px;
     flex-wrap: wrap;
