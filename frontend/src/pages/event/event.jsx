@@ -88,7 +88,7 @@ const Event = () => {
       const res = await Client.post('/api/event/first-chat-reward', { memberSeq });
 
       // 보상 수령 성공 시 알림 & 상단 마일리지 실시간 동기화
-      alert(res.data?.message || '첫 블라인드 채팅 완주 보너스 50M이 지급되었습니다! 🎉');
+      alert(res.data?.message || '첫 블라인드 채팅 완주 보너스 50M이 지급되었습니다!');
       getWeeklyAttendance(memberSeq)
         .then(({ data }) => setAttendance(data))
         .catch(() => {});
@@ -96,10 +96,10 @@ const Event = () => {
       const msg = error.response?.data?.message;
       if (msg === 'NO_CHAT_HISTORY') {
         // 아직 완주 이력이 없는 경우
-        alert('블라인드 대화를 마치고 서로 호감을 선택하면 축하 마일리지 50M이 지급됩니다! 매칭 화면으로 이동합니다 💬');
+        alert('블라인드 대화를 마치고 서로 호감을 선택하면 축하 마일리지 50M이 지급됩니다! 매칭 화면으로 이동합니다');
       } else if (msg) {
         // 이미 보상을 수령한 경우
-        alert(`${msg}\n블라인드 채팅 화면으로 이동합니다 💬`);
+        alert(`${msg}\n블라인드 채팅 화면으로 이동합니다`);
       }
       navi('/chattingRoomList');
     }
@@ -149,7 +149,6 @@ const Event = () => {
     {
       id: 'food-balance',
       category: 'styleTest',
-      icon: '🍽️',
       badge: '필수 테스트',
       statusClass: styles.statusActive,
       title: '첫 데이트 음식 취향 밸런스 게임',
@@ -160,7 +159,6 @@ const Event = () => {
     {
       id: 'ideal-type-check',
       category: 'styleTest',
-      icon: '💘',
       badge: '인기 1위',
       statusClass: styles.statusHot,
       title: '나의 진짜 이상형 가치관 진단',
@@ -171,7 +169,6 @@ const Event = () => {
     {
       id: 'dating-mbti',
       category: 'styleTest',
-      icon: '🧩',
       badge: 'NEW',
       statusClass: styles.statusNew,
       title: '실루엣 연애 스타일 MBTI',
@@ -186,7 +183,6 @@ const Event = () => {
     {
       id: 'first-blind-chat',
       category: 'special',
-      icon: '💬',
       badge: '진행중',
       statusClass: styles.statusHot,
       title: '첫 블라인드 채팅 완주 보너스',
@@ -197,7 +193,6 @@ const Event = () => {
     {
       id: 'daily-roulette',
       category: 'special',
-      icon: '🎰',
       badge: '매일 1회',
       statusClass: styles.statusActive,
       title: '오늘의 연애운 & 럭키 마일리지 룰렛',
@@ -208,7 +203,6 @@ const Event = () => {
     {
       id: 'profile-complete',
       category: 'special',
-      icon: '✨',
       badge: '상시 혜택',
       statusClass: styles.statusNew,
       title: '성향 테스트 올클리어 & 프로필 완성 보상',
@@ -226,7 +220,6 @@ const Event = () => {
     {
       id: 'beauty-test',
       category: 'styleTest',
-      icon: '📸',
       badge: 'AI 분석',
       statusClass: styles.statusNew,
       title: 'AI 외모 등급 테스트',
@@ -255,7 +248,7 @@ const Event = () => {
       <section className={styles.heroBanner}>
         <div className={styles.heroContent}>
           <div className={styles.badge}>
-            <span>✨ SILHOUETTE EVENT & PERKS</span>
+            <span>SILHOUETTE EVENT & PERKS</span>
           </div>
           <h1 className={styles.heroTitle}>
             인연을 더 가깝게 만드는 <br />
@@ -269,15 +262,15 @@ const Event = () => {
         <div className={styles.heroStats}>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>연속 출석</span>
-            <span className={`${styles.statValue} ${styles.statPink}`}>{streakDays}일째 🔥</span>
+            <span className={`${styles.statValue} ${styles.statPink}`}>{streakDays}일째</span>
           </div>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>보유 마일리지</span>
-            <span className={styles.statValue}>🪙 {mileage.toLocaleString()}M</span>
+            <span className={styles.statValue}>{mileage.toLocaleString()}M</span>
           </div>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>매칭 이용권</span>
-            <span className={styles.statValue}>🎫 {ticketCount}장</span>
+            <span className={styles.statValue}>{ticketCount}장</span>
           </div>
         </div>
       </section>
@@ -289,28 +282,28 @@ const Event = () => {
           className={`${styles.tabBtn} ${activeTab === 'all' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          🌟 전체 이벤트
+          전체 이벤트
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${activeTab === 'attend' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('attend')}
         >
-          📅 일일 출석체크
+          일일 출석체크
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${activeTab === 'styleTest' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('styleTest')}
         >
-          💘 연애 성향 테스트
+          연애 성향 테스트
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${activeTab === 'special' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('special')}
         >
-          🎁 특별 혜택 & 프로모션
+          특별 혜택 & 프로모션
         </button>
       </nav>
 
@@ -320,14 +313,14 @@ const Event = () => {
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2 className={styles.sectionTitle}>
-                <span>📅 일일 출석체크 & 혜택 충전</span>
+                <span>일일 출석체크 & 혜택 충전</span>
               </h2>
               <span className={styles.sectionSubtitle}>매일 00:00(자정) 갱신 · 연속 출석 시 보너스 마일리지 및 이용권 지급</span>
             </div>
           </div>
 
           {errorMsg && (
-            <p style={{ color: '#f43f5e', fontSize: '13px', marginBottom: '8px' }}>{errorMsg}</p>
+            <p style={{ color: 'var(--error)', fontSize: '13px', marginBottom: '8px' }}>{errorMsg}</p>
           )}
           <div className={styles.attendCard}>
             <div className={styles.attendLeft}>
@@ -356,13 +349,13 @@ const Event = () => {
                           position: 'absolute',
                           top: '-8px',
                           right: '-4px',
-                          background: 'linear-gradient(135deg, #f43f5e, #fb7185)',
-                          color: '#fff',
+                          background: 'var(--ink)',
+                          color: 'var(--honey)',
                           fontSize: '9px',
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: '8px',
-                          boxShadow: '0 2px 6px rgba(244, 63, 94, 0.4)',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '9999px',
+                          boxShadow: '0 2px 6px rgba(34, 32, 30, 0.2)',
                         }}
                       >
                         {item.bonusBadge}
@@ -370,7 +363,7 @@ const Event = () => {
                     )}
                     <span className={styles.weekDayText}>{item.dayOfWeek}</span>
                     <span className={styles.stampIcon}>
-                      {item.attended ? '💖' : item.today ? '✨' : '·'}
+                      {item.attended ? '✓' : item.today ? '●' : '·'}
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.dateLabel}</span>
                   </div>
@@ -382,7 +375,7 @@ const Event = () => {
               <div className={styles.attendRewardInfo}>
                 오늘의 출석 혜택 <br />
                 <span style={{ color: 'var(--accent-pink)' }}>
-                  {attendance?.todayRewardTitle || '10 마일리지 🪙'}
+                  {(attendance?.todayRewardTitle || '10 마일리지').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim()}
                 </span>
               </div>
               <span className={styles.attendRewardSub}>
@@ -395,10 +388,10 @@ const Event = () => {
                 disabled={isCheckedToday || isChecking || isLoading}
               >
                 {isCheckedToday
-                  ? '오늘 출석 완료! 💖'
+                  ? '오늘 출석 완료'
                   : isChecking
                   ? '출석 처리 중...'
-                  : '오늘의 출석체크 ✨'}
+                  : '오늘의 출석체크'}
               </button>
             </div>
           </div>
@@ -413,10 +406,10 @@ const Event = () => {
               <h2 className={styles.sectionTitle}>
                 <span>
                   {activeTab === 'all'
-                    ? '🎉 참여 가능한 인기 이벤트'
+                    ? '참여 가능한 인기 이벤트'
                     : activeTab === 'styleTest'
-                    ? '💘 나의 연애 성향 & 밸런스 테스트'
-                    : '🎁 특별 혜택 & 프로모션'}
+                    ? '나의 연애 성향 & 밸런스 테스트'
+                    : '특별 혜택 & 프로모션'}
                 </span>
               </h2>
               <span className={styles.sectionSubtitle}>
@@ -429,7 +422,6 @@ const Event = () => {
             {filteredEvents.map((item) => (
               <div key={item.id} className={styles.eventCard}>
                 <div className={styles.cardTop}>
-                  <div className={styles.cardIcon}>{item.icon}</div>
                   <span className={`${styles.statusPill} ${item.statusClass}`}>{item.badge}</span>
                 </div>
 

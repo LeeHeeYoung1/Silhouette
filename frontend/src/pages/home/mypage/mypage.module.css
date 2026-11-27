@@ -395,7 +395,7 @@
 }
 
 .page-title-icon {
-    color: #a855f7;
+    color: var(--ink);
 }
 
 .page-subdesc {
@@ -461,15 +461,15 @@
 }
 
 .card-title i {
-    color: #a855f7;
+    color: var(--ink);
 }
 
 .card-link {
     background: none;
     border: none;
-    color: #c084fc;
+    color: var(--ink);
     font-size: 0.82rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -477,7 +477,7 @@
 }
 
 .card-link:hover {
-    color: #e879f9;
+    text-decoration: underline;
 }
 
 /* 테이블 / 그리드 정보 스타일 (M005: 마이페이지) */
@@ -519,7 +519,7 @@
 
 .ideal-row {
     background: var(--bg-input);
-    border-left: 3px solid #8b5cf6;
+    border-left: 3px solid var(--honey);
     padding: 14px 18px;
     border-radius: var(--radius-sm);
     display: flex;
@@ -607,7 +607,7 @@
     content: '';
     width: 5px;
     height: 5px;
-    background: #ec4899;
+    background: var(--honey);
     border-radius: 50%;
     position: absolute;
     bottom: 6px;
@@ -621,7 +621,7 @@
 
 .sched-card {
     background: var(--bg-input);
-    border-left: 3px solid #ec4899;
+    border-left: 3px solid var(--honey);
     padding: 12px 14px;
     border-radius: var(--radius-sm);
     display: flex;

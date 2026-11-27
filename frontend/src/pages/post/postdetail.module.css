@@ -209,10 +209,10 @@
 }
 
 .likeBtn:hover, .likeBtnActive {
-    background: rgba(236, 72, 153, 0.22);
-    border-color: #ec4899;
-    color: #ec4899;
-    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.35);
+    background: var(--honey);
+    border-color: var(--ink);
+    color: var(--ink);
+    box-shadow: 0 4px 14px rgba(255, 211, 78, 0.4);
 }
 
 /* =========================================================
@@ -311,8 +311,8 @@
 
 .replyItem {
     margin-left: 32px;
-    background: rgba(168, 85, 247, 0.06);
-    border-left: 3px solid #a855f7;
+    background: #ffffff;
+    border-left: 3px solid var(--honey);
 }
 
 .deletedComment {

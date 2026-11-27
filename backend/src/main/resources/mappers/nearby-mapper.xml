@@ -41,7 +41,10 @@
                    REGEXP_SUBSTR(TRIM(m.ADDRESS1), '[^ ]+', 1, 2)     AS SIGUNGU,
                    p.INTRODUCTION,
                    p.MBTI,
-                   p.JOB
+                   p.JOB,
+                   (SELECT MAX(PI.FILE_URL) KEEP (DENSE_RANK FIRST ORDER BY CASE WHEN PI.REVIEW_STATUS = 'APPROVED' THEN 0 ELSE 1 END, PI.SORT_ORDER, PI.PROFILE_IMAGE_SEQ DESC)
+                      FROM PROFILE_IMAGE PI
+                     WHERE PI.MEMBER_SEQ = m.MEMBER_SEQ)             AS PROFILE_IMAGE
             FROM MEMBER m
             JOIN MEMBER_PROFILE p ON p.MEMBER_SEQ = m.MEMBER_SEQ
             CROSS JOIN me
@@ -62,7 +65,8 @@
                    CASE WHEN c.SIGUNGU = me.SIGUNGU THEN 1 ELSE 2 END AS near_rank,
                    c.INTRODUCTION                                 AS introduction,
                    c.MBTI                                         AS mbti,
-                   c.JOB                                          AS job
+                   c.JOB                                          AS job,
+                   c.PROFILE_IMAGE                                AS profile_image
             FROM cand c
             CROSS JOIN me
             WHERE c.SIDO = me.SIDO

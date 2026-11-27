@@ -8,7 +8,7 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 
 블라인드 채팅을 통해 상대방과 먼저 대화하고, 상호 동의 시 프로필을 공개하여 실시간 채팅으로 이어지는 만남의 경험을 제공합니다.
 
-- **개발 기간:** 2026.00.00 ~ 2026.00.00
+- **개발 기간:** 2026.11.05 ~ 2026.12.03
 - **개발 인원:** 4명
 - **프로젝트 유형:** 팀 프로젝트
 - **핵심 목표:** 매칭부터 대화, 실제 만남으로 이어지는 통합 소개팅 서비스 구현
@@ -42,10 +42,10 @@ Silhouette는 사용자의 취향과 이상형을 기반으로 한 프로필 추
 | Streaming | LiveKit (WebRTC SFU), livekit-client, @livekit/components-react |
 | Storage | Google Cloud Storage (게시판 첨부, 라이브 썸네일) |
 | Auth | JWT (java-jwt) |
-| AI | (실제 적용 기술 및 API 입력) |
+| AI / Vision | Google Gemini 3.5 Flash-lite (Spring AI), Sightengine AI, Face Recognition AI |
 | Tools | Git, GitHub, Notion, Figma |
 
-##  프로젝트 구조
+## 📁 프로젝트 구조
 
 ```text
 Silhouette/
@@ -55,7 +55,8 @@ Silhouette/
 ├── .gitignore
 ├── README.md
 ├── CONVENTION.md             # 협업 규칙
-└── TROUBLESHOOTING.md        # 트러블슈팅 기록
+├── TROUBLESHOOTING.md        # 트러블슈팅 기록
+└── API.md                    # API 사용 및 연동 명세서
 ```
 
 ##  팀원

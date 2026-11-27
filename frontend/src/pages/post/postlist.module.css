@@ -240,9 +240,12 @@
 }
 
 .commentCount {
-    color: #ec4899;
-    font-size: 0.8rem;
-    font-weight: 700;
+    color: var(--ink);
+    background: var(--honey);
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 800;
 }
 
 .fileIcon {
@@ -317,7 +320,8 @@
 }
 
 .faqQMark {
-    color: #ec4899;
+    color: var(--ink);
+    font-weight: 900;
     font-size: 1.15rem;
     margin-right: 12px;
 }

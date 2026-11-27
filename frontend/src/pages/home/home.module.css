@@ -318,6 +318,15 @@
 /* ==========================================================================
    오른쪽: 워드마크 & 3D 프로필 카드 컬럼 (수정 사항 1: 세련된 3D 호버 인터랙션)
    ========================================================================== */
+.heroStage {
+  position: relative;
+  width: 100%;
+  min-height: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .heroStageCol {
   flex: 1;
   position: relative;
@@ -326,6 +335,35 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
+}
+
+/* ==========================================================================
+   매칭 큐 섹션 (블라인드 매칭 & 이상형 매칭 50% 분할)
+   ========================================================================== */
+.matchingSection {
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.matchingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .matchingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matchingGrid .heroEngineBtn {
+  width: 100%;
+  min-height: 114px;
+  padding: 22px 26px;
 }
 
 .wordmarkWrap {
@@ -346,7 +384,7 @@
   font-family: 'Archivo Black', 'Pretendard', sans-serif;
   font-weight: 400;
   letter-spacing: -0.05em;
-  font-size: clamp(56px, 10vw, 140px);
+  font-size: clamp(68px, 13vw, 180px);
   line-height: 1;
   color: var(--ink);
   white-space: nowrap;
@@ -797,12 +835,15 @@
   overflow: hidden;
   position: relative;
   padding: 12px 0 24px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
 }
 
 .marqueeTrack {
   display: flex;
   width: max-content;
-  animation: marqueeScroll 45s linear infinite;
+  animation: marqueeScroll 30s linear infinite !important;
+  will-change: transform;
 }
 
 .marqueeTrack:hover {
@@ -814,15 +855,6 @@
   gap: 20px;
   padding-right: 20px;
   flex-shrink: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marqueeWrap {
-    overflow-x: auto;
-  }
-  .marqueeTrack {
-    animation: none;
-  }
 }
 
 /* ==========================================================================
@@ -1175,22 +1207,22 @@
   width: 100%;
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: 28px;
   box-sizing: border-box;
   overflow: visible;
 }
 
-/* 왼쪽 약 70% 열: 내 주변 가까운 매칭 + 라이브 방송 세로 배치 */
+/* 왼쪽 구역: 매칭 큐(50:50) + 내 주변 가까운 매칭 + 라이브 방송 */
 .leftMainCol {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 72px;
-  overflow: hidden; /* 흐르는 가로 리스트가 우측 사이드바를 침범하지 않도록 왼쪽 열 안에서만 표시 */
+  gap: 56px;
+  overflow: hidden; /* 흐르는 가로 리스트가 우측 sticky 사이드바를 침범하지 않도록 왼쪽 열 안에서만 표시 */
 }
 
-/* 오른쪽 약 30% 열: 친구·채팅 Sticky 사이드바 */
+/* 오른쪽 구역: 친구·채팅 Sticky 사이드바 자리 (카드는 JS로 '왼쪽 구역 끝 ~ 브라우저 오른쪽 끝'의 정중앙으로 이동) */
 .rightSidebarCol {
   flex: 0 0 340px;
   width: 340px;
@@ -1208,6 +1240,7 @@
 .sidebarStickyCard {
   width: 100%;
   height: 100%;
+  will-change: transform;
   background: var(--cream);
   border: 1px solid var(--hairline);
   border-radius: 28px;
@@ -1220,11 +1253,36 @@
 .sidebarStickyHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center; /* 헤더 영역 가운데 정렬 */
   padding: 16px 20px;
   background: var(--honey);
   color: var(--ink);
   flex-shrink: 0;
+  text-align: center;
+}
+
+.sidebarStickyHeader .friendHeaderLeft {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.sidebarStickyHeader .friendHeaderTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+
+.sidebarStickyHeader .friendHeaderStatus {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  opacity: 0.8;
+  text-align: center;
 }
 
 /* ==========================================================================
