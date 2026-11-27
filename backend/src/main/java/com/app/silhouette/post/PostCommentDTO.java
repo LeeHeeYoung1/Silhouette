@@ -20,6 +20,9 @@ public class PostCommentDTO {
 	private String login_id;                // 화면에서 받는 작성자 아이디
 	private String writer_name;             // 화면에 보여줄 작성자 닉네임
 	private List<PostCommentDTO> replies = new ArrayList<>();   // 대댓글 목록
+	
+	private Boolean mine;      // 보는 사람의 댓글인지 (서버가 계산)
+	private Boolean writer;    // 게시글 작성자가 단 댓글인지 (서버가 계산)
 
 	public PostCommentDTO() {}
 
@@ -110,4 +113,10 @@ public class PostCommentDTO {
 	public void setReplies(List<PostCommentDTO> replies) {
 		this.replies = replies;
 	}
+	
+	public Boolean getMine() { return mine; }
+	public void setMine(Boolean mine) { this.mine = mine; }
+
+	public Boolean getWriter() { return writer; }
+	public void setWriter(Boolean writer) { this.writer = writer; }
 }

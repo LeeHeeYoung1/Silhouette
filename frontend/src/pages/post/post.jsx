@@ -22,7 +22,7 @@ function Post() {
                 <div className={styles.headerSection}>
                     <div className={styles.titleArea} onClick={() => navigate('/post/free')}>
                         <h1>
-                            <span>🌙</span> 실루엣 라운지 & 커뮤니티 (Post)
+                             실루엣 라운지 & 커뮤니티 (Post)
                         </h1>
                         <p>익명 소통, 연애 상담 및 공지사항과 1:1 고객센터를 이용하세요.</p>
                     </div>
@@ -31,20 +31,20 @@ function Post() {
                 {/* 메인 탭 네비게이션 (주소 이동 NavLink) */}
                 <nav className={styles.tabNav}>
                     <NavLink to="/post/free" className={tabClass}>
-                        💬 자유 게시판 (B001)
+                         자유 게시판 
                     </NavLink>
                     {/* ✅ 익명 게시판 */}
                     <NavLink to="/post/anon" className={tabClass}>
-                        🎭 익명 게시판
+                         익명 게시판
                     </NavLink>
                     <NavLink to="/post/notice" className={tabClass}>
-                        📢 공지사항 (B002)
+                         공지사항 
                     </NavLink>
                     <NavLink to="/post/faq" className={tabClass}>
-                        ❓ 자주 묻는 질문 (FAQ)
+                         자주 묻는 질문 (FAQ)
                     </NavLink>
                     <NavLink to="/post/qna" className={tabClass}>
-                        🔒 1:1 Q&A 문의 (B002, A004)
+                         1:1 Q&A 문의 
                     </NavLink>
                 </nav>
 
