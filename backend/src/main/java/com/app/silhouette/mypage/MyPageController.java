@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -51,6 +52,21 @@ public class MyPageController {
 			return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));   // 400 형식 오류
 		} catch (IllegalStateException e) {
 			return ResponseEntity.status(409).body(Map.of("message", e.getMessage()));    // 409 닉네임 중복
+		}
+	}
+
+	// 회원 탈퇴 (비밀번호 확인만 수행)
+	@PostMapping("/withdraw")
+	public ResponseEntity<?> withdraw(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestBody Map<String, String> body) {
+		try {
+			myPageService.withdrawMember(authorization, body.get("password"));
+			return ResponseEntity.ok(Map.of("success", true, "message", "회원 탈퇴 처리가 완료되었습니다."));
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+		} catch (Exception e) {
+			return ResponseEntity.badRequest().body(Map.of("success", false, "message", "회원 탈퇴 처리 중 오류가 발생했습니다."));
 		}
 	}
 }

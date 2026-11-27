@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.app.silhouette.commons.AuthMemberDTO;
 import com.app.silhouette.commons.AuthMemberService;
+import com.app.silhouette.members.PhoneAuthService;
+import com.app.silhouette.utils.SHA512;
 
 @Service
 public class MyPageService {
@@ -20,10 +22,12 @@ public class MyPageService {
 
 	private final MyPageDAO myPageDAO;
 	private final AuthMemberService authMemberService;
+	private final PhoneAuthService phoneAuthService;
 
-	public MyPageService(MyPageDAO myPageDAO, AuthMemberService authMemberService) {
+	public MyPageService(MyPageDAO myPageDAO, AuthMemberService authMemberService, PhoneAuthService phoneAuthService) {
 		this.myPageDAO = myPageDAO;
 		this.authMemberService = authMemberService;
+		this.phoneAuthService = phoneAuthService;
 	}
 
 	// 내 기본 정보
@@ -84,6 +88,25 @@ public class MyPageService {
 
 		myPageDAO.updateMyInfo(dto);
 		return myPageDAO.selectMyInfo(memberSeq);   // 바뀐 정보를 다시 보내줌
+	}
+
+	// 회원 탈퇴 (비밀번호 확인만 수행)
+	@Transactional
+	public void withdrawMember(String authorization, String rawPassword) throws Exception {
+		AuthMemberDTO me = authMemberService.loginMember(authorization);
+		Long memberSeq = me.getMemberSeq();
+
+		String password = trim(rawPassword);
+		if (password.isEmpty()) {
+			throw new IllegalArgumentException("본인 확인 비밀번호를 입력해 주세요.");
+		}
+
+		String encryptedPw = SHA512.encrypt(password);
+		if (myPageDAO.checkPassword(memberSeq, encryptedPw) == 0) {
+			throw new IllegalArgumentException("본인 확인 비밀번호가 일치하지 않습니다.");
+		}
+
+		myPageDAO.withdrawMember(memberSeq);
 	}
 
 	private String trim(String value) {

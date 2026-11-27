@@ -233,6 +233,12 @@ function Home() {
 
   // 이상형 매칭 신청
   const handleIdealStart = async () => {
+    if (isBlindMatching) {
+      alert('이미 블라인드 매칭 대기열에 참가 중입니다. 먼저 매칭을 취소해 주세요.');
+      return;
+    }
+    if (isIdealMatching) return;
+
     try {
       const { data } = await startIdealMatch();
 
@@ -243,7 +249,11 @@ function Home() {
         setIsIdealMatching(true);
       }
     } catch (error) {
-      const message = error.response?.data || '매칭 신청 중 오류가 발생했어요.';
+      const data = error.response?.data;
+      const message =
+        typeof data === 'string'
+          ? data
+          : data?.message || '매칭 신청 중 오류가 발생했어요.';
       alert(message);
     }
   };
@@ -396,6 +406,12 @@ function Home() {
 
   // 블라인드 매칭 신청
   const handleBlindMatching = () => {
+    if (isIdealMatching) {
+      alert('이미 이상형 매칭 대기열에 참가 중입니다. 먼저 매칭을 취소해 주세요.');
+      return;
+    }
+    if (isBlindMatching) return;
+
     isBlindWaitingRef.current = true;
     setIsBlindMatching(true);
 
@@ -737,6 +753,7 @@ function Home() {
                           <div className={styles.flowPhoto}>
                             {photoUrl ? (
                               <img
+                                key={photoUrl}
                                 src={photoUrl}
                                 alt={item.nickname}
                                 onError={(e) => {
@@ -828,6 +845,7 @@ function Home() {
                           <div className={styles.flowPhoto}>
                             {photoUrl ? (
                               <img
+                                key={photoUrl}
                                 src={photoUrl}
                                 alt={item.nickname}
                                 onError={(e) => {
