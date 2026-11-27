@@ -55,4 +55,16 @@ public class TicketDAO {
     public void insertMileageLedger(MileageLedgerDTO ledgerDTO) {
         mybatis.insert("Ticket.insertMileageLedger", ledgerDTO);
     }
+
+    public List<PaymentDTO> selectPaymentsByMemberSeq(Long memberSeq) {
+        return mybatis.selectList("Ticket.selectPaymentsByMemberSeq", memberSeq);
+    }
+
+    public int markPaymentCancelled(Long paymentSeq) {
+        return mybatis.update("Ticket.markPaymentCancelled", paymentSeq);
+    }
+
+    public void insertPaymentCancel(PaymentCancelDTO cancelDTO) {
+        mybatis.insert("Ticket.insertPaymentCancel", cancelDTO);
+    }
 }

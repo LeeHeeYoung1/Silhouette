@@ -22,6 +22,12 @@ public class TicketController {
         return ticketService.getProducts();
     }
 
+    @GetMapping("/payments")
+    public List<PaymentDTO> getPayments(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return ticketService.getPayments(authorization);
+    }
+
     @GetMapping("/wallet")
     public MemberWalletDTO getWallet(
             @RequestHeader(value = "Authorization", required = false) String authorization) {
@@ -40,5 +46,12 @@ public class TicketController {
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody PaymentDTO paymentDTO) {
         return ticketService.complete(authorization, paymentDTO);
+    }
+
+    @PostMapping("/cancel")
+    public MemberWalletDTO cancel(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody PaymentDTO paymentDTO) {
+        return ticketService.cancel(authorization, paymentDTO);
     }
 }

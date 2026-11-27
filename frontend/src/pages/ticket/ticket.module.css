@@ -465,6 +465,40 @@
   color: var(--honey);
 }
 
+/* 이용권 시각 일러스트 배너 */
+.ticketImageWrap {
+  width: 100%;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: linear-gradient(180deg, #fffcf4 0%, #ffffff 100%);
+  border: 1px solid rgba(255, 211, 78, 0.22);
+  border-radius: 18px;
+  padding: 8px 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.ticketCard:hover .ticketImageWrap {
+  transform: translateY(-2px) scale(1.03);
+  border-color: rgba(255, 211, 78, 0.45);
+  box-shadow: 0 8px 16px rgba(255, 211, 78, 0.12);
+}
+
+.ticketCard.selected .ticketImageWrap {
+  background: linear-gradient(180deg, #fff8e1 0%, #ffffff 100%);
+  border-color: rgba(255, 211, 78, 0.6);
+}
+
+.ticketImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(34, 32, 30, 0.08));
+}
+
 .ticketCardTop {
   display: flex;
   align-items: center;
@@ -610,6 +644,34 @@
 
 .btnAllUse:hover {
   background: var(--honey);
+}
+
+.btnResetMileage {
+  padding: 0 16px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--hairline);
+  background: #ffffff;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btnResetMileage:hover {
+  background: #fdfbf7;
+  color: var(--ink);
+  border-color: #cbd5e1;
+}
+
+.btnResetMileage:active {
+  transform: scale(0.98);
 }
 
 /* ==========================================================================

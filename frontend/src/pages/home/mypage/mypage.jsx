@@ -88,6 +88,28 @@ const toDateText = (v) => {
     return String(v).slice(0, 10);
 };
 
+// 결제 일시 포맷 "2026-11-10 14:22"
+const formatDateTime = (v) => {
+    if (!v) return '-';
+    if (Array.isArray(v)) {
+        const [y, m, d, h = 0, min = 0] = v;
+        return `${y}-${pad(m)}-${pad(d)} ${pad(h)}:${pad(min)}`;
+    }
+    const s = String(v).replace('T', ' ');
+    return s.slice(0, 16);
+};
+
+// 결제 수단 명칭 변환
+const formatPayMethod = (method) => {
+    if (!method) return '신용카드';
+    const m = String(method).toUpperCase();
+    if (m === 'CARD') return '신용카드';
+    if (m === 'KAKAOPAY') return '카카오페이';
+    if (m === 'NAVERPAY') return '네이버페이';
+    if (m === 'TOSS' || m === 'TOSSPAY') return '토스페이';
+    return method;
+};
+
 // 만 나이
 const calcAge = (birth) => {
     const text = toDateText(birth);
@@ -487,6 +509,12 @@ function MyPage() {
     const [withdrawCheck, setWithdrawCheck] = useState(false);
     const [withdrawPw, setWithdrawPw] = useState('');
 
+    // 결제 내역 (M010) & 지갑 잔액
+    const [payments, setPayments] = useState([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [cancelingId, setCancelingId] = useState(null);
+    const [wallet, setWallet] = useState(null);
+
     // 토스트 메시지
     const [toast, setToast] = useState('');
     const showToast = (msg) => {
@@ -828,6 +856,66 @@ function MyPage() {
         }
     };
 
+    /* ===================== 결제 내역 (M010) & 지갑 잔액 ===================== */
+    const loadPayments = () => {
+        setPaymentsLoading(true);
+        Client.get('/api/ticket/payments')
+            .then((res) => {
+                setPayments(Array.isArray(res.data) ? res.data : []);
+            })
+            .catch((err) => {
+                console.error('결제 내역 조회 실패:', err);
+                setPayments([]);
+            })
+            .finally(() => {
+                setPaymentsLoading(false);
+            });
+    };
+
+    // 결제 취소(환불): 서버가 7일 이내 / 미사용 여부 등을 검증하고 PortOne 취소까지 처리
+    const handleCancelPayment = (p) => {
+        const name = p.productName || `채팅 이용권 ${p.ticketCount}개`;
+        const amount = Number(p.paymentAmount || 0).toLocaleString();
+        if (!window.confirm(`[${name}] 결제를 취소하고 ${amount}원을 환불받으시겠습니까?\n사용한 마일리지는 반환되고, 적립된 마일리지는 회수됩니다.`)) {
+            return;
+        }
+        setCancelingId(p.pgTransactionId);
+        Client.post('/api/ticket/cancel', { pgTransactionId: p.pgTransactionId })
+            .then(() => {
+                alert('결제가 취소되었습니다.');
+                loadPayments();
+                loadWallet();
+            })
+            .catch((err) => {
+                console.error('결제 취소 실패:', err);
+                alert(err.response?.data?.message || '결제 취소 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                setCancelingId(null);
+            });
+    };
+
+    const loadWallet = () => {
+        Client.get('/api/ticket/wallet')
+            .then((res) => {
+                setWallet(res.data);
+            })
+            .catch((err) => {
+                console.error('지갑 잔액 조회 실패:', err);
+            });
+    };
+
+    useEffect(() => {
+        loadWallet();
+    }, []);
+
+    useEffect(() => {
+        if (view === 'payment') {
+            loadPayments();
+            loadWallet();
+        }
+    }, [view]);
+
     /* ===================== 캘린더 (등록 · 수정 · 삭제 · 영구 저장) ===================== */
     useEffect(() => {
         if (!member) return;
@@ -1032,13 +1120,17 @@ function MyPage() {
                             {region && <span className={cx('badge-pill')}>{region}</span>}
                         </div>
                         <div className={cx('side-asset-box')}>
-                            <div className={cx('side-asset-item')} onClick={() => navigate('/ticket')} style={{ cursor: 'pointer' }}>
+                            <div className={cx('side-asset-item')} onClick={() => navigate('/ticket')} style={{ cursor: 'pointer' }} title="이용권 충전하러 가기">
                                 <span className={cx('side-asset-label')}>채팅 이용권</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#ffd34e' }}>충전</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#ffd34e' }}>
+                                    {wallet ? `${wallet.ticketBalance}개` : '충전'}
+                                </span>
                             </div>
-                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
+                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }} title="결제 내역 보기">
                                 <span className={cx('side-asset-label')}>보유 마일리지</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>-</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>
+                                    {wallet ? `${wallet.mileageBalance.toLocaleString()}P` : '-'}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -1550,7 +1642,7 @@ function MyPage() {
                         </div>
                     )}
 
-                    {/* ==================== [뷰 6] 결제 내역 (M010) - 목업 ==================== */}
+                    {/* ==================== [뷰 6] 결제 내역 (M010) ==================== */}
                     {view === 'payment' && (
                         <div className={cx('view-section', 'active')}>
                             <PageHeader icon="fa-receipt" title="결제 내역 (M010)" desc="채팅 이용권(P001) 구매 내역 및 마일리지(P002) 사용 내역을 조회합니다." />
@@ -1565,25 +1657,54 @@ function MyPage() {
                                                 <th>마일리지 사용</th>
                                                 <th>최종 결제 금액</th>
                                                 <th>상태</th>
+                                                <th>관리</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td>2026-11-10 14:22</td>
-                                                <td>채팅 이용권 30회 패키지</td>
-                                                <td>신용카드</td>
-                                                <td>-1,000P</td>
-                                                <td>19,000원</td>
-                                                <td><span className={cx('status-badge-ok')}>결제완료</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td>2026-11-02 09:15</td>
-                                                <td>채팅 이용권 10회 패키지</td>
-                                                <td>카카오페이</td>
-                                                <td>-</td>
-                                                <td>9,900원</td>
-                                                <td><span className={cx('status-badge-ok')}>결제완료</span></td>
-                                            </tr>
+                                            {paymentsLoading ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-sub)' }}>
+                                                        결제 내역을 불러오는 중입니다...
+                                                    </td>
+                                                </tr>
+                                            ) : payments.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-sub)' }}>
+                                                        구매한 결제 내역이 없습니다.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                payments.map((p) => {
+                                                    const isPaid = p.paymentStatus === 'PAID';
+                                                    const statusLabel = isPaid ? '결제완료' : p.paymentStatus === 'CANCELLED' ? '결제취소' : p.paymentStatus;
+                                                    return (
+                                                        <tr key={p.paymentSeq || p.pgTransactionId}>
+                                                            <td>{formatDateTime(p.paidAt || p.createdAt)}</td>
+                                                            <td>{p.productName || `채팅 이용권 ${p.ticketCount}개`}</td>
+                                                            <td>{formatPayMethod(p.paymentMethod)}</td>
+                                                            <td>{p.mileageUsed > 0 ? `-${p.mileageUsed.toLocaleString()}P` : '-'}</td>
+                                                            <td>{Number(p.paymentAmount || 0).toLocaleString()}원</td>
+                                                            <td>
+                                                                <span className={cx(isPaid ? 'status-badge-ok' : 'status-badge-wait')}>
+                                                                    {statusLabel}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                {isPaid ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className={cx('btn-cancel-pay')}
+                                                                        onClick={() => handleCancelPayment(p)}
+                                                                        disabled={cancelingId === p.pgTransactionId}
+                                                                    >
+                                                                        {cancelingId === p.pgTransactionId ? '취소 중...' : '결제취소'}
+                                                                    </button>
+                                                                ) : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>

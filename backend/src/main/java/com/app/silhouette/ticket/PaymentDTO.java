@@ -13,6 +13,7 @@ public class PaymentDTO {
     private int paymentAmount;
     private int ticketCount;
     private String paymentStatus;
+    private String productName;
     private Date paidAt;
     private Date createdAt;
 
@@ -36,6 +37,8 @@ public class PaymentDTO {
     public void setTicketCount(int ticketCount) { this.ticketCount = ticketCount; }
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
     public Date getPaidAt() { return paidAt; }
     public void setPaidAt(Date paidAt) { this.paidAt = paidAt; }
     public Date getCreatedAt() { return createdAt; }

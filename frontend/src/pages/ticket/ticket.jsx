@@ -34,6 +34,14 @@ const DEFAULT_AVATAR =
     '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ffd34e"/></svg>'
   );
 
+// 이용권 수량별 비주얼 일러스트 이미지
+const getTicketImage = (ticketCount) => {
+  if (ticketCount <= 3) return '/assets/tickets/ticket_single.svg';
+  if (ticketCount <= 12) return '/assets/tickets/ticket_bundle.svg';
+  if (ticketCount <= 40) return '/assets/tickets/ticket_premium.svg';
+  return '/assets/tickets/ticket_vip.svg';
+};
+
 export default function Ticket() {
   const navigate = useNavigate();
 
@@ -113,6 +121,12 @@ export default function Ticket() {
     const maxVal = Math.min(myMileage, orderPrice);
     setUsedMileage(maxVal);
     setMileageInput(String(maxVal));
+  };
+
+  // 마일리지 적용 되돌리기 (0원으로 초기화)
+  const handleResetMileage = () => {
+    setUsedMileage(0);
+    setMileageInput('');
   };
 
   // 약관 전체 토글
@@ -357,6 +371,15 @@ export default function Ticket() {
                         <span className={`${styles.cardTag} ${styles.vip}`}>VIP 대용량</span>
                       )}
 
+                      {/* 이용권 패키지 일러스트 이미지 */}
+                      <div className={styles.ticketImageWrap}>
+                        <img
+                          src={getTicketImage(pkg.ticketCount)}
+                          alt={pkg.productName || `이용권 ${pkg.ticketCount}개`}
+                          className={styles.ticketImage}
+                        />
+                      </div>
+
                       <div className={styles.ticketCardTop}>
                         <div className={styles.ticketIconWrap}>
                           <i className="fa-solid fa-ticket" />
@@ -398,6 +421,14 @@ export default function Ticket() {
                   />
                   <button type="button" className={styles.btnAllUse} onClick={handleUseAllMileage}>
                     전액 사용
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnResetMileage}
+                    onClick={handleResetMileage}
+                    title="마일리지 0원으로 되돌리기"
+                  >
+                    <i className="fa-solid fa-rotate-left" /> 되돌리기
                   </button>
                 </div>
               </div>

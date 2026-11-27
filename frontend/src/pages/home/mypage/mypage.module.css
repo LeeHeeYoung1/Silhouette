@@ -929,6 +929,36 @@
     border-radius: 4px;
 }
 
+.status-badge-wait {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.btn-cancel-pay {
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel-pay:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+.btn-cancel-pay:active {
+    transform: scale(0.96);
+}
+
 /* 모달 팝업 */
 .modal-overlay {
     position: fixed;

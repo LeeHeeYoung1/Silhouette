@@ -129,4 +129,42 @@
             #{changeAmount}, #{balanceAfter}, #{description}, SYSDATE
         )
     </insert>
+
+    <select id="selectPaymentsByMemberSeq" parameterType="long" resultType="com.app.silhouette.ticket.PaymentDTO">
+        SELECT p.PAYMENT_SEQ AS paymentSeq,
+               p.MEMBER_SEQ AS memberSeq,
+               p.TICKET_PRODUCT_SEQ AS ticketProductSeq,
+               NVL(tp.PRODUCT_NAME, '채팅 이용권 ' || p.TICKET_COUNT || '개') AS productName,
+               p.PG_TRANSACTION_ID AS pgTransactionId,
+               p.PAYMENT_METHOD AS paymentMethod,
+               p.PRODUCT_PRICE AS productPrice,
+               p.MILEAGE_USED AS mileageUsed,
+               p.PAYMENT_AMOUNT AS paymentAmount,
+               p.TICKET_COUNT AS ticketCount,
+               p.PAYMENT_STATUS AS paymentStatus,
+               p.PAID_AT AS paidAt,
+               p.CREATED_AT AS createdAt
+          FROM PAYMENT p
+          LEFT JOIN TICKET_PRODUCT tp ON p.TICKET_PRODUCT_SEQ = tp.TICKET_PRODUCT_SEQ
+         WHERE p.MEMBER_SEQ = #{memberSeq}
+           AND p.PAYMENT_STATUS != 'READY'
+         ORDER BY p.PAYMENT_SEQ DESC
+    </select>
+
+    <update id="markPaymentCancelled" parameterType="long">
+        UPDATE PAYMENT
+           SET PAYMENT_STATUS = 'CANCELLED'
+         WHERE PAYMENT_SEQ = #{paymentSeq}
+           AND PAYMENT_STATUS = 'PAID'
+    </update>
+
+    <insert id="insertPaymentCancel" parameterType="com.app.silhouette.ticket.PaymentCancelDTO">
+        INSERT INTO PAYMENT_CANCEL (
+            PAYMENT_CANCEL_SEQ, PAYMENT_SEQ, PG_CANCEL_ID,
+            CANCEL_AMOUNT, CANCEL_REASON, CANCELLED_AT
+        ) VALUES (
+            SEQ_PAYMENT_CANCEL.NEXTVAL, #{paymentSeq}, #{pgCancelId},
+            #{cancelAmount}, #{cancelReason}, SYSDATE
+        )
+    </insert>
 </mapper>
