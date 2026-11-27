@@ -19,8 +19,8 @@ import {
    - 수정 모드: 온보딩과 같은 선택지로 수정 → PUT /api/profile
    - 사진 교체: PUT /api/profile/images/1 (사진은 1장)
    - 사진 표시: 토큰이 필요해서 Client(axios)로 받아서 보여줌
-   - ✅ 내 체형 표시·수정, 만 18세 미만 남성 병역 '미필' 고정
-   - ✅ 숫자 칸은 값을 몰래 고치지 않고 범위를 벗어나면 안내 (온보딩과 같은 규칙)
+   - 내 체형 표시·수정, 만 18세 미만 남성 병역 '미필' 고정
+   - 숫자 칸은 값을 몰래 고치지 않고 범위를 벗어나면 안내 (온보딩과 같은 규칙)
    ========================================================= */
 
 // ===== 규칙 (온보딩 · 서버와 같음) =====
@@ -31,11 +31,11 @@ const HEIGHT_MIN = 100;
 const HEIGHT_MAX = 250;
 const WEIGHT_MIN = 30;
 const WEIGHT_MAX = 200;
-const IDEAL_AGE_MIN = 14;   // ✅ [권형석] 이상형 나이: 만 14세 이상 (최대 제한 없음)
-// ✅ [권형석] 병역: 만 18세 미만 남성은 '미필' 고정 (온보딩과 같은 규칙)
+const IDEAL_AGE_MIN = 14;   // 이상형 나이: 만 14세 이상 (최대 제한 없음)
+// 병역: 만 18세 미만 남성은 '미필' 고정 (온보딩과 같은 규칙)
 const MILITARY_MIN_AGE = 18;
 const MILITARY_UNDERAGE_VALUE = '미필';
-// ✅ [권형석] 내 체형 선택지 (이상형 체형 목록에서 '상관없음'만 제외)
+// 내 체형 선택지 (이상형 체형 목록에서 '상관없음'만 제외)
 const MY_BODY_TYPE_LIST = BODY_TYPE_LIST.filter((v) => v !== '상관없음');
 
 // ===== 도우미 함수 =====
@@ -53,7 +53,7 @@ const smokingText = (v) => (isNone(v) ? '비흡연' : show(v));
 const drinkingText = (v) => (isNone(v) ? '안 마셔요' : show(v));
 // 숫자만 남기고 최대 3자리 (글자 입력칸용)
 const onlyDigits = (v) => String(v).replace(/[^0-9]/g, '').slice(0, 3);
-// ✅ [권형석] 만 18세 미만 남성인지
+// 만 18세 미만 남성인지
 const isUnderageMaleOf = (basic) =>
     isMaleGender(basic?.gender) && basic?.age != null && Number(basic.age) < MILITARY_MIN_AGE;
 
@@ -78,11 +78,10 @@ const toForm = (data) => {
         profile: {
             mbti: toStr(p.mbti), job: toStr(p.job),
             height: toStr(p.height), weight: toStr(p.weight),
-            // ✅ [권형석] 만 18세 미만 남성은 미필로 고정
+            // 만 18세 미만 남성은 미필로 고정
             militaryStatus: isUnderageMaleOf(data?.basic) ? MILITARY_UNDERAGE_VALUE : toStr(p.militaryStatus),
             drinking: toStr(p.drinking), smoking: toStr(p.smoking), religion: toStr(p.religion),
             foodPreference: toTags(p.foodPreference),
-            // ✅ [권형석] bodyType(내 체형) 추가
             faceType: toStr(p.faceType), skinType: toStr(p.skinType), bodyType: toStr(p.bodyType), loveType: toStr(p.loveType),
             hobby: toTags(p.hobby), favorite: toTags(p.favorite), dislike: toTags(p.dislike),
             introduction: toStr(p.introduction),
@@ -99,10 +98,10 @@ const toForm = (data) => {
 };
 
 // ===== 보기 모드 조각 =====
-function Section({ title, icon, children }) {
+function Section({ title, children }) {
     return (
         <section className={styles.section}>
-            <h3 className={styles.sectionTitle}><span>{icon}</span> {title}</h3>
+            <h3 className={styles.sectionTitle}>{title}</h3>
             {children}
         </section>
     );
@@ -152,6 +151,7 @@ function Chips({ options, value, onSelect }) {
     );
 }
 
+// 선택 카드 (아이콘 없이 이름 + 설명만)
 function OptionCards({ options, value, onSelect }) {
     return (
         <div className={ob.optionGrid}>
@@ -159,7 +159,6 @@ function OptionCards({ options, value, onSelect }) {
                 <button key={opt.value} type="button"
                     className={`${ob.optionCard} ${value === opt.value ? ob.optionCardActive : ''}`}
                     onClick={() => onSelect(opt.value)}>
-                    <span className={ob.optionIcon}>{opt.icon}</span>
                     <span className={ob.optionTitle}>{opt.value}</span>
                     <span className={ob.optionDesc}>{opt.desc}</span>
                 </button>
@@ -178,7 +177,7 @@ function Field({ label, hint, children }) {
     );
 }
 
-// ✅ [권형석] 숫자 글자 입력칸 (온보딩과 같은 규칙: 값을 몰래 고치지 않고 범위를 벗어나면 안내)
+// 숫자 글자 입력칸 (온보딩과 같은 규칙: 값을 몰래 고치지 않고 범위를 벗어나면 안내)
 //   - 최대값보다 크면: 입력하는 동안 바로 안내
 //   - 최소값보다 작으면: 칸을 벗어났을 때 안내
 //   - 범위 밖 값은 저장할 때 막힘 (validate)
@@ -208,7 +207,7 @@ function NumberText({ value, onChange, min, max, unit = '', placeholder }) {
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
             />
-            {warn && <p className={ob.error}>⚠️ {warn}</p>}
+            {warn && <p className={ob.error}>{warn}</p>}
         </>
     );
 }
@@ -413,7 +412,7 @@ function Profile() {
         if (p.foodPreference.length === 0) return '음식 취향을 하나 이상 선택해 주세요.';
         if (!p.faceType) return '얼굴상을 선택해 주세요.';
         if (!p.skinType) return '피부 타입을 선택해 주세요.';
-        if (!p.bodyType) return '체형을 선택해 주세요.';   // ✅ [권형석]
+        if (!p.bodyType) return '체형을 선택해 주세요.';
         if (!p.loveType) return '연애 스타일을 선택해 주세요.';
         if (p.hobby.length === 0) return '취미를 하나 이상 선택해 주세요.';
         if (p.favorite.length === 0) return '좋아하는 것을 하나 이상 선택해 주세요.';
@@ -422,7 +421,7 @@ function Profile() {
 
         const aMin = toNum(i.ageMin), aMax = toNum(i.ageMax);
         const hMin = toNum(i.minHeight), hMax = toNum(i.maxHeight);
-        // ✅ [권형석] 이상형 나이는 만 14세 이상만 (최대 제한 없음)
+        // 이상형 나이는 만 14세 이상만 (최대 제한 없음)
         if (aMin !== null && aMin < IDEAL_AGE_MIN) return `이상형 최소 나이는 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMin}세)`;
         if (aMax !== null && aMax < IDEAL_AGE_MIN) return `이상형 최대 나이도 만 ${IDEAL_AGE_MIN}세 이상이어야 해요. (지금 ${aMax}세)`;
         const heightOut = (x) => x !== null && (x < HEIGHT_MIN || x > HEIGHT_MAX);
@@ -435,7 +434,7 @@ function Profile() {
     const handleSave = async () => {
         const isMale = isMaleGender(data.basic?.gender);
         const isFemale = isFemaleGender(data.basic?.gender);
-        const isUnderageMale = isUnderageMaleOf(data.basic);   // ✅ [권형석]
+        const isUnderageMale = isUnderageMaleOf(data.basic);
 
         const msg = validate(isMale, isUnderageMale);
         if (msg) { setError(msg); return; }
@@ -460,8 +459,8 @@ function Profile() {
                 foodPreference: joinList(p.foodPreference),
                 faceType: p.faceType,
                 skinType: p.skinType,
-                bodyType: p.bodyType,   // ✅ [권형석] 내 체형
-                // ✅ [권형석] 만 18세 미만 남성은 저장할 때도 미필로 고정
+                bodyType: p.bodyType,   // 내 체형
+                // 만 18세 미만 남성은 저장할 때도 미필로 고정
                 militaryStatus: isMale ? (isUnderageMale ? MILITARY_UNDERAGE_VALUE : p.militaryStatus) : null,
             },
             // 이상형: 다 비우면 서버가 이상형을 지움
@@ -509,8 +508,8 @@ function Profile() {
     const { basic = {}, profile = {}, ideal } = data;
     const isMale = isMaleGender(basic.gender);
     const isFemale = isFemaleGender(basic.gender);
-    const isUnderageMale = isUnderageMaleOf(basic);   // ✅ [권형석]
-    // ✅ [권형석] 화면에 보여줄 병역 (만 18세 미만 남성은 미필 고정)
+    const isUnderageMale = isUnderageMaleOf(basic);
+    // 화면에 보여줄 병역 (만 18세 미만 남성은 미필 고정)
     const militaryText = isUnderageMale
         ? `${MILITARY_UNDERAGE_VALUE} (만 ${MILITARY_MIN_AGE}세 미만)`
         : show(profile.militaryStatus);
@@ -526,26 +525,26 @@ function Profile() {
                             {photoUrl && !imgFailed ? (
                                 <img src={photoUrl} alt={`${basic.nickname} 프로필 사진`} className={styles.photo} />
                             ) : (
-                                <span className={styles.photoEmpty}>👤</span>
+                                <span className={styles.photoEmpty}>사진 없음</span>
                             )}
                             {uploading && <div className={styles.photoLoading}>업로드 중...</div>}
                         </div>
                         <button type="button" className={styles.photoBtn} onClick={openPicker} disabled={uploading}>
-                            📷 사진 바꾸기
+                            사진 바꾸기
                         </button>
                         {reviewStatus === 'WAITING' && (
                             <div style={{ color: '#f59e0b', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
-                                ⏳ 심사 대기 중<br /><span style={{ fontSize: '0.72rem', color: '#888' }}>(승인 후 다른 회원에게 공개됩니다)</span>
+                                심사 대기 중<br /><span style={{ fontSize: '0.72rem', color: '#888' }}>(승인 후 다른 회원에게 공개됩니다)</span>
                             </div>
                         )}
                         {reviewStatus === 'APPROVED' && (
                             <div style={{ color: '#10b981', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
-                                ✅ 사진 승인 완료
+                                사진 승인 완료
                             </div>
                         )}
                         {reviewStatus === 'REJECTED' && (
                             <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '6px', fontWeight: '500' }}>
-                                ❌ 심사 반려됨<br /><span style={{ fontSize: '0.72rem', color: '#ffb4b4' }}>(사진을 다시 변경해 주세요)</span>
+                                심사 반려됨<br /><span style={{ fontSize: '0.72rem', color: '#ffb4b4' }}>(사진을 다시 변경해 주세요)</span>
                             </div>
                         )}
                         <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePhotoChange} />
@@ -558,36 +557,35 @@ function Profile() {
                             {profile.mbti && <> · <strong>{profile.mbti}</strong></>}
                             {profile.job && <> · {profile.job}</>}
                         </p>
-                        {/* ✅ [권형석] 피부 타입·체형·종교 칩 추가 */}
                         <div className={styles.heroChips}>
-                            {profile.loveType && <span className={styles.heroChip}>💕 {profile.loveType}</span>}
-                            {profile.faceType && <span className={styles.heroChip}>✨ {profile.faceType}</span>}
-                            {profile.skinType && <span className={styles.heroChip}>🧴 {profile.skinType}</span>}
-                            {profile.bodyType && <span className={styles.heroChip}>🏃 {profile.bodyType}</span>}
-                            {profile.religion && <span className={styles.heroChip}>🙏 {profile.religion}</span>}
+                            {profile.loveType && <span className={styles.heroChip}>{profile.loveType}</span>}
+                            {profile.faceType && <span className={styles.heroChip}>{profile.faceType}</span>}
+                            {profile.skinType && <span className={styles.heroChip}>{profile.skinType}</span>}
+                            {profile.bodyType && <span className={styles.heroChip}>{profile.bodyType}</span>}
+                            {profile.religion && <span className={styles.heroChip}>{profile.religion}</span>}
                             {isMale && (profile.militaryStatus || isUnderageMale) && (
                                 <span className={styles.heroChip}>
-                                    🎖️ {isUnderageMale ? MILITARY_UNDERAGE_VALUE : profile.militaryStatus}
+                                    {isUnderageMale ? MILITARY_UNDERAGE_VALUE : profile.militaryStatus}
                                 </span>
                             )}
                         </div>
                         {!editing && (
                             <button type="button" className={styles.editBtn} onClick={startEdit}>
-                                ✏️ 프로필 수정
+                                프로필 수정
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* ===================== 보기 모드 (✅ [권형석] 온보딩 항목 전부 표시) ===================== */}
+                {/* ===================== 보기 모드 (온보딩 항목 전부 표시) ===================== */}
                 {!editing && (
                     <>
-                        <Section title="자기소개" icon="💬">
+                        <Section title="자기소개">
                             <p className={styles.intro}>{profile.introduction || '-'}</p>
                         </Section>
 
                         <div className={styles.grid}>
-                            <Section title="기본 정보" icon="📋">
+                            <Section title="기본 정보">
                                 <InfoRow label="닉네임" value={show(basic.nickname)} />
                                 <InfoRow label="성별" value={genderLabel(basic.gender)} />
                                 <InfoRow label="나이" value={basic.age != null ? `만 ${basic.age}세` : '-'} />
@@ -598,28 +596,28 @@ function Profile() {
                                 {isMale && <InfoRow label="병역" value={militaryText} />}
                             </Section>
 
-                            <Section title="생활 습관" icon="🍷">
+                            <Section title="생활 습관">
                                 <InfoRow label="음주" value={drinkingText(profile.drinking)} />
                                 <InfoRow label="흡연" value={smokingText(profile.smoking)} />
                                 <InfoRow label="종교" value={show(profile.religion)} />
                                 <TagRow label="음식 취향" value={profile.foodPreference} />
                             </Section>
 
-                            <Section title="외모 · 연애 성향" icon="💄">
+                            <Section title="외모 · 연애 성향">
                                 <InfoRow label="얼굴상" value={show(profile.faceType)} />
                                 <InfoRow label="피부 타입" value={show(profile.skinType)} />
                                 <InfoRow label="체형" value={show(profile.bodyType)} />
                                 <InfoRow label="연애 스타일" value={show(profile.loveType)} />
                             </Section>
 
-                            <Section title="취향" icon="🎨">
+                            <Section title="취향">
                                 <TagRow label="취미" value={profile.hobby} />
                                 <TagRow label="좋아하는 것" value={profile.favorite} />
                                 <TagRow label="싫어하는 것" value={profile.dislike} />
                             </Section>
                         </div>
 
-                        <Section title="나의 이상형" icon="💖">
+                        <Section title="나의 이상형">
                             {ideal ? (
                                 <div className={styles.idealBox}>
                                     <InfoRow label="나이" value={rangeText(ideal.ageMin, ideal.ageMax, '세')} />
@@ -643,14 +641,14 @@ function Profile() {
                 {/* ===================== 수정 모드 ===================== */}
                 {editing && form && (
                     <div className={styles.editArea}>
-                        <h3 className={styles.editTitle}>📋 기본 정보</h3>
+                        <h3 className={styles.editTitle}>기본 정보</h3>
                         <Field label="MBTI">
                             <Chips options={MBTI_LIST} value={form.profile.mbti} onSelect={(v) => setProfileValue('mbti', v)} />
                         </Field>
                         <Field label="직업">
                             <Chips options={JOB_LIST} value={form.profile.job} onSelect={(v) => setProfileValue('job', v)} />
                         </Field>
-                        {/* ✅ [권형석] 키 · 몸무게: 범위를 벗어나면 칸 아래에 안내 */}
+                        {/* 키 · 몸무게: 범위를 벗어나면 칸 아래에 안내 */}
                         <div className={ob.row}>
                             <Field label={`키 (cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
                                 <NumberText value={form.profile.height} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm"
@@ -661,14 +659,14 @@ function Profile() {
                                     onChange={(v) => setProfileValue('weight', v)} />
                             </Field>
                         </div>
-                        {/* ✅ [권형석] 만 18세 미만 남성은 병역 미필 고정 */}
+                        {/* 만 18세 미만 남성은 병역 미필 고정 */}
                         {isMale && (
                             isUnderageMale ? (
                                 <Field
                                     label="병역"
                                     hint={`만 ${MILITARY_MIN_AGE}세 미만은 병역 의무 나이가 아니라서 '${MILITARY_UNDERAGE_VALUE}'로 고정되며 변경할 수 없어요.`}
                                 >
-                                    <p className={styles.editHint}>🔒 {MILITARY_UNDERAGE_VALUE} (자동 등록)</p>
+                                    <p className={styles.editHint}>{MILITARY_UNDERAGE_VALUE} (자동 등록)</p>
                                 </Field>
                             ) : (
                                 <Field label="병역">
@@ -678,7 +676,7 @@ function Profile() {
                             )
                         )}
 
-                        <h3 className={styles.editTitle}>🍷 생활 습관</h3>
+                        <h3 className={styles.editTitle}>생활 습관</h3>
                         <Field label="음주">
                             <Chips options={DRINKING_LIST} value={form.profile.drinking} onSelect={(v) => setProfileValue('drinking', v)} />
                         </Field>
@@ -692,14 +690,13 @@ function Profile() {
                             <Chips options={FOOD_LIST} value={form.profile.foodPreference} onSelect={(v) => toggleProfileList('foodPreference', v)} />
                         </Field>
 
-                        <h3 className={styles.editTitle}>💄 외모 · 연애 성향</h3>
+                        <h3 className={styles.editTitle}>외모 · 연애 성향</h3>
                         <Field label="얼굴상">
                             <Chips options={FACE_TYPE_LIST} value={form.profile.faceType} onSelect={(v) => setProfileValue('faceType', v)} />
                         </Field>
                         <Field label="피부 타입">
                             <Chips options={SKIN_TYPE_LIST} value={form.profile.skinType} onSelect={(v) => setProfileValue('skinType', v)} />
                         </Field>
-                        {/* ✅ [권형석] 내 체형 */}
                         <Field label="체형">
                             <Chips options={MY_BODY_TYPE_LIST} value={form.profile.bodyType} onSelect={(v) => setProfileValue('bodyType', v)} />
                         </Field>
@@ -707,7 +704,7 @@ function Profile() {
                             <Chips options={LOVE_TYPE_LIST} value={form.profile.loveType} onSelect={(v) => setProfileValue('loveType', v)} />
                         </Field>
 
-                        <h3 className={styles.editTitle}>🎨 취향 · 자기소개</h3>
+                        <h3 className={styles.editTitle}>취향 · 자기소개</h3>
                         <Field label="취미" hint="여러 개 선택할 수 있어요.">
                             <Chips options={HOBBY_LIST} value={form.profile.hobby} onSelect={(v) => toggleProfileList('hobby', v)} />
                         </Field>
@@ -724,9 +721,9 @@ function Profile() {
                             <p className={ob.counter}>{form.profile.introduction.length} / {MAX_INTRO}</p>
                         </Field>
 
-                        <h3 className={styles.editTitle}>💖 나의 이상형 (선택)</h3>
+                        <h3 className={styles.editTitle}>나의 이상형 (선택)</h3>
                         <p className={styles.editHint}>모두 비우고 저장하면 이상형이 삭제돼요.</p>
-                        {/* ✅ [권형석] 이상형 나이: 만 14세 이상 (최대 제한 없음) */}
+                        {/* 이상형 나이: 만 14세 이상 (최대 제한 없음) */}
                         <div className={ob.row}>
                             <Field label={`나이 (최소, 만 ${IDEAL_AGE_MIN}세 이상)`}>
                                 <NumberText value={form.ideal.ageMin} min={IDEAL_AGE_MIN} unit="세" placeholder="예: 25"
@@ -737,7 +734,7 @@ function Profile() {
                                     onChange={(v) => setIdealValue('ageMax', v)} />
                             </Field>
                         </div>
-                        {/* ✅ [권형석] 이상형 키: 100~250cm */}
+                        {/* 이상형 키: 100~250cm */}
                         <div className={ob.row}>
                             <Field label={`키 (최소 cm, ${HEIGHT_MIN}~${HEIGHT_MAX})`}>
                                 <NumberText value={form.ideal.minHeight} min={HEIGHT_MIN} max={HEIGHT_MAX} unit="cm" placeholder="예: 160"
@@ -774,7 +771,7 @@ function Profile() {
                             <p className={ob.counter}>{form.ideal.memo.length} / {MAX_MEMO}</p>
                         </Field>
 
-                        {error && <p className={ob.error}>⚠️ {error}</p>}
+                        {error && <p className={ob.error}>{error}</p>}
 
                         <div className={styles.editButtons}>
                             <button type="button" className={ob.prevBtn} onClick={cancelEdit} disabled={saving}>

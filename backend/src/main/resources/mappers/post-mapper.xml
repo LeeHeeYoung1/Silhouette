@@ -139,11 +139,14 @@
 		 order by sort_order
 	</select>
 
-	<!-- 첨부파일 하나 (다운로드) -->
+		<!-- 첨부파일 하나 (다운로드): 삭제 안 된 글의 파일만 -->
 	<select id="selectPostDownload" parameterType="Long" resultType="com.app.silhouette.post.PostFileDTO">
-		select post_file_seq, post_seq, original_name, stored_name, file_size, file_type, sort_order, created_at
-		  from post_file
-		 where post_file_seq = #{postFileSeq}
+		select f.post_file_seq, f.post_seq, f.original_name, f.stored_name,
+		       f.file_size, f.file_type, f.sort_order, f.created_at
+		  from post_file f
+		  join post p on p.post_seq = f.post_seq
+		 where f.post_file_seq = #{postFileSeq}
+		   and p.is_deleted = 'N'
 	</select>
 
 	<!-- ===================== 수정 ===================== -->

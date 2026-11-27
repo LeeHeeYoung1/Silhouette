@@ -533,7 +533,7 @@ function Onboarding() {
                   <div className={styles.infoBox}>
                     <div className={styles.infoItem}>
                       <span>병역</span>
-                      <strong>🔒 {MILITARY_UNDERAGE_VALUE} (자동 등록)</strong>
+                      <strong> {MILITARY_UNDERAGE_VALUE} (자동 등록)</strong>
                     </div>
                   </div>
                 </Field>

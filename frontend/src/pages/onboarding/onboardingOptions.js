@@ -25,10 +25,10 @@ export const DRINKING_PREF_LIST = ['상관없음', '안 마시는 분', '가끔 
 
 // 병역 (남성 본인 입력) - 카드형으로 보여줌
 export const MILITARY_LIST = [
-  { value: '군필', icon: '🎖️', desc: '병역 의무 완료' },
-  { value: '미필', icon: '📅', desc: '입대 예정' },
-  { value: '복무 중', icon: '🪖', desc: '현재 복무 중' },
-  { value: '면제', icon: '📄', desc: '면제 판정' },
+  { value: '군필',  desc: '병역 의무 완료' },
+  { value: '미필',  desc: '입대 예정' },
+  { value: '복무 중',  desc: '현재 복무 중' },
+  { value: '면제',  desc: '면제 판정' },
 ];
 
 // 이상형 병역 (여성 선택) - 여러 개 선택, '상관없음'은 단독

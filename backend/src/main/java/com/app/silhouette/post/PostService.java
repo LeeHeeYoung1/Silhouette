@@ -14,20 +14,37 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.app.silhouette.admin.AdminService;
+import com.app.silhouette.commons.AuthMemberDTO;
+import com.app.silhouette.commons.AuthMemberService;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 
+/* =========================================================
+   게시글 Service
+   ✅ 회원 확인은 화면이 보낸 loginId가 아니라 Authorization 헤더의 토큰으로
+      (AuthMemberService.loginMember / loginMemberOrNull)
+   ========================================================= */
 @Service
 public class PostService {
 
 	private static final int MAX_FILES = 6;
+	private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;   // 첨부파일 1개 최대 10MB
 	private static final int DEFAULT_PAGE_SIZE = 10;   // 한 페이지 글 수 기본값
 	private static final int MAX_PAGE_SIZE = 50;       // 한 번에 너무 많이 못 가져가게
 	private static final int MAX_TITLE = 100;          // 제목 최대 글자 (화면과 같음)
 	private static final int MAX_CONTENT = 3000;       // 본문 최대 글자 (화면과 같음)
+
+	// ✅ 첨부 가능한 확장자 → 저장할 Content-Type (화면이 보낸 형식은 믿지 않음)
+	private static final Map<String, String> ALLOWED_FILES = Map.of(
+			"jpg", "image/jpeg",
+			"jpeg", "image/jpeg",
+			"png", "image/png",
+			"gif", "image/gif",
+			"webp", "image/webp",
+			"pdf", "application/pdf");
 
 	// 게시판 구분 (DB BOARD_TYPE 값)
 	private static final String BOARD_FREE = "FREE";
@@ -37,7 +54,7 @@ public class PostService {
 	// 익명게시판 글의 카테고리 (항상 고정)
 	private static final String ANON_CATEGORY = "익명";
 
-	// ✅ 검색 (titleContent = 제목+내용, 기본값)
+	// 검색 (titleContent = 제목+내용, 기본값)
 	private static final List<String> SEARCH_TYPES = List.of("titleContent", "title", "content", "author");
 	private static final int MAX_KEYWORD = 50;   // 검색어 최대 글자
 	private static final int MAX_WORDS = 5;      // 단어 최대 개수
@@ -45,26 +62,26 @@ public class PostService {
 	private final PostDAO postDAO;
 	private final Storage storage;     // GCSConfig에서 만든 Bean
 	private final AdminService adminService;
+	private final AuthMemberService authMemberService;
 
 	@Value("${gcp.bucket}")
 	private String bucket;
 
-	public PostService(PostDAO postDAO, Storage storage, AdminService adminService) {
+	public PostService(PostDAO postDAO, Storage storage, AdminService adminService,
+			AuthMemberService authMemberService) {
 		this.postDAO = postDAO;
 		this.storage = storage;
 		this.adminService = adminService;
+		this.authMemberService = authMemberService;
 	}
 
 	// ===================== 등록 =====================
 
-	// 게시글 등록 + 첨부파일 저장 (회원이 없으면 null 반환)
+	// 게시글 등록 + 첨부파일 저장 (토큰 없으면 401)
 	@Transactional
-	public Long insertPost(PostDTO dto, List<MultipartFile> files) throws Exception {
-		// ① 회원 확인
-		Long memberSeq = postDAO.selectMemberSeqByLoginId(dto.getLoginId());
-		if (memberSeq == null) {
-			return null;
-		}
+	public Long insertPost(PostDTO dto, List<MultipartFile> files, String authorization) throws Exception {
+		// ① 회원 확인 (토큰)
+		Long memberSeq = loginMemberSeq(authorization);
 
 		// ② 게시판 · 카테고리 · 제목 · 내용 검사
 		String boardType = checkBoardType(dto.getBoardType());
@@ -75,15 +92,21 @@ public class PostService {
 		dto.setTitle(adminService.filterText(dto.getTitle()));
 		dto.setContent(adminService.filterText(dto.getContent()));
 
+		// ③ 첨부파일 검사 (개수 · 크기 · 확장자) — 저장 전에 전부 검사
 		if (files != null && files.size() > MAX_FILES) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "첨부파일은 최대 " + MAX_FILES + "개입니다.");
 		}
+		if (files != null) {
+			for (MultipartFile file : files) {
+				if (!file.isEmpty()) checkFile(file);
+			}
+		}
 
-		// ③ 게시글 저장 → dto.postSeq에 새 글 번호
+		// ④ 게시글 저장 → dto.postSeq에 새 글 번호
 		dto.setMemberSeq(memberSeq);
 		postDAO.insertPost(dto);
 
-		// ④ 첨부파일 저장
+		// ⑤ 첨부파일 저장
 		if (files != null) {
 			int order = 1;
 			for (MultipartFile file : files) {
@@ -94,13 +117,33 @@ public class PostService {
 		return dto.getPostSeq();
 	}
 
+	// 첨부파일 검사: 10MB 이하 + 허용 확장자만
+	private void checkFile(MultipartFile file) {
+		if (file.getSize() > MAX_FILE_SIZE) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "첨부파일은 1개당 10MB까지 올릴 수 있습니다.");
+		}
+		if (contentTypeOf(file.getOriginalFilename()) == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "jpg, png, gif, webp, pdf 파일만 첨부할 수 있습니다.");
+		}
+	}
+
+	// 확장자 → 저장할 Content-Type (허용 안 된 확장자면 null)
+	private String contentTypeOf(String fileName) {
+		if (fileName == null || !fileName.contains(".")) return null;
+		String ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+		return ALLOWED_FILES.get(ext);
+	}
+
 	// GCS 버킷에 업로드하고 POST_FILE 정보를 만들어 돌려줌
 	private PostFileDTO uploadToGcs(MultipartFile file, Long postSeq, int order) throws Exception {
 		String originalName = file.getOriginalFilename();
-		String storedName = "post/" + postSeq + "/" + UUID.randomUUID() + "_" + originalName;
+		// 저장 이름에는 경로 · 특수문자가 끼지 않게 정리 (원래 이름은 DB에 따로 보관)
+		String safeName = originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
+		String storedName = "post/" + postSeq + "/" + UUID.randomUUID() + "_" + safeName;
+		String contentType = contentTypeOf(originalName);   // 화면이 보낸 형식 대신 확장자 기준
 
 		BlobInfo blobInfo = BlobInfo.newBuilder(bucket, storedName)
-				.setContentType(file.getContentType())
+				.setContentType(contentType)
 				.build();
 		storage.create(blobInfo, file.getBytes());
 
@@ -110,14 +153,14 @@ public class PostService {
 		fileDto.setStoredName(storedName);
 		fileDto.setFilePath("https://storage.googleapis.com/" + bucket + "/" + storedName);
 		fileDto.setFileSize(file.getSize());
-		fileDto.setFileType(file.getContentType() != null && file.getContentType().startsWith("image/") ? "IMAGE" : "FILE");
+		fileDto.setFileType(contentType.startsWith("image/") ? "IMAGE" : "FILE");
 		fileDto.setSortOrder(order);
 		return fileDto;
 	}
 
 	// ===================== 목록 (페이징 + 검색) =====================
 
-	// ✅ 해당 게시판 · 페이지 글 + 전체 글 수 + 전체 페이지 수 (검색 포함)
+	// 해당 게시판 · 페이지 글 + 전체 글 수 + 전체 페이지 수 (검색 포함)
 	public Map<String, Object> selectPostPage(String boardType, String category,
 			String searchType, String keyword, int page, int size) {
 		if (size < 1 || size > MAX_PAGE_SIZE) size = DEFAULT_PAGE_SIZE;
@@ -168,42 +211,46 @@ public class PostService {
 				"page", page);
 	}
 
-	// ✅ LIKE 특수문자(%, _, \)를 글자 그대로 검색되게 바꿈 (mapper의 escape '\'와 짝)
+	// LIKE 특수문자(%, _, \)를 글자 그대로 검색되게 바꿈 (mapper의 escape '\'와 짝)
 	private String escapeLike(String s) {
 		return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
 	// ===================== 상세 =====================
 
-	// 게시글 상세 (조회수 +1, 내 글인지 계산, 익명 글은 작성자 정보 지움)
+	// 게시글 상세 (조회수 +1, 내 글인지 계산, 아이디는 보내지 않음, 익명 글은 회원번호도 지움)
 	@Transactional
-	public PostDTO selectPost(Long postSeq, String loginId) {
+	public PostDTO selectPost(Long postSeq, String authorization) {
 		postDAO.updateViewCount(postSeq);
 		PostDTO post = postDAO.selectPost(postSeq);
 		if (post == null) {
 			return null;
 		}
 
-		// 보는 사람의 회원번호 (로그인 안 했으면 null)
-		Long viewerSeq = (loginId == null || loginId.isBlank())
-				? null
-				: postDAO.selectMemberSeqByLoginId(loginId);
-		post.setMine(viewerSeq != null && viewerSeq.equals(post.getMemberSeq()));
+		// 보는 사람 (로그인 안 했으면 null)
+		AuthMemberDTO viewer = authMemberService.loginMemberOrNull(authorization);
+		post.setMine(viewer != null && viewer.getMemberSeq().equals(post.getMemberSeq()));
 
-		// 익명 글은 아이디 · 회원번호를 화면에 안 보냄 (F12 Network에서도 안 보이게)
+		// ✅ 작성자 아이디는 어떤 글이든 화면에 보내지 않음 (mine으로 충분)
+		post.setLoginId(null);
+
+		// 익명 글은 회원번호도 보내지 않음 (F12 Network에서도 안 보이게)
 		if (BOARD_ANON.equals(post.getBoardType())) {
-			post.setLoginId(null);
 			post.setMemberSeq(null);
 		}
 		return post;
 	}
 
+	// 첨부파일 목록 (GCS 저장 이름은 화면에 보내지 않음)
 	public List<PostFileDTO> selectPostFiles(Long postSeq) {
-		return postDAO.selectPostFiles(postSeq);
+		List<PostFileDTO> files = postDAO.selectPostFiles(postSeq);
+		files.forEach(f -> f.setStoredName(null));
+		return files;
 	}
 
-	public PostFileDTO selectPostDownload(Long postFileSeq, String loginId) {
-		checkMember(loginId);
+	// 첨부파일 하나 (로그인 회원만, 삭제된 글의 파일은 404 — mapper에서 걸러짐)
+	public PostFileDTO selectPostDownload(Long postFileSeq, String authorization) {
+		authMemberService.loginMember(authorization);   // 401
 		PostFileDTO file = postDAO.PostDownLoad(postFileSeq);
 		if (file == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
@@ -221,27 +268,21 @@ public class PostService {
 		return blob.getContent();
 	}
 
-	// 회원 확인 (JWT 완성 전 임시: loginId로 확인)
-	private void checkMember(String loginId) {
-		if (loginId == null || loginId.isBlank()
-				|| postDAO.selectMemberSeqByLoginId(loginId) == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 다운로드할 수 있습니다.");
-		}
-	}
-
 	// ===================== 수정 =====================
 
 	// 수정 화면용 기존 글 (본인 글만, 조회수 안 올림)
-	public PostDTO selectPostForEdit(Long postSeq, String loginId) {
-		Long memberSeq = getLoginMemberSeq(loginId);     // 로그인 확인 (401)
-		return getMyPost(postSeq, memberSeq);           // 있는지(404) + 본인 글인지(403)
+	public PostDTO selectPostForEdit(Long postSeq, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);   // 401
+		PostDTO post = getMyPost(postSeq, memberSeq);     // 404 · 403
+		post.setLoginId(null);
+		return post;
 	}
 
 	// 게시글 수정 (카테고리·제목·내용, 게시판은 못 바꿈)
 	@Transactional
-	public void updatePost(Long postSeq, PostDTO dto) {
+	public void updatePost(Long postSeq, PostDTO dto, String authorization) {
 		// 1) 로그인 + 본인 글 확인
-		Long memberSeq = getLoginMemberSeq(dto.getLoginId());
+		Long memberSeq = loginMemberSeq(authorization);
 		PostDTO saved = getMyPost(postSeq, memberSeq);
 
 		// 2) 원래 게시판 기준으로 입력값 검사 (익명 글이면 카테고리 '익명' 고정)
@@ -251,7 +292,7 @@ public class PostService {
 		dto.setTitle(adminService.filterText(dto.getTitle()));
 		dto.setContent(adminService.filterText(dto.getContent()));
 
-		// 3) 서버가 정하는 값 채우고 수정
+		// 3) 서버가 정하는 값 채우고 수정 (화면이 보낸 회원번호 · 게시판은 무시)
 		dto.setPostSeq(postSeq);
 		dto.setMemberSeq(memberSeq);
 
@@ -274,7 +315,7 @@ public class PostService {
 
 	// ===================== 입력값 검사 (등록 · 수정 공용) =====================
 
-	// 게시판 구분 확인 (없으면 FREE, FREE/ANON 말고는 400)
+	// 게시판 구분 확인 (없으면 FREE, FREE/ANON 말고는 400 → 공지 등 다른 게시판으로는 못 씀)
 	private String checkBoardType(String boardType) {
 		if (boardType == null || boardType.isBlank()) {
 			return BOARD_FREE;
@@ -288,7 +329,6 @@ public class PostService {
 
 	// 카테고리 · 제목 · 내용 검사 후 정리된 값을 dto에 다시 넣음
 	private void checkPostInput(PostDTO dto, String boardType) {
-		// 카테고리: 익명게시판은 무조건 '익명', 자유게시판은 3개 중 하나
 		if (BOARD_ANON.equals(boardType)) {
 			dto.setCategory(ANON_CATEGORY);
 		} else {
@@ -315,12 +355,8 @@ public class PostService {
 	// ===================== 삭제 =====================
 
 	@Transactional
-	public void deletePost(Long postSeq, String loginId) {
-		Long memberSeq = (loginId == null || loginId.isBlank()) ? null
-				: postDAO.selectMemberSeqByLoginId(loginId);
-		if (memberSeq == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 삭제할 수 있습니다.");
-		}
+	public void deletePost(Long postSeq, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);
 		int result = postDAO.deletePost(postSeq, memberSeq);
 		if (result == 0) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인 글만 삭제할 수 있습니다.");
@@ -330,8 +366,8 @@ public class PostService {
 	// ===================== 추천 =====================
 
 	// 내가 추천했는지 + 현재 추천수 조회
-	public Map<String, Object> selectRecommend(Long postSeq, String loginId) {
-		Long memberSeq = getLoginMemberSeq(loginId);
+	public Map<String, Object> selectRecommend(Long postSeq, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);
 
 		Integer count = postDAO.selectRecommendCount(postSeq);
 		if (count == null) {
@@ -344,8 +380,8 @@ public class PostService {
 
 	// 추천 토글 (추천 ↔ 취소)
 	@Transactional
-	public Map<String, Object> toggleRecommend(Long postSeq, String loginId) {
-		Long memberSeq = getLoginMemberSeq(loginId);
+	public Map<String, Object> toggleRecommend(Long postSeq, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);
 
 		if (postDAO.selectRecommendCount(postSeq) == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글이 없습니다.");
@@ -366,14 +402,8 @@ public class PostService {
 		return Map.of("liked", liked, "recommendCount", newCount);
 	}
 
-	// 로그인 아이디 → 회원번호 (JWT 전 임시 방식, 없으면 401)
-	private Long getLoginMemberSeq(String loginId) {
-		Long memberSeq = (loginId == null || loginId.isBlank())
-				? null
-				: postDAO.selectMemberSeqByLoginId(loginId);
-		if (memberSeq == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 이용할 수 있습니다.");
-		}
-		return memberSeq;
+	// ✅ 토큰 → 회원번호 (토큰 없거나 회원 없으면 AuthMemberService가 401)
+	private Long loginMemberSeq(String authorization) {
+		return authMemberService.loginMember(authorization).getMemberSeq();
 	}
 }

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
@@ -44,7 +45,49 @@ const HERO_PROFILES = [
   }
 ];
 
-// 챗봇 추천 퀵 질문 칩
+
+
+// 매칭 버튼 (9조각 글자 흐름 + 막대 애니메이션)
+function MatchLoaderButton({ label, variant, onClick }) {
+  const measureRef = useRef(null);
+  const [wordEm, setWordEm] = useState(5);
+
+  // 문구 길이(em)를 재서 조각 위치 계산에 사용
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = measureRef.current;
+      if (!el) return;
+      const fontSize = parseFloat(getComputedStyle(el).fontSize);
+      if (fontSize) setWordEm(el.offsetWidth / fontSize);
+    };
+
+    measure();
+    document.fonts?.ready.then(measure); // 웹폰트 로드 후 한 번 더 측정
+  }, [label]);
+
+  return (
+    <button
+      type="button"
+      className={`${styles.mlBtn} ${variant === 'blind' ? styles.mlBlind : styles.mlIdeal}`}
+      onClick={onClick}
+      aria-label={label}
+    >
+      <div className={styles.mlLoader} style={{ '--w': `${wordEm}em` }} aria-hidden="true">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div key={i} className={styles.mlText}>
+            <span ref={i === 4 ? measureRef : undefined}>{label}</span>
+          </div>
+        ))}
+        <div className={styles.mlLine} />
+      </div>
+    </button>
+  );
+}
+
+
+
+
+
 // 홈 화면
 function Home() {
   const { token, id } = useAuthStore();
@@ -104,7 +147,7 @@ function Home() {
     if (!token) navi('/login');
   }, [token, navi]);
 
-  // 내 주변 회원 온보딩 프로필 이미지 로드 (요청 사항 3: 다양한 경로 검사 후 blob URL 생성)
+  // 내 주변 회원 온보딩 프로필 이미지 로드
   useEffect(() => {
     let cancelled = false;
     const objectUrls = [];
@@ -514,7 +557,7 @@ function Home() {
       if (!leftEl || !sideEl) return;
 
       const leftRight = leftEl.getBoundingClientRect().right;      // 왼쪽 구역 끝
-      const sideRect = sideEl.getBoundingClientRect();              // 사이드바 원래 자리 (transform 미적용 요소)
+      const sideRect = sideEl.getBoundingClientRect();              // 사이드바 원래 자리
       const viewportRight = document.documentElement.clientWidth;   // 브라우저 오른쪽 끝 (스크롤바 제외)
       const cardWidth = sideRect.width;
 
@@ -532,7 +575,7 @@ function Home() {
     return () => window.removeEventListener('resize', updateShift);
   }, []);
 
-  // 가로 스크롤 끊김 방지를 위한 리스트 확장 (물 흐르듯 매끄러운 무한 롤링을 위해 최소 8개 이상 보장)
+  // 가로 스크롤 끊김 방지를 위한 리스트 확장 (최소 8개 이상 보장)
   const marqueeLocationList = useMemo(() => {
     if (locationProfiles.length === 0) return [];
     let repeated = [...locationProfiles];
@@ -619,7 +662,7 @@ function Home() {
         </div>
       </section>
 
-      {/* 실시간 매칭 큐 오버레이 (랜덤 미스터리 릴 & AI 이상형 실시간 랭킹 보드) */}
+      {/* 실시간 매칭 큐 오버레이 */}
       {isMatchingNow && (
         <MatchQueueOverlay
           isBlindMatching={isBlindMatching}
@@ -631,80 +674,19 @@ function Home() {
         />
       )}
 
-      {/* 수정 사항 4: 상단 메뉴 줄 (위치 하향 조정 + 촌스러운 검은색 원 제거 + 허니 옐로 캡슐 필 바) */}
+      {/* 상단 메뉴 */}
       <div className={styles.topNav}>
         <MainNav />
       </div>
 
-      {/* 메인 콘텐츠 영역: 매칭 큐 + 내 주변 매칭 + 라이브 방송 */}
+      {/* 메인 콘텐츠 영역: 매칭 버튼 + 내 주변 매칭 + 라이브 방송 */}
       <div className={styles.mainColumns}>
         <main className={styles.leftMainCol} ref={leftColRef}>
-          {/* 2. 매칭 큐 섹션 (블라인드 매칭 & 이상형 매칭 50% 분할) */}
+          {/* 2. 매칭 버튼 (블라인드 / 이상형) */}
           <section className={styles.matchingSection}>
             <div className={styles.matchingGrid}>
-              {/* 블라인드 매칭: 흑연·골드 에디션 엔진 스타트 버튼 */}
-              <button
-                type="button"
-                className={`${styles.heroEngineBtn} ${styles.heroEngineBlind}`}
-                onClick={handleBlindMatching}
-                aria-label="블라인드 랜덤 매칭 시동"
-              >
-                <div className={styles.engineBtnInfo}>
-                  <div className={styles.engineStatusRow}>
-                    <span className={styles.enginePulseDot} />
-                    <span className={styles.engineStatusTag}>SYSTEM READY</span>
-                    <span className={styles.engineCountBadge}>
-                      {waitingBlindUsers.toLocaleString()}명 대기
-                    </span>
-                  </div>
-                  <h3 className={styles.engineMatchTitle}>블라인드 매칭</h3>
-                  <p className={styles.engineMatchSub}>외모와 조건 없이 대화로 즉시 시동</p>
-                </div>
-
-                <div className={styles.engineIgnitionWrap}>
-                  <div className={styles.engineBezel}>
-                    <div className={styles.engineHalo} />
-                    <div className={styles.engineCore}>
-                      <span className={styles.engineCoreLed} />
-                      <span className={styles.engineCoreTextTop}>ENGINE</span>
-                      <span className={styles.engineCoreTextMain}>START</span>
-                      <span className={styles.engineCoreTextSub}>MATCH</span>
-                    </div>
-                  </div>
-                </div>
-              </button>
-
-              {/* 이상형 매칭: 크림·티타늄 에디션 엔진 스타트 버튼 */}
-              <button
-                type="button"
-                className={`${styles.heroEngineBtn} ${styles.heroEngineIdeal}`}
-                onClick={handleIdealStart}
-                aria-label="이상형 랜덤 매칭 시동"
-              >
-                <div className={styles.engineBtnInfo}>
-                  <div className={styles.engineStatusRow}>
-                    <span className={`${styles.enginePulseDot} ${styles.enginePulseDotAmber}`} />
-                    <span className={styles.engineStatusTag}>AI TARGETING</span>
-                    <span className={styles.engineCountBadge}>
-                      {waitingIdealUsers.toLocaleString()}명 대기
-                    </span>
-                  </div>
-                  <h3 className={styles.engineMatchTitle}>이상형 매칭</h3>
-                  <p className={styles.engineMatchSub}>가치관과 성향이 일치하는 상대 탐색</p>
-                </div>
-
-                <div className={styles.engineIgnitionWrap}>
-                  <div className={`${styles.engineBezel} ${styles.engineBezelIdeal}`}>
-                    <div className={`${styles.engineHalo} ${styles.engineHaloIdeal}`} />
-                    <div className={`${styles.engineCore} ${styles.engineCoreIdeal}`}>
-                      <span className={`${styles.engineCoreLed} ${styles.engineCoreLedAmber}`} />
-                      <span className={styles.engineCoreTextTop}>ENGINE</span>
-                      <span className={styles.engineCoreTextMain}>START</span>
-                      <span className={styles.engineCoreTextSub}>AI IDEAL</span>
-                    </div>
-                  </div>
-                </div>
-              </button>
+              <MatchLoaderButton label="BLIND MATCHING" variant="blind" onClick={handleBlindMatching} />
+              <MatchLoaderButton label="IDEAL MATCHING" variant="ideal" onClick={handleIdealStart} />
             </div>
           </section>
 
@@ -1096,7 +1078,6 @@ function Home() {
             )}
           </div>
         </aside>
-
       </div>
 
       {/* 친구 · 채팅 플로팅 버튼과 AI 챗봇은 모든 페이지 공통이라 레이아웃(FloatingDock)에서 띄움 */}

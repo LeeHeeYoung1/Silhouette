@@ -11,28 +11,41 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.app.silhouette.admin.AdminService;
+import com.app.silhouette.commons.AuthMemberDTO;
+import com.app.silhouette.commons.AuthMemberService;
 
+/* =========================================================
+   댓글 Service
+   ✅ 회원 확인은 토큰으로 (loginId 파라미터 사용 안 함)
+   ✅ 댓글 목록에는 작성자 아이디를 보내지 않고,
+      서버가 mine(내 댓글) · writer(글쓴이 댓글)를 계산해서 보냄
+   ✅ 익명 글이면 회원번호도 보내지 않음
+   ========================================================= */
 @Service
 public class PostCommentService {
 
 	private static final int MAX_LENGTH = 1000;
 	private static final String DELETED_TEXT = "삭제된 댓글입니다.";
+	private static final String BOARD_ANON = "ANON";
 
 	private final PostCommentDAO postCommentDAO;
-	private final PostDAO postDAO;   // 회원번호 조회 재사용
+	private final PostDAO postDAO;
 	private final AdminService adminService;
+	private final AuthMemberService authMemberService;
 
-	public PostCommentService(PostCommentDAO postCommentDAO, PostDAO postDAO, AdminService adminService) {
+	public PostCommentService(PostCommentDAO postCommentDAO, PostDAO postDAO,
+			AdminService adminService, AuthMemberService authMemberService) {
 		this.postCommentDAO = postCommentDAO;
 		this.postDAO = postDAO;
 		this.adminService = adminService;
+		this.authMemberService = authMemberService;
 	}
 
 	// ===================== 댓글 / 대댓글 등록 =====================
 	@Transactional
-	public Long insertComment(Long postSeq, PostCommentDTO dto) {
-		// 1) 회원 확인 (없으면 401)
-		Long memberSeq = getLoginMemberSeq(dto.getLoginId());
+	public Long insertComment(Long postSeq, PostCommentDTO dto, String authorization) {
+		// 1) 회원 확인 (토큰, 없으면 401)
+		Long memberSeq = loginMemberSeq(authorization);
 
 		// 2) 내용 확인 (비었거나 1000자 초과면 400)
 		String content = checkContent(dto.getContent());
@@ -48,30 +61,48 @@ public class PostCommentService {
 				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "답글을 달 댓글이 없습니다.");
 			}
 			if (parent.getParentPostCommentSeq() != null) {
-				// 대댓글은 1단계까지만 (답글의 답글 X)
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "답글에는 답글을 달 수 없습니다.");
 			}
 		}
 
-		// 5) DTO에 서버가 정하는 값 채우기 (금칙어 필터링 적용)
+		// 5) 서버가 정하는 값 채우기 (화면이 보낸 회원번호는 무시, 금칙어 필터링)
 		dto.setPostSeq(postSeq);
 		dto.setMemberSeq(memberSeq);
 		dto.setContent(adminService.filterText(content));
 
-		// 6) 저장 + 댓글 수 +1 (쓰기 2개 → 트랜잭션)
+		// 6) 저장 + 댓글 수 +1
 		postCommentDAO.insertComment(dto);
 		postCommentDAO.increaseCommentCount(postSeq);
 
-		// 7) selectKey로 채워진 새 댓글 번호를 돌려줌
 		return dto.getPostCommentSeq();
 	}
 
 	// ===================== 댓글 목록 (트리 구조) =====================
-	// DB에서는 한 줄로 받아오고, 여기서 부모 댓글의 replies 안에 대댓글을 넣어줌
-	public List<PostCommentDTO> selectComments(Long postSeq) {
+	public List<PostCommentDTO> selectComments(Long postSeq, String authorization) {
 		checkActivePost(postSeq);
 
+		// 글 정보 (글쓴이 회원번호 · 게시판 구분)
+		PostDTO post = postDAO.selectPostForEdit(postSeq);
+		Long postWriterSeq = post == null ? null : post.getMemberSeq();
+		boolean anon = post != null && BOARD_ANON.equals(post.getBoardType());
+
+		// 보는 사람 (로그인 안 했으면 null)
+		AuthMemberDTO viewer = authMemberService.loginMemberOrNull(authorization);
+		Long viewerSeq = viewer == null ? null : viewer.getMemberSeq();
+
 		List<PostCommentDTO> all = postCommentDAO.selectComment(postSeq);
+
+		// 0) 서버에서 mine · writer 계산 후, 아이디는 지우고 익명이면 회원번호도 지움
+		for (PostCommentDTO c : all) {
+			boolean deleted = "Y".equals(c.getIsDeleted());
+			c.setMine(!deleted && viewerSeq != null && viewerSeq.equals(c.getMemberSeq()));
+			c.setWriter(!deleted && postWriterSeq != null && postWriterSeq.equals(c.getMemberSeq()));
+			c.setLoginId(null);
+			if (anon) {
+				c.setMemberSeq(null);
+				c.setWriterName("익명");
+			}
+		}
 
 		// 1) 부모 댓글만 먼저 담기 (순서 유지)
 		Map<Long, PostCommentDTO> parents = new LinkedHashMap<>();
@@ -99,7 +130,6 @@ public class PostCommentService {
 			} else if (!p.getReplies().isEmpty()) {
 				p.setContent(DELETED_TEXT);
 				p.setWriterName(null);
-				p.setLoginId(null);
 				p.setMemberSeq(null);
 				result.add(p);
 			}
@@ -109,8 +139,8 @@ public class PostCommentService {
 
 	// ===================== 댓글 / 대댓글 수정 =====================
 	@Transactional
-	public void updateComment(Long postSeq, Long postCommentSeq, PostCommentDTO dto) {
-		Long memberSeq = getLoginMemberSeq(dto.getLoginId());
+	public void updateComment(Long postSeq, Long postCommentSeq, PostCommentDTO dto, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);
 		String content = checkContent(dto.getContent());
 		checkActivePost(postSeq);
 
@@ -121,11 +151,10 @@ public class PostCommentService {
 		}
 	}
 
-	// ===================== 댓글 / 대댓글 삭제 =====================
-	// 실제로 지우지 않고 IS_DELETED = 'Y' 로 바꿈 (소프트 삭제)
+	// ===================== 댓글 / 대댓글 삭제 (소프트 삭제) =====================
 	@Transactional
-	public void deleteComment(Long postSeq, Long postCommentSeq, String loginId) {
-		Long memberSeq = getLoginMemberSeq(loginId);
+	public void deleteComment(Long postSeq, Long postCommentSeq, String authorization) {
+		Long memberSeq = loginMemberSeq(authorization);
 		checkActivePost(postSeq);
 
 		int result = postCommentDAO.deleteComment(postSeq, postCommentSeq, memberSeq);
@@ -137,15 +166,9 @@ public class PostCommentService {
 
 	// ===================== 공통 =====================
 
-	// 로그인 아이디 → 회원번호 (JWT 전 임시 방식, 없으면 401)
-	private Long getLoginMemberSeq(String loginId) {
-		Long memberSeq = (loginId == null || loginId.isBlank())
-				? null
-				: postDAO.selectMemberSeqByLoginId(loginId);
-		if (memberSeq == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인한 회원만 이용할 수 있습니다.");
-		}
-		return memberSeq;
+	// ✅ 토큰 → 회원번호 (없으면 AuthMemberService가 401)
+	private Long loginMemberSeq(String authorization) {
+		return authMemberService.loginMember(authorization).getMemberSeq();
 	}
 
 	// 내용 검사 (1~1000자)
