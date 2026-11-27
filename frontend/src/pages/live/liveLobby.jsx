@@ -76,13 +76,24 @@ function LiveLobby({ myId, notice, onStart, onWatch, onResume }) {
 
   return (
     <div className={styles.lobby}>
-      <div className={styles.lobbyHeader}>
-        <h2>라이브</h2>
-        <div className={styles.lobbyActions}>
-          <button className={styles.ghostButton} onClick={() => setModal('bans')}>차단 목록</button>
-          <button className={styles.primaryButton} onClick={() => setModal('start')}>📡 방송하기</button>
+      {/* 히어로: 홈과 같은 허니 옐로 띠 (헤더 뒤부터 히어로 바닥까지 화면 가로 전체) */}
+      <section className={styles.lobbyHero}>
+        <div className={styles.lobbyHeroText}>
+          <span className={styles.onAirChip}>
+            <span className={styles.onAirDot} aria-hidden="true" />
+            ON AIR
+          </span>
+          <h2 className={styles.lobbyHeroTitle}>라이브 방송</h2>
+          <p className={styles.lobbyHeroSub}>
+            지금 방송 중인 사람들과 실시간으로 대화하고, 마음에 들면 바로 연락해보세요.
+          </p>
+          <div className={styles.lobbyActions}>
+            <button className={styles.heroStartButton} onClick={() => setModal('start')}>📡 방송하기</button>
+            <button className={styles.heroGhostButton} onClick={() => setModal('bans')}>차단 목록</button>
+          </div>
         </div>
-      </div>
+        <span className={styles.lobbyHeroWordmark} aria-hidden="true">LIVE</span>
+      </section>
 
       {notice && <p className={styles.noticeBox}>{notice}</p>}
 
