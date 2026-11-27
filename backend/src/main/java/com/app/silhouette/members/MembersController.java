@@ -1,6 +1,8 @@
 
 package com.app.silhouette.members;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class MembersController {
 
     private final MembersServices service;
+    private final PhoneAuthService phoneAuthService;
 
-    public MembersController(MembersServices service) {
+    public MembersController(MembersServices service, PhoneAuthService phoneAuthService) {
         this.service = service;
+        this.phoneAuthService = phoneAuthService;
     }
 
     @PostMapping("/signup")
@@ -38,5 +42,37 @@ public class MembersController {
 
         return ResponseEntity.ok(result);
     }
-    
+
+    @PostMapping("/phone/send")
+    public ResponseEntity<Map<String, Object>> sendPhoneCode(@RequestBody Map<String, String> body) {
+        try {
+            phoneAuthService.sendVerificationSms(body.get("phone"));
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "인증번호가 발송되었습니다. (3분 이내 입력)"
+            ));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/phone/verify")
+    public ResponseEntity<Map<String, Object>> verifyPhoneCode(@RequestBody Map<String, String> body) {
+        try {
+            phoneAuthService.verifyCode(body.get("phone"), body.get("code"));
+            return ResponseEntity.ok(Map.of(
+                    "verified", true,
+                    "message", "휴대폰 본인인증이 완료되었습니다."
+            ));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "verified", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
 }
