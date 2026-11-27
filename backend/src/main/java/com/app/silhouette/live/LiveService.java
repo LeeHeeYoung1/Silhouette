@@ -3,6 +3,7 @@ package com.app.silhouette.live;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -265,7 +266,71 @@ public class LiveService {
 		long me = getMemberSeq(loginId);
 		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
 		checkHost(room, me);
+		syncViewers(room);
 		return dao.selectViewers(liveRoomSeq);
+	}
+
+	// LiveKit 실제 접속자 기준으로 시청 기록 맞추기 (방송자가 시청자 목록을 볼 때마다)
+	// - 입·퇴장 기록은 원래 LiveKit webhook으로 만들지만, webhook은 공개 주소(배포 서버·ngrok)가 있어야 도착함
+	// - 로컬 실행·webhook 지연/누락에도 목록이 맞도록 서버가 LiveKit에 직접 물어봄 (조회 실패 시 기존 기록 그대로)
+	private void syncViewers(LiveRoomDTO room) {
+		long liveRoomSeq = room.getLiveRoomSeq();
+		String roomName = LiveKitRoomService.roomName(liveRoomSeq);
+		List<String> identities = roomService.listIdentities(roomName);
+		if (identities == null) {
+			return;
+		}
+
+		Set<Long> connected = new HashSet<>();
+		for (String identity : identities) {
+			Long seq = parseIdentity(identity);
+			if (seq != null && seq.longValue() != room.getHostSeq().longValue()) {
+				connected.add(seq);
+			}
+		}
+
+		Set<Long> recorded = new HashSet<>();
+		for (LiveViewerDTO v : dao.selectViewers(liveRoomSeq)) {
+			recorded.add(v.getMemberSeq());
+		}
+
+		// 접속 중인데 기록이 없음 → 기록 생성 (강퇴·차단된 회원이면 내보냄)
+		for (Long seq : connected) {
+			if (recorded.contains(seq)) {
+				continue;
+			}
+			if (dao.isKicked(liveRoomSeq, seq) || dao.isBanned(room.getHostSeq(), seq)) {
+				roomService.removeParticipant(roomName, String.valueOf(seq));
+				continue;
+			}
+			tx.executeWithoutResult(status -> {
+				dao.closeViewer(liveRoomSeq, seq);
+				dao.insertViewer(liveRoomSeq, seq);
+			});
+		}
+
+		// 기록은 열려 있는데 접속해 있지 않음 → 퇴장 처리
+		for (Long seq : recorded) {
+			if (!connected.contains(seq)) {
+				dao.closeViewer(liveRoomSeq, seq);
+			}
+		}
+	}
+
+	// 관리자: 신고된 채팅 작성자를 이번 방송에서 강퇴 (방송자 강퇴와 같은 처리, 재입장 불가)
+	public void kickByAdmin(long liveRoomSeq, long target) {
+		LiveRoomDTO room = dao.selectLiveRoom(liveRoomSeq);
+		if (room == null || !"LIVE".equals(room.getStatus())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 종료된 방송이라 강퇴할 수 없어요. 처리 완료로 넘겨주세요.");
+		}
+		if (room.getHostSeq().longValue() == target) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "방송자 본인의 채팅이에요. 방송 강제 종료를 이용해주세요.");
+		}
+		if (kickInternal(liveRoomSeq, target) == 0) {
+			// 시청 기록이 없어도(webhook 미수신 등) 기록을 만든 뒤 강퇴 표시 → 재입장 차단
+			dao.insertViewer(liveRoomSeq, target);
+			kickInternal(liveRoomSeq, target);
+		}
 	}
 
 	// 강퇴: 이번 방송에만 재입장 불가

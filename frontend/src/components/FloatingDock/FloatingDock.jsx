@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Client from '../../api/client';
 import MemberProfileModal from '../../pages/memberProfileModal/memberProfileModal';
 import FriendChatBody from '../FriendChat/FriendChatBody';
+import Chatting from '../../pages/chatting/chatting';
 import useFriendChat from '../FriendChat/useFriendChat';
 import styles from './FloatingDock.module.css';
 
@@ -19,10 +20,11 @@ const CHATBOT_QUICK_CHIPS = [
    - 두 팝업은 동시에 열리지 않음. 페이지를 옮겨도 챗봇 대화는 유지됨
    ========================================================= */
 export default function FloatingDock({ hideFriendOnDesktop = false }) {
-  const { friendList, myRoomList, totalUnread } = useFriendChat();
+  const { friendList, myRoomList, totalUnread, refreshRooms } = useFriendChat();
 
   const [isFriendChatOpen, setIsFriendChatOpen] = useState(false);
   const [profileTargetSeq, setProfileTargetSeq] = useState(null); // 프로필 팝업으로 볼 회원 번호
+  const [floatingChatRoomId, setFloatingChatRoomId] = useState(null);
 
   // AI 챗봇 상태
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -146,28 +148,46 @@ export default function FloatingDock({ hideFriendOnDesktop = false }) {
 
       {/* 친구 · 채팅 플로팅 팝업 윈도우 */}
       {isFriendChatOpen && (
-        <div className={`${styles.friendWindow} ${hideFriendOnDesktop ? styles.friendWindowMobileOnly : ''}`}>
-          <div className={styles.friendHeader}>
-            <div className={styles.friendHeaderLeft}>
-              <div className={styles.friendHeaderAvatar}>💬</div>
-              <div>
-                <h4 className={styles.friendHeaderTitle}>친구 · 채팅</h4>
-                <span className={styles.friendHeaderStatus}>
-                  친구 {friendList.length}명 · 채팅방 {myRoomList.length}개
-                </span>
+        <div className={`${styles.friendWindow} ${floatingChatRoomId ? styles.friendWindowChatting : ''} ${hideFriendOnDesktop ? styles.friendWindowMobileOnly : ''}`}>
+          {!floatingChatRoomId && (
+            <div className={styles.friendHeader}>
+              <div className={styles.friendHeaderLeft}>
+                <div className={styles.friendHeaderAvatar}>💬</div>
+                <div>
+                  <h4 className={styles.friendHeaderTitle}>친구 · 채팅</h4>
+                  <span className={styles.friendHeaderStatus}>
+                    친구 {friendList.length}명 · 채팅방 {myRoomList.length}개
+                  </span>
+                </div>
               </div>
+
+              <button
+                type="button"
+                className={styles.friendCloseBtn}
+                onClick={() => setIsFriendChatOpen(false)}
+              >
+                ✕
+              </button>
             </div>
+          )}
 
-            <button
-              type="button"
-              className={styles.friendCloseBtn}
-              onClick={() => setIsFriendChatOpen(false)}
-            >
-              ✕
-            </button>
-          </div>
+          <FriendChatBody
+            hidden={Boolean(floatingChatRoomId)}
+            onOpenProfile={setProfileTargetSeq}
+            onOpenRoom={setFloatingChatRoomId}
+          />
 
-          <FriendChatBody onOpenProfile={setProfileTargetSeq} />
+          {floatingChatRoomId && (
+            <Chatting
+              key={`floating-chat-${floatingChatRoomId}`}
+              embedded
+              roomId={floatingChatRoomId}
+              onBack={async () => {
+                await refreshRooms();
+                setFloatingChatRoomId(null);
+              }}
+            />
+          )}
         </div>
       )}
 

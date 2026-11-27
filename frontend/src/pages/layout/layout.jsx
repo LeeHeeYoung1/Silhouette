@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import styles from './layout.module.css';
@@ -286,6 +285,25 @@ function Layout() {
     }
   };
 
+  // 알림 하나를 X 버튼으로 닫습니다. 읽지 않은 알림은 먼저 읽음 처리합니다.
+  const hideNotification = async (item) => {
+    try {
+      if (item.read_yn === 'N') {
+        await markRead(item.notification_seq);
+      }
+
+      setHiddenNotificationIds((prev) => [
+        ...new Set([
+          ...prev,
+          item.notification_seq
+        ])
+      ]);
+    } catch (error) {
+      alert(error.response?.data || '알림을 읽음 처리하지 못했습니다.');
+      refreshNotifications();
+    }
+  };
+
   // 알림 목록 전체를 한 번에 숨깁니다.
   const hideAllNotifications = () => {
     setHiddenNotificationIds((prev) => [
@@ -462,12 +480,7 @@ function Layout() {
                             <button
                               type="button"
                               className={styles.notificationDelete}
-                              onClick={() => {
-                                setHiddenNotificationIds((prev) => [
-                                  ...prev,
-                                  item.notification_seq
-                                ]);
-                              }}
+                              onClick={() => hideNotification(item)}
                               aria-label="알림 숨기기"
                             >
                               ×

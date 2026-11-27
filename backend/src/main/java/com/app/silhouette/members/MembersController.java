@@ -30,11 +30,15 @@ public class MembersController {
             return ResponseEntity.badRequest().body("휴대폰 본인인증을 먼저 완료해 주세요.");
         }
 
-        int result = service.signup(dto);
+        try {
+            int result = service.signup(dto);
 
-        if (result > 0) {
-            phoneAuthService.consumeVerification(dto.getPhone());
-            return ResponseEntity.ok("회원가입 성공");
+            if (result > 0) {
+                phoneAuthService.consumeVerification(dto.getPhone());
+                return ResponseEntity.ok("회원가입 성공");
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
 
         return ResponseEntity.badRequest().body("회원가입 실패");
@@ -44,6 +48,14 @@ public class MembersController {
     public ResponseEntity<Boolean> idCheck(@RequestParam String loginId) {
 
         boolean result = service.idCheck(loginId);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/nicknameCheck")
+    public ResponseEntity<Boolean> nicknameCheck(@RequestParam String nickname) {
+
+        boolean result = service.nicknameCheck(nickname);
 
         return ResponseEntity.ok(result);
     }

@@ -1128,3 +1128,54 @@
 .mp-toast { background: var(--ink); color: var(--honey); border: 0; border-radius: 9999px; box-shadow: 0 12px 30px rgba(34, 32, 30, 0.25); }
 .empty-state { border-color: var(--hairline); }
 .empty-state i { color: var(--ink); }
+
+/* ==========================================================================
+   기본 정보: 항목 하나당 한 줄 (박스가 가로를 꽉 채움)
+   ========================================================================== */
+.info-table-single {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.info-table-single .info-cell.full {
+    grid-column: auto;
+}
+
+/* ==========================================================================
+   이상형 MBTI: 여러 개면 MBTI 순서대로 4개씩, 오른쪽 정렬 (16개 전부면 '상관없음' 하나)
+   ========================================================================== */
+.mbti-pref-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;   /* 마지막 줄도 오른쪽에 붙음 */
+    gap: 6px;
+    max-width: calc(56px * 4 + 6px * 3);   /* 한 줄에 4개 */
+}
+
+.mbti-pref-pill {
+    width: 56px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* ==========================================================================
+   내 정보 · 이상형 수정 화면: 수정 항목 하나 = 박스 하나 + 항목 사이 간격
+   (박스는 카드보다 한 톤 진하게 → 흰 선택 칩·입력칸이 잘 보임)
+   ========================================================================== */
+.edit-field {
+    background: var(--sand-hover);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    gap: 10px;
+}
+
+@media (max-width: 640px) {
+    .edit-field {
+        padding: 14px;
+    }
+
+    .mbti-pref-grid {
+        max-width: calc(56px * 2 + 6px);   /* 좁은 화면은 한 줄에 2개 */
+    }
+}

@@ -65,6 +65,25 @@ public class LiveKitRoomService {
         }
     }
 
+    // 지금 방에 접속해 있는 identity 목록 (방 없음 → 빈 목록 / 확인 실패 → null)
+    // webhook(ngrok 등 공개 주소 필요)을 못 받아도 서버가 직접 물어봐서 시청자 목록을 맞출 때 사용
+    public List<String> listIdentities(String roomName) {
+        try {
+            Response<List<LivekitModels.ParticipantInfo>> res =
+                    client.listParticipants(roomName).execute();
+
+            if (res.code() == 404) {
+                return List.of();
+            }
+            if (!res.isSuccessful() || res.body() == null) {
+                return null;
+            }
+            return res.body().stream().map(LivekitModels.ParticipantInfo::getIdentity).toList();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     // 참가자 강제 퇴장 (이미 나갔으면 무시)
     public void removeParticipant(String roomName, String identity) {
         try {

@@ -7,9 +7,17 @@ import useAuthStore from '../../stores/useAuthStore';
 import styles from './chatting.module.css';
 import MemberProfileModal from '../memberProfileModal/memberProfileModal';
  
-const Chatting = () => {
-  const { roomId } = useParams();
+const Chatting = ({ embedded = false, roomId: roomIdProp, onBack }) => {
+  const params = useParams();
+  const roomId = roomIdProp ?? params.roomId;
   const navigate = useNavigate();
+  const handleBack = () => {
+    if (embedded && onBack) {
+      onBack();
+      return;
+    }
+    navigate('/');
+  };
   const token = useAuthStore((state) => state.token);
  
   const [memberSeq, setMemberSeq] = useState(null);
@@ -897,7 +905,7 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/leave`);
  
       alert('채팅방에서 나왔습니다.');
-      navigate('/');
+      handleBack();
  
     } catch (error) {
       alert(
@@ -938,7 +946,7 @@ const Chatting = () => {
       await Client.post(`/api/chat/room/${roomId}/delete`);
  
       alert('채팅방이 삭제되었습니다.');
-      navigate('/');
+      handleBack();
  
     } catch (error) {
       alert(
@@ -1020,14 +1028,14 @@ const Chatting = () => {
   };
 
   return (
-    <div className={`${styles.silhouetteContainer} ${idealPartner ? styles.withPartnerPanel : ''}`}>
-      <div className={styles.chatWrapper}>
+    <div className={`${styles.silhouetteContainer} ${embedded ? styles.embeddedContainer : ''} ${idealPartner ? styles.withPartnerPanel : ''}`}>
+      <div className={`${styles.chatWrapper} ${embedded ? styles.embeddedWrapper : ''}`}>
  
         {/* 채팅방 헤더 */}
         <header className={styles.chatHeader}>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={handleBack}
             className={styles.backButton}
           >
             ←
