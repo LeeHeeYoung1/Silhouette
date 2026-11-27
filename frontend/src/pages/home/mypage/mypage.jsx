@@ -37,6 +37,7 @@ const MENU_MAIN = [
     { id: 'ideal', icon: 'fa-heart-circle-check', label: '이상형 (온보딩)', code: 'M011' },
     { id: 'bookmarks', icon: 'fa-bookmark', label: '북마크', code: 'M008' },
     { id: 'calendar', icon: 'fa-calendar-check', label: '캘린더', code: 'M012' },
+    { id: 'ticket', icon: 'fa-ticket', label: '이용권 구매', code: 'P001' },
 ];
 const MENU_ACCOUNT = [
     { id: 'payment', icon: 'fa-credit-card', label: '결제 내역', code: 'M010' },
@@ -945,7 +946,14 @@ function MyPage() {
         <a
             key={m.id}
             className={cx('lnb-item', view === m.id && 'active')}
-            onClick={() => switchView(m.id)}
+            onClick={() => {
+                if (m.id === 'ticket') {
+                    navigate('/ticket');
+                    return;
+                }
+                switchView(m.id);
+            }}
+            style={{ cursor: 'pointer' }}
         >
             <div className={cx('lnb-item-left')}>
                 <i className={cx('fa-solid', m.icon)}></i>
@@ -1024,9 +1032,9 @@ function MyPage() {
                             {region && <span className={cx('badge-pill')}>{region}</span>}
                         </div>
                         <div className={cx('side-asset-box')}>
-                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
+                            <div className={cx('side-asset-item')} onClick={() => navigate('/ticket')} style={{ cursor: 'pointer' }}>
                                 <span className={cx('side-asset-label')}>채팅 이용권</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#c084fc' }}>-</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#ffd34e' }}>충전</span>
                             </div>
                             <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
                                 <span className={cx('side-asset-label')}>보유 마일리지</span>
