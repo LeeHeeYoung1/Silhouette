@@ -182,6 +182,18 @@
     align-items: start;
 }
 
+/* 상단 히어로: 아래 본문(main-wrapper)과 같은 폭으로 정렬 */
+.mypage-hero {
+    max-width: 1320px;
+    width: 100%;
+    margin: 16px auto 0;
+    padding: 0 24px;
+}
+
+.mypage-hero + .main-wrapper {
+    margin-top: 24px; /* 이동 바 아래 간격을 다른 페이지(64px)와 맞춤 */
+}
+
 /* 사이드바 (LNB / 프로필 카드) */
 .sidebar {
     display: flex;

@@ -3,8 +3,8 @@
 .hero {
   position: relative;
   z-index: 1;
-  /* 아래 경계에 걸친 이동 바의 아래쪽 절반만큼 본문과 띄움 */
-  margin-bottom: 26px;
+  /* 아래 경계에 걸친 이동 바의 아래쪽 절반(26px) + 본문 탭 바와의 간격(40px) */
+  margin-bottom: 66px;
   color: var(--ink);
 }
 
