@@ -15,6 +15,7 @@ import MemberProfileModal from '../memberProfileModal/memberProfileModal';
 import MatchQueueOverlay from './components/MatchQueueOverlay';
 import MainNav from '../../components/MainNav/MainNav';
 import FriendChatBody from '../../components/FriendChat/FriendChatBody';
+import Chatting from '../chatting/chatting';
 import useFriendChat from '../../components/FriendChat/useFriendChat';
 import { Client as StompClient } from '@stomp/stompjs';
 
@@ -76,8 +77,9 @@ function Home() {
   const [isLiveLoading, setIsLiveLoading] = useState(true);
 
   // 친구 목록 · 채팅방 · 친구 프로필 이미지 (레이아웃의 FriendChatProvider에서 공유)
-  const { friendList, myRoomList, friendImageUrls } = useFriendChat();
+  const { friendList, myRoomList, friendImageUrls, refreshRooms } = useFriendChat();
   const [profileTargetSeq, setProfileTargetSeq] = useState(null); // 프로필 팝업으로 볼 회원 번호
+  const [sidebarChatRoomId, setSidebarChatRoomId] = useState(null);
 
   // 실시간 매칭 오버레이 (경과 시간)
   const isMatchingNow = isBlindMatching || isIdealMatching;
@@ -1061,19 +1063,37 @@ function Home() {
             className={styles.sidebarStickyCard}
             style={{ transform: `translateX(${sidebarShift}px)` }}
           >
-            <div className={styles.sidebarStickyHeader}>
-              <div className={styles.friendHeaderLeft}>
-                <div className={styles.friendHeaderAvatar}>💬</div>
-                <div>
-                  <h4 className={styles.friendHeaderTitle}>친구 · 채팅</h4>
-                  <span className={styles.friendHeaderStatus}>
-                    친구 {friendList.length}명 · 채팅방 {myRoomList.length}개
-                  </span>
+            {!sidebarChatRoomId && (
+              <div className={styles.sidebarStickyHeader}>
+                <div className={styles.friendHeaderLeft}>
+                  <div className={styles.friendHeaderAvatar}>💬</div>
+                  <div>
+                    <h4 className={styles.friendHeaderTitle}>친구 · 채팅</h4>
+                    <span className={styles.friendHeaderStatus}>
+                      친구 {friendList.length}명 · 채팅방 {myRoomList.length}개
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <FriendChatBody onOpenProfile={setProfileTargetSeq} />
+            <FriendChatBody
+              hidden={Boolean(sidebarChatRoomId)}
+              onOpenProfile={setProfileTargetSeq}
+              onOpenRoom={setSidebarChatRoomId}
+            />
+
+            {sidebarChatRoomId && (
+              <Chatting
+                key={`home-chat-${sidebarChatRoomId}`}
+                embedded
+                roomId={sidebarChatRoomId}
+                onBack={async () => {
+                  await refreshRooms();
+                  setSidebarChatRoomId(null);
+                }}
+              />
+            )}
           </div>
         </aside>
 

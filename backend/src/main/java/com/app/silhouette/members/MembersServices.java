@@ -18,8 +18,29 @@ public class MembersServices {
         return dao.idCheck(login_Id) == 0;
     }
 
+    // 닉네임 중복 확인 (admin, 관리자 포함 불가 및 중복 검사)
+    public boolean nicknameCheck(String nickname) {
+        if (nickname == null) return false;
+        String trimmed = nickname.trim();
+        if (trimmed.isEmpty()) return false;
+        if (trimmed.toLowerCase().contains("admin") || trimmed.contains("관리자")) {
+            return false;
+        }
+        return dao.nicknameCheck(trimmed) == 0;
+    }
+
     // 회원가입
     public int signup(MembersDTO dto) throws Exception {
+
+        if (dto.getNickname() != null) {
+            String nick = dto.getNickname().trim();
+            if (nick.toLowerCase().contains("admin") || nick.contains("관리자")) {
+                throw new IllegalArgumentException("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+            }
+            if (dao.nicknameCheck(nick) > 0) {
+                throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            }
+        }
 
         String encryptPw = SHA512.encrypt(dto.getPassword());
 

@@ -10,7 +10,7 @@ import styles from './FriendChat.module.css';
    - 친구 목록 · 채팅방 · 초대 데이터는 FriendChatProvider에서 공유
    - onOpenProfile(memberSeq): 친구를 눌렀을 때 프로필 팝업 열기
    ========================================================= */
-export default function FriendChatBody({ onOpenProfile }) {
+export default function FriendChatBody({ onOpenProfile, onOpenRoom, hidden = false }) {
   const navi = useNavigate();
   const { friendList, myRoomList, invitations, friendImageUrls, totalUnread, refreshRooms, fetchInvitations } =
     useFriendChat();
@@ -27,6 +27,14 @@ export default function FriendChatBody({ onOpenProfile }) {
   const [roomName, setRoomName] = useState('');
   const [createKeyword, setCreateKeyword] = useState('');
   const [selectedMemberSeqs, setSelectedMemberSeqs] = useState([]);
+
+  const openChatRoom = (roomSeq) => {
+    if (onOpenRoom) {
+      onOpenRoom(Number(roomSeq));
+      return;
+    }
+    navi(`/chatting/${roomSeq}`);
+  };
 
 
   // 친구가 아닌 회원을 로그인 아이디로 검색
@@ -99,7 +107,8 @@ export default function FriendChatBody({ onOpenProfile }) {
       });
 
       closeCreatePanel();
-      navi(`/chatting/${response.data.chat_room_seq}`);
+      await refreshRooms();
+      openChatRoom(response.data.chat_room_seq);
     } catch (error) {
       console.error('채팅방 생성 실패:', error);
       alert(error.response?.data || '채팅방 생성에 실패했습니다.');
@@ -116,7 +125,7 @@ export default function FriendChatBody({ onOpenProfile }) {
 
       if (accept) {
         await refreshRooms();
-        navi(`/chatting/${invitation.chat_room_seq}`);
+        openChatRoom(invitation.chat_room_seq);
       }
     } catch (error) {
       console.error('초대 처리 실패:', error);
@@ -146,7 +155,7 @@ export default function FriendChatBody({ onOpenProfile }) {
   });
 
   return (
-    <>
+    <div className={styles.friendChatBody} hidden={hidden}>
       <div className={styles.popupDockTabs}>
         <button
           type="button"
@@ -436,7 +445,7 @@ export default function FriendChatBody({ onOpenProfile }) {
                     type="button"
                     className={styles.sidebarRoom}
                     key={room.chat_room_seq}
-                    onClick={() => navi(`/chatting/${room.chat_room_seq}`)}
+                    onClick={() => openChatRoom(room.chat_room_seq)}
                   >
                     <div className={styles.sidebarRoomTop}>
                       <strong>{room.room_name || room.partner_nick || '채팅방'}</strong>
@@ -454,6 +463,6 @@ export default function FriendChatBody({ onOpenProfile }) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

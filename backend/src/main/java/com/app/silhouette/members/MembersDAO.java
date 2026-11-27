@@ -24,6 +24,11 @@ public class MembersDAO {
     public int idCheck(String login_Id) {
         return this.mybatis.selectOne("Members.idCheck", login_Id);
     }
+
+    // 닉네임 중복 확인
+    public int nicknameCheck(String nickname) {
+        return this.mybatis.selectOne("Members.nicknameCheck", nickname);
+    }
     
  // 로그인
     public int login(String id, String password) {

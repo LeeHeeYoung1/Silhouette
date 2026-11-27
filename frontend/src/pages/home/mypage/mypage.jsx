@@ -630,6 +630,11 @@ function MyPage() {
             setNickMessage('⚠️ 닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
             return;
         }
+        if (nickname.toLowerCase().includes('admin') || nickname.includes('관리자')) {
+            setNickChecked(false);
+            setNickMessage("⚠️ 닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+            return;
+        }
         if (nickname === member.nickname) {
             setNickChecked(true);
             setNickMessage('✓ 현재 사용 중인 닉네임입니다.');
@@ -683,6 +688,9 @@ function MyPage() {
     const handleSave = async () => {
         const f = editForm;
         if (!REGEX_NICKNAME.test(f.nickname.trim())) return alert('닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
+        if (f.nickname.toLowerCase().includes('admin') || f.nickname.includes('관리자')) {
+            return alert("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+        }
         if (!nickChecked) return alert('닉네임 중복 확인을 해 주세요.');
         if (!REGEX_PHONE.test(f.phone)) return alert('핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.');
         if (!REGEX_EMAIL.test(f.email.trim())) return alert('올바른 이메일 양식을 입력해 주세요.');
