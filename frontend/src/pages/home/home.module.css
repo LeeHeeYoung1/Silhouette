@@ -12,12 +12,35 @@
 /* ==========================================================================
    1. HERO: 엔진 스타트 스타일 매칭 버튼 / 3D 카드 스택
    ========================================================================== */
+/* ==========================================================================
+   1. HERO: 인위적인 div 테두리 선 없이 손으로 파스텔을 칠한 듯한 구름 배경 & 몽글몽글 워드마크
+   ========================================================================== */
 .hero {
   position: relative;
   width: 100%;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 60px 20px 40px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* 히어로 중앙 자연스러운 파스텔 핑크·화이트 구름 소프트 글로우 워시 */
+.heroStage {
+  position: relative;
+  width: 100%;
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  background: transparent;
 }
 
 .heroLayout {
@@ -316,17 +339,8 @@
 }
 
 /* ==========================================================================
-   오른쪽: 워드마크 & 3D 프로필 카드 컬럼 (수정 사항 1: 세련된 3D 호버 인터랙션)
+   워드마크 스테이지
    ========================================================================== */
-.heroStage {
-  position: relative;
-  width: 100%;
-  min-height: 440px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .heroStageCol {
   flex: 1;
   position: relative;
@@ -370,7 +384,7 @@
   width: 100%;
   display: flex;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
   user-select: none;
 }
@@ -381,14 +395,25 @@
 }
 
 .heroWordmark {
-  font-family: 'Archivo Black', 'Pretendard', sans-serif;
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  font-size: clamp(68px, 13vw, 180px);
-  line-height: 1;
-  color: var(--ink);
+  /* 몽글몽글하고 귀여운 라운드 구름 폰트 */
+  font-family: 'Fredoka', 'Comfortaa', 'Pretendard', cursive, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: clamp(64px, 12.5vw, 168px);
+  line-height: 1.1;
   white-space: nowrap;
-  animation: logoEntrance 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: logoEntrance 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.15) forwards;
+
+  /* 뽀얗고 밝은 순백의 하얀 솜사탕/구름 글씨 */
+  color: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #fff7fb 65%, #ffdce8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* 몽글몽글 피어나는 소프트 핑크빛 구름 블러 섀도우 */
+  filter: drop-shadow(0 6px 18px rgba(244, 114, 182, 0.4))
+          drop-shadow(0 2px 6px rgba(255, 255, 255, 0.95))
+          drop-shadow(0 14px 40px rgba(236, 72, 153, 0.28));
 }
 
 .cardStage {
@@ -420,7 +445,7 @@
   border-radius: 26px;
   overflow: hidden;
   background: var(--ink);
-  box-shadow: 0 24px 50px rgba(34, 32, 30, 0.25);
+  box-shadow: 0 24px 50px rgba(34, 32, 30, 0.18), 0 10px 24px rgba(236, 72, 153, 0.12);
   cursor: pointer;
   pointer-events: auto;
   transition: transform 0.42s cubic-bezier(0.18, 0.88, 0.26, 1.15),

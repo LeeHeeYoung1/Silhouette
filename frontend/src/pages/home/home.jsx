@@ -599,65 +599,11 @@ function Home() {
 
   return (
     <div className={styles.page}>
-      {/* 1. 히어로: 중앙 3D 카드 스택 & Silhouette 로고 워드마크 */}
+      {/* 1. 히어로: 몽글몽글 구름 느낌의 Silhouette 워드마크 (프로필 카드 제거) */}
       <section className={styles.hero}>
         <div className={styles.heroStage}>
           <div className={styles.wordmarkWrap}>
             <h1 className={styles.heroWordmark}>Silhouette</h1>
-          </div>
-
-          <div className={styles.cardStage}>
-            {HERO_PROFILES.map((p, i) => {
-              const hasError = heroImageErrors[p.id];
-
-              return (
-                <div
-                  key={p.id}
-                  className={`${styles.stackCard} ${[styles.cardFront, styles.cardMid, styles.cardBack][i]}`}
-                >
-                  {!hasError ? (
-                    <img
-                      src={p.img}
-                      alt={p.name}
-                      onError={() => setHeroImageErrors((prev) => ({ ...prev, [p.id]: true }))}
-                    />
-                  ) : (
-                    <div className={styles.cardFallback}>
-                      <div className={styles.silhouetteAvatar}>
-                        <svg viewBox="0 0 24 24" fill="currentColor" className={styles.silhouetteSvg}>
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                        </svg>
-                      </div>
-                      <span className={styles.cardFallbackInitial}>
-                        {p.name.slice(0, 1)}
-                      </span>
-                    </div>
-                  )}
-                  <div className={styles.cardShade} />
-
-                  {/* 카드 우측 상단 예시 뱃지 */}
-                  <span className={styles.cardSampleBadge}>예시</span>
-
-                  {i === 0 ? (
-                    <>
-                      <span className={styles.cardBadge}>{p.badge}</span>
-                      <div className={styles.cardInfo}>
-                        <div>
-                          <p className={styles.cardName}>{p.name}</p>
-                          <p className={styles.cardSub}>{p.job}</p>
-                        </div>
-                        <span className={styles.cardView}>VIEW</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className={styles.cardInfoSmall}>
-                      <span className={styles.cardRank}>TOP 0{i + 1}</span>
-                      <p className={styles.cardNameSmall}>{p.name}</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         </div>
       </section>
