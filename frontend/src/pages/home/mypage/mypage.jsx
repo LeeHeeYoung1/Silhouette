@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../../api/client';
+import useAuthStore from '../../../stores/useAuthStore';
+import PageHero from '../../../components/PageHero/PageHero';
 import styles from './mypage.module.css';
 import ob from '../../onboarding/onboarding.module.css';   // 수정 모드 칩 · 입력칸 (온보딩 · 프로필과 같은 모양)
 import {
@@ -505,9 +507,10 @@ function MyPage() {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [form, setForm] = useState({ title: '', startAt: '', memo: '' });
 
-    // 회원 탈퇴 (목업)
+    // 회원 탈퇴 (비밀번호 확인만)
     const [withdrawCheck, setWithdrawCheck] = useState(false);
     const [withdrawPw, setWithdrawPw] = useState('');
+    const [withdrawing, setWithdrawing] = useState(false);
 
     // 결제 내역 (M010) & 지갑 잔액
     const [payments, setPayments] = useState([]);
@@ -1019,12 +1022,26 @@ function MyPage() {
         showToast('일정이 삭제되었습니다.');
     };
 
-    /* ===================== 회원 탈퇴 (목업) ===================== */
-    const handleWithdraw = () => {
+    /* ===================== 회원 탈퇴 (비밀번호 확인만) ===================== */
+    const handleWithdraw = async () => {
         if (!withdrawCheck) { alert('유의사항 확인 및 탈퇴 동의에 체크해 주세요.'); return; }
-        if (!withdrawPw) { alert('비밀번호를 입력해 주세요.'); return; }
-        if (window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) {
-            alert('탈퇴 처리가 완료되었습니다.');
+        if (!withdrawPw) { alert('본인 확인 비밀번호를 입력해 주세요.'); return; }
+        if (withdrawing) return;
+
+        if (!window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) return;
+
+        try {
+            setWithdrawing(true);
+            const resp = await Client.post('/api/mypage/withdraw', {
+                password: withdrawPw
+            });
+            alert(resp.data?.message || '탈퇴 처리가 완료되었습니다.');
+            useAuthStore.getState().logout();
+            navigate('/login');
+        } catch (err) {
+            alert(errorMessage(err, '회원 탈퇴에 실패했습니다.'));
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -1102,6 +1119,15 @@ function MyPage() {
 
     return (
         <div className={cx('mypage')}>
+            {/* 상단 히어로 (이벤트·게시판·라이브와 같은 허니 옐로 띠 + 아래 경계의 이동 바) */}
+            <div className={cx('mypage-hero')}>
+                <PageHero
+                    eyebrow="MY PAGE"
+                    title="마이페이지"
+                    description="내 정보와 이상형, 북마크·캘린더, 결제 내역을 한곳에서 관리하세요."
+                    wordmark="MYPAGE"
+                />
+            </div>
             <main className={cx('main-wrapper')}>
                 {/* ===== 왼쪽 사이드바 ===== */}
                 <aside className={cx('sidebar')}>
@@ -1744,8 +1770,13 @@ function MyPage() {
                                     <label className={cx('web-label')}>본인 확인 비밀번호</label>
                                     <input type="password" className={cx('web-input')} value={withdrawPw} onChange={(e) => setWithdrawPw(e.target.value)} placeholder="비밀번호를 입력하세요" />
                                 </div>
-                                <button className={cx('btn-secondary')} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }} onClick={handleWithdraw}>
-                                    실루엣 회원 탈퇴 확정
+                                <button
+                                    className={cx('btn-secondary')}
+                                    style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }}
+                                    onClick={handleWithdraw}
+                                    disabled={withdrawing}
+                                >
+                                    {withdrawing ? '탈퇴 처리 중...' : '실루엣 회원 탈퇴 확정'}
                                 </button>
                             </div>
                         </div>

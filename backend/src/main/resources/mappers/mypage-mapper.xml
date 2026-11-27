@@ -44,4 +44,19 @@
 		       address2 = #{address2}
 		 where member_seq = #{memberSeq}
 	</update>
+
+	<!-- 회원 탈퇴 시 비밀번호 일치 확인 -->
+	<select id="checkPassword" parameterType="map" resultType="int">
+		select count(*)
+		  from member
+		 where member_seq = #{memberSeq}
+		   and password   = #{password}
+	</select>
+
+	<!-- 회원 탈퇴 처리 -->
+	<update id="withdrawMember" parameterType="long">
+		update member
+		   set member_status = 'WITHDRAWN'
+		 where member_seq = #{memberSeq}
+	</update>
 </mapper>

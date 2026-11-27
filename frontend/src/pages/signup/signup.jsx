@@ -397,6 +397,9 @@ function Signup() {
     if (!regexPhone.test(formData.phone)) {
       newErrors.phone =
         '핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.';
+    } else if (!isPhoneVerified) {
+      newErrors.phone =
+        '휴대폰 본인인증을 완료해 주세요.';
     }
 
     if (!formData.birthDate) {
@@ -464,6 +467,13 @@ function Signup() {
     // 아이디 중복검사 여부 재확인
     if (idCheckStatus !== 'SUCCESS') {
       alert('아이디 중복 검사를 진행해 주세요.');
+      setCurrentStep(1);
+      return;
+    }
+
+    // 휴대폰 본인인증 여부 재확인
+    if (!isPhoneVerified) {
+      alert('휴대폰 본인인증을 완료해 주세요.');
       setCurrentStep(1);
       return;
     }

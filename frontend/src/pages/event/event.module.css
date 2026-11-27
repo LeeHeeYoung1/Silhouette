@@ -13,6 +13,11 @@
   animation: fadeIn 0.35s ease forwards;
 }
 
+/* 이 페이지는 섹션 간격(gap)이 36px라 히어로 아래 여백을 12px 줄여 다른 페이지와 같은 간격(이동 바 아래 64px)으로 맞춤 */
+.container > :global([data-page-hero]) {
+  margin-bottom: 54px;
+}
+
 /* 히어로 안 내 혜택 현황 (히어로 자체는 components/PageHero) */
 .heroStats {
   display: flex;
@@ -20,15 +25,15 @@
   gap: 12px;
 }
 
+/* 라이브의 버튼 줄과 같은 높이의 캡슐 (세 페이지 히어로 높이를 맞추기 위해 한 줄로) */
 .statBox {
   background: #ffffff;
-  border-radius: 24px;
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 124px;
+  border-radius: 9999px;
+  padding: 12px 20px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .statLabel {
@@ -38,7 +43,7 @@
 }
 
 .statValue {
-  font-size: 21px;
+  font-size: 17px;
   font-weight: 900;
   color: var(--ink);
 }
@@ -361,7 +366,8 @@
 
 @media (max-width: 640px) {
   .attendCard, .eventCard { padding: 24px 20px; }
-  .statBox { flex: 1; min-width: 0; padding: 16px 8px; }
-  .statLabel { font-size: 11px; white-space: nowrap; }
+  .statBox { padding: 10px 14px; gap: 6px; }
+  .statLabel { font-size: 11px; }
+  .statValue { font-size: 15px; }
   .cardGrid { grid-template-columns: 1fr; }
 }

@@ -72,4 +72,38 @@
         WHERE LOGIN_ID = #{loginId}
     </select>
 
+    <!-- 아이디 찾기 (이름 + 휴대폰 번호) -->
+    <select id="findLoginIdByInfo" parameterType="map" resultType="string">
+        SELECT LOGIN_ID
+        FROM (
+            SELECT LOGIN_ID
+            FROM MEMBER
+            WHERE NAME = #{name}
+              AND REPLACE(PHONE, '-', '') = REPLACE(#{phone}, '-', '')
+              AND MEMBER_STATUS = 'ACTIVE'
+            ORDER BY MEMBER_SEQ DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
+
+    <!-- 비밀번호 찾기 회원 일치 확인 (아이디 + 이름 + 휴대폰 번호) -->
+    <select id="countMemberForPasswordReset" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM MEMBER
+        WHERE LOGIN_ID = #{loginId}
+          AND NAME = #{name}
+          AND REPLACE(PHONE, '-', '') = REPLACE(#{phone}, '-', '')
+          AND MEMBER_STATUS = 'ACTIVE'
+    </select>
+
+    <!-- 비밀번호 재설정 -->
+    <update id="updatePasswordByInfo" parameterType="map">
+        UPDATE MEMBER
+        SET PASSWORD = #{password}
+        WHERE LOGIN_ID = #{loginId}
+          AND NAME = #{name}
+          AND REPLACE(PHONE, '-', '') = REPLACE(#{phone}, '-', '')
+          AND MEMBER_STATUS = 'ACTIVE'
+    </update>
+
 </mapper>
