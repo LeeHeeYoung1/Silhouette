@@ -12,6 +12,7 @@ public class NearbyMemberDTO {
     private String introduction;
     private String mbti;
     private String job;
+    private String profile_image;
 
     public NearbyMemberDTO() {
     }
@@ -39,4 +40,10 @@ public class NearbyMemberDTO {
 
     public String getJob() { return job; }
     public void setJob(String job) { this.job = job; }
+
+    public String getProfileImage() { return profile_image; }
+    public void setProfileImage(String profile_image) { this.profile_image = profile_image; }
+
+    public String getProfile_image() { return profile_image; }
+    public void setProfile_image(String profile_image) { this.profile_image = profile_image; }
 }
