@@ -342,6 +342,20 @@ function TagPills({ value, pink }) {
     );
 }
 
+// 이상형 MBTI: 16개 전부면 '상관없음', 여러 개면 MBTI 순서대로 4개씩 정렬
+const MBTI_ANY = '상관없음';
+function MbtiPrefPills({ value }) {
+    const picked = toTags(value);
+    if (picked.length === 0) return <span>-</span>;
+    if (MBTI_LIST.every((m) => picked.includes(m))) return <span className={cx('badge-pill')}>{MBTI_ANY}</span>;
+    const ordered = MBTI_LIST.filter((m) => picked.includes(m));
+    return (
+        <div className={cx('mbti-pref-grid')}>
+            {ordered.map((m) => <span key={m} className={cx('badge-pill', 'mbti-pref-pill')}>{m}</span>)}
+        </div>
+    );
+}
+
 // 이상형 한 줄
 function IdealRow({ label, children }) {
     return (
@@ -412,9 +426,10 @@ function OptionCards({ options, value, onSelect }) {
     );
 }
 
+// 수정 화면 항목 하나 = 박스 하나 (항목 사이 간격은 .edit-field)
 function Field({ label, hint, children }) {
     return (
-        <div className={ob.field}>
+        <div className={`${ob.field} ${cx('edit-field')}`}>
             <label className={ob.label}>{label}</label>
             {hint && <p className={ob.hint}>{hint}</p>}
             {children}
@@ -776,6 +791,20 @@ function MyPage() {
         setPForm((prev) => {
             const list = prev.ideal[key];
             return { ...prev, ideal: { ...prev.ideal, [key]: list.includes(value) ? list.filter((v) => v !== value) : [...list, value] } };
+        });
+
+    // 이상형 MBTI: '상관없음' = 16개 전부 선택 (매칭이 목록으로 비교하므로 저장은 16개 그대로)
+    // - '상관없음'을 누르면 전부 선택 / 다시 누르면 전부 해제
+    // - 전부 선택된 상태에서 하나를 누르면 그 하나만 선택
+    const toggleMbtiPref = (value) =>
+        setPForm((prev) => {
+            const list = prev.ideal.mbtiPref;
+            const isAll = MBTI_LIST.every((m) => list.includes(m));
+            let next;
+            if (value === MBTI_ANY) next = isAll ? [] : [...MBTI_LIST];
+            else if (isAll) next = [value];
+            else next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+            return { ...prev, ideal: { ...prev.ideal, mbtiPref: next } };
         });
 
     // 이상형 병역: '상관없음'은 단독 선택
@@ -1212,7 +1241,7 @@ function MyPage() {
                                 </div>
 
                                 {!editing ? (
-                                    <div className={cx('info-table')}>
+                                    <div className={cx('info-table', 'info-table-single')}>
                                         <InfoCell label="아이디" value={dash(member.loginId)} />
                                         <InfoCell label="이름" value={dash(member.name)} />
                                         <InfoCell label="닉네임" value={dash(member.nickname)} />
@@ -1322,7 +1351,7 @@ function MyPage() {
                                                 <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 6 }}>{pBasic.nickname}</div>
                                                 <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem', marginBottom: 12 }}>
                                                     {genderLabel(pBasic.gender)} · 만 {show(pBasic.age)}세
-                                                    {pData.mbti && <> · <strong style={{ color: '#fff' }}>{pData.mbti}</strong></>}
+                                                    {pData.mbti && <> · <strong style={{ color: 'var(--ink)' }}>{pData.mbti}</strong></>}
                                                     {pData.job && <> · {pData.job}</>}
                                                 </div>
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1475,7 +1504,7 @@ function MyPage() {
                                                 <IdealRow label="나이"><span className={cx('badge-pill')}>{rangeText(pIdeal.ageMin, pIdeal.ageMax, '세')}</span></IdealRow>
                                                 <IdealRow label="키"><span className={cx('badge-pill')}>{rangeText(pIdeal.minHeight, pIdeal.maxHeight, 'cm')}</span></IdealRow>
                                                 <IdealRow label="체형"><TagPills value={pIdeal.bodyType} /></IdealRow>
-                                                <IdealRow label="MBTI"><TagPills value={pIdeal.mbtiPref} pink /></IdealRow>
+                                                <IdealRow label="MBTI"><MbtiPrefPills value={pIdeal.mbtiPref} /></IdealRow>
                                                 <IdealRow label="흡연"><span className={cx('badge-pill')}>{prefText(pIdeal.smokingPref)}</span></IdealRow>
                                                 <IdealRow label="음주"><span className={cx('badge-pill')}>{prefText(pIdeal.drinkingPref)}</span></IdealRow>
                                                 {pIsFemale && <IdealRow label="병역"><TagPills value={pIdeal.militaryPref} /></IdealRow>}
@@ -1515,8 +1544,12 @@ function MyPage() {
                                         <Field label="체형" hint="여러 개 선택할 수 있어요.">
                                             <Chips options={BODY_TYPE_LIST} value={pForm.ideal.bodyType} onSelect={(v) => toggleIdealList('bodyType', v)} />
                                         </Field>
-                                        <Field label="MBTI" hint="여러 개 선택할 수 있어요.">
-                                            <Chips options={MBTI_LIST} value={pForm.ideal.mbtiPref} onSelect={(v) => toggleIdealList('mbtiPref', v)} />
+                                        <Field label="MBTI" hint="여러 개 선택할 수 있어요. '상관없음'은 단독으로 선택돼요.">
+                                            <Chips
+                                                options={[MBTI_ANY, ...MBTI_LIST]}
+                                                value={MBTI_LIST.every((m) => pForm.ideal.mbtiPref.includes(m)) ? [MBTI_ANY] : pForm.ideal.mbtiPref}
+                                                onSelect={toggleMbtiPref}
+                                            />
                                         </Field>
                                         <Field label="흡연">
                                             <Chips options={SMOKING_PREF_LIST} value={pForm.ideal.smokingPref}
