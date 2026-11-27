@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
 import {
@@ -13,6 +13,7 @@ import Client from '../../api/client';
 import { wsUrl } from '../../api/ws';
 import MemberProfileModal from '../memberProfileModal/memberProfileModal';
 import MatchQueueOverlay from './components/MatchQueueOverlay';
+import MainNav from '../../components/MainNav/MainNav';
 import { Client as StompClient } from '@stomp/stompjs';
 
 // 히어로 인기 프로필 목데이터 (예시 표시용)
@@ -50,7 +51,7 @@ const CHATBOT_QUICK_CHIPS = [
 
 // 홈 화면
 function Home() {
-  const { token, id, role } = useAuthStore();
+  const { token, id } = useAuthStore();
   const navi = useNavigate();
 
   const [stompClient, setStompClient] = useState(null);
@@ -1051,28 +1052,9 @@ function Home() {
       )}
 
       {/* 수정 사항 4: 상단 메뉴 줄 (위치 하향 조정 + 촌스러운 검은색 원 제거 + 허니 옐로 캡슐 필 바) */}
-      <nav className={styles.topNav}>
-        <div className={styles.topNavPillWrap}>
-          {[['/', '홈'], ['/event', '이벤트'], ['/post', '게시판'], ['/live', '라이브']].map(([to, label]) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) => `${styles.topNavPill} ${isActive ? styles.topNavPillActive : ''}`}
-            >
-              {label}
-            </NavLink>
-          ))}
-          {role === 'ROLE_ADMIN' && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) => `${styles.topNavPill} ${isActive ? styles.topNavPillActive : ''}`}
-            >
-              관리자
-            </NavLink>
-          )}
-        </div>
-      </nav>
+      <div className={styles.topNav}>
+        <MainNav />
+      </div>
 
       {/* 메인 콘텐츠 영역: 매칭 큐 + 내 주변 매칭 + 라이브 방송 */}
       <div className={styles.mainColumns}>

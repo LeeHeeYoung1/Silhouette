@@ -717,53 +717,6 @@
   box-sizing: border-box;
 }
 
-.topNavPillWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 9999px;
-  background: var(--sand);
-  border: 1px solid var(--hairline);
-  box-shadow: 0 4px 16px rgba(34, 32, 30, 0.05);
-  max-width: 520px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.topNavPill {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 8px 18px;
-  border-radius: 9999px;
-  text-align: center;
-  color: var(--text-sub);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-decoration: none;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-.topNavPill:hover {
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-/* 활성 메뉴: 촌스러운 검은색 원 대신 세련된 허니 옐로 캡슐 */
-.topNavPillActive,
-.topNavPillActive:hover {
-  background: var(--honey);
-  color: var(--ink);
-  font-weight: 800;
-  box-shadow: 0 2px 10px rgba(255, 211, 78, 0.45);
-}
-
 /* ==========================================================================
    공통 섹션 레이아웃 (흐르는 가로 리스트 마키)
    ========================================================================== */
@@ -2049,29 +2002,6 @@
   .topNav {
     margin-top: 18px;
     padding: 0 12px;
-  }
-
-  .topNavPillWrap {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    justify-content: flex-start;
-    padding: 5px 6px;
-    gap: 6px;
-  }
-
-  .topNavPillWrap::-webkit-scrollbar {
-    display: none;
-  }
-
-  .topNavPill {
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding: 8px 16px;
-    font-size: 13px;
   }
 }
 

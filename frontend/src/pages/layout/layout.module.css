@@ -575,6 +575,11 @@
   pointer-events: none;
 }
 
+/* 이벤트·게시판·라이브처럼 PageHero가 있는 화면: 이동 바는 히어로 아래 경계(홈과 같은 위치)에 있으므로 헤더의 이동 바는 숨김 */
+.loggedIn:has(:global([data-page-hero])) .navLinks {
+  display: none;
+}
+
 .headerRow { margin-bottom: 8px; }
 
 .header {

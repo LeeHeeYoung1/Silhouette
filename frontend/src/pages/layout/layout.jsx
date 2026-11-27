@@ -299,7 +299,7 @@ function Layout() {
     .filter((item) => !hiddenNotificationIds.includes(item.notification_seq ?? item.notificationSeq));
 
   return (
-    <div className={`${styles.appContainer} ${location.pathname === '/' ? styles.homeMode : ''}`}>
+    <div className={`${styles.appContainer} ${location.pathname === '/' ? styles.homeMode : ''} ${token ? styles.loggedIn : ''}`}>
       {/* 
         상단바 2개를 같은 한 열에 배치하는 헤더 행
         - 좌측: 메인 네비게이션 상단바 (하단 매칭 모드 선택과 동일한 왼쪽 정렬)
