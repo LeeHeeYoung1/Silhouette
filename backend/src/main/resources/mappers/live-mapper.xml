@@ -243,9 +243,25 @@
         WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
           AND MEMBER_SEQ = #{memberSeq}
     </update>
-    
-    
-    <!-- 강퇴 해제: 차단 해제 시 지금 방송의 강퇴 표시도 풀기 -->
+
+    <!-- 이번 방송 강퇴 목록 (최근 강퇴 순, 차단한 회원은 차단 목록에서 관리하므로 제외)
+         강퇴 시각 컬럼이 없어 강퇴 때 닫힌 LEFT_AT의 최댓값을 강퇴 시각으로 사용 -->
+    <select id="selectKicked" parameterType="map" resultType="com.app.silhouette.live.LiveViewerDTO">
+        SELECT v.MEMBER_SEQ, m.LOGIN_ID, m.NICKNAME, MAX(v.LEFT_AT) AS KICKED_AT
+        FROM LIVE_VIEWER v
+        JOIN MEMBER m ON m.MEMBER_SEQ = v.MEMBER_SEQ
+        WHERE v.LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND v.KICKED_YN = 'Y'
+          AND NOT EXISTS (
+              SELECT 1 FROM LIVE_BAN b
+              WHERE b.HOST_SEQ = #{hostSeq}
+                AND b.MEMBER_SEQ = v.MEMBER_SEQ
+          )
+        GROUP BY v.MEMBER_SEQ, m.LOGIN_ID, m.NICKNAME
+        ORDER BY KICKED_AT DESC
+    </select>
+
+    <!-- 강퇴 해제: 강퇴 취소, 차단 해제 시 지금 방송의 강퇴 표시도 풀기 -->
     <update id="unkickViewer" parameterType="map">
         UPDATE LIVE_VIEWER
         SET KICKED_YN = 'N'
