@@ -562,8 +562,9 @@
 .appContainer { padding-top: 24px; background: transparent; }
 .appContainer::before { display: none; }
 
-/* 홈: 헤더 + 히어로 뒤에 깔리던 노란색 띠(상단 650px)를 사용자가 보낸 파스텔 원본 배경으로 교체 */
-.homeMode::after {
+/* 홈·이벤트·게시판·라이브·마이페이지: 헤더 + 히어로 뒤에 깔리는 파스텔 수채화 구름 원본 배경 */
+.homeMode::after,
+.appContainer:has(:global([data-page-hero]))::after {
   content: '';
   position: absolute;
   top: 0;
@@ -648,11 +649,11 @@
 }
 .navBtnActive,
 .navBtnActive:hover {
-  background: #f472b6 !important;
+  background: linear-gradient(135deg, #fbcfe8, #f9a8d4) !important;
   color: #ffffff !important;
   font-weight: 800;
   border: 0;
-  box-shadow: 0 4px 14px rgba(244, 114, 182, 0.45);
+  box-shadow: 0 4px 14px rgba(249, 168, 212, 0.4);
 }
 
 .userBar {
@@ -680,9 +681,9 @@
 }
 .userActionBtn:hover { background: var(--sand); color: var(--ink); border: 0; transform: none; }
 .logoutBtn { color: var(--text-sub); }
-.logoutBtn:hover { background: var(--ink); color: var(--cream); border: 0; }
+.logoutBtn:hover { background: linear-gradient(135deg, #fbcfe8, #f9a8d4); color: #ffffff; border: 0; }
 
 .notificationBell { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--sand); box-shadow: none; }
-.notificationBell:hover { background: #f472b6; color: #fff; border: 0; transform: none; }
+.notificationBell:hover { background: linear-gradient(135deg, #fbcfe8, #f9a8d4); color: #fff; border: 0; transform: none; }
 .bellIcon { width: 17px; height: 17px; }
-.notificationCount { background: #f472b6; color: #fff; border-color: #fff; }
+.notificationCount { background: linear-gradient(135deg, #fbcfe8, #f9a8d4); color: #fff; border-color: #fff; }
