@@ -28,6 +28,11 @@ export const getViewers = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}/
 export const kickViewer = (liveRoomSeq, memberSeq) =>
   Client.post(`/api/live/${liveRoomSeq}/kick/${memberSeq}`);
 
+// 이번 방송 강퇴 목록 (방송자) / 강퇴 취소
+export const getKicked = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}/kick`);
+export const unkickViewer = (liveRoomSeq, memberSeq) =>
+  Client.delete(`/api/live/${liveRoomSeq}/kick/${memberSeq}`);
+
 // 차단 (내 모든 방송) / 해제 / 목록
 export const banMember = (memberSeq) => Client.post(`/api/live/ban/${memberSeq}`);
 export const unbanMember = (memberSeq) => Client.delete(`/api/live/ban/${memberSeq}`);

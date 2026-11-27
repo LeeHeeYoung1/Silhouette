@@ -2,7 +2,7 @@ package com.app.silhouette.live;
 
 import java.util.Date;
 
-// 시청자 목록 / 차단 목록 공용
+// 시청자 목록 / 강퇴 목록 / 차단 목록 공용
 public class LiveViewerDTO {
 
     private Long member_seq;
@@ -10,6 +10,7 @@ public class LiveViewerDTO {
     private String nickname;
     private Date joined_at;      // 시청자 목록
     private Date banned_at;      // 차단 목록
+    private Date kicked_at;      // 강퇴 목록
 
     public LiveViewerDTO() {}
 
@@ -27,4 +28,7 @@ public class LiveViewerDTO {
 
     public Date getBannedAt() { return banned_at; }
     public void setBannedAt(Date banned_at) { this.banned_at = banned_at; }
+
+    public Date getKickedAt() { return kicked_at; }
+    public void setKickedAt(Date kicked_at) { this.kicked_at = kicked_at; }
 }

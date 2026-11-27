@@ -281,6 +281,27 @@ public class LiveService {
 		}
 	}
 
+	// 이번 방송 강퇴 목록 (방송자만)
+	public List<LiveViewerDTO> kicked(String loginId, long liveRoomSeq) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+		checkHost(room, me);
+		return dao.selectKicked(liveRoomSeq, me);
+	}
+
+	// 강퇴 취소: 이번 방송에 다시 입장 가능 (차단된 회원은 차단 해제로만 풀 수 있음)
+	public void unkick(String loginId, long liveRoomSeq, long target) {
+		long me = getMemberSeq(loginId);
+		LiveRoomDTO room = getOnAirRoom(liveRoomSeq);
+		checkHost(room, me);
+		if (dao.isBanned(me, target)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "차단한 회원이에요. 차단 목록에서 해제해 주세요.");
+		}
+		if (dao.unkickViewer(liveRoomSeq, target) == 0) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "이번 방송에서 강퇴한 회원이 아니에요.");
+		}
+	}
+
 	// 차단: 이 방송자의 모든 방송에 영구 입장 불가 (+ 지금 방송 중이면 강퇴)
 	public void ban(String loginId, long target) {
 		long me = getMemberSeq(loginId);
