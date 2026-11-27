@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './home.module.css';
@@ -12,6 +12,7 @@ import { getLiveList } from '../../api/live';
 import Client from '../../api/client';
 import { wsUrl } from '../../api/ws';
 import MemberProfileModal from '../memberProfileModal/memberProfileModal';
+import MatchQueueOverlay from './components/MatchQueueOverlay';
 import { Client as StompClient } from '@stomp/stompjs';
 
 // 히어로 인기 프로필 목데이터 (예시 표시용)
@@ -920,17 +921,44 @@ function Home() {
     });
   };
 
-  // 가로 스크롤 끊김 방지를 위한 리스트 확장 (최소 6개 이상 반복)
+  // 친구·채팅 sticky 카드: '왼쪽 구역 오른쪽 끝 ~ 브라우저 오른쪽 끝' 사이의 정확히 가운데로 이동
+  const leftColRef = useRef(null);
+  const sideColRef = useRef(null);
+  const [sidebarShift, setSidebarShift] = useState(0);
+
+  useEffect(() => {
+    const updateShift = () => {
+      const leftEl = leftColRef.current;
+      const sideEl = sideColRef.current;
+      if (!leftEl || !sideEl) return;
+
+      const leftRight = leftEl.getBoundingClientRect().right;      // 왼쪽 구역 끝
+      const sideRect = sideEl.getBoundingClientRect();              // 사이드바 원래 자리 (transform 미적용 요소)
+      const viewportRight = document.documentElement.clientWidth;   // 브라우저 오른쪽 끝 (스크롤바 제외)
+      const cardWidth = sideRect.width;
+
+      // 원하는 카드 왼쪽 위치 = 두 경계의 중앙 - 카드 절반
+      let targetLeft = (leftRight + viewportRight) / 2 - cardWidth / 2;
+      // 화면 밖으로 나가지 않도록 보정
+      targetLeft = Math.min(targetLeft, viewportRight - cardWidth - 8);
+      targetLeft = Math.max(targetLeft, sideRect.left);
+
+      setSidebarShift(Math.round(targetLeft - sideRect.left));
+    };
+
+    updateShift();
+    window.addEventListener('resize', updateShift);
+    return () => window.removeEventListener('resize', updateShift);
+  }, []);
+
+  // 가로 스크롤 끊김 방지를 위한 리스트 확장 (물 흐르듯 매끄러운 무한 롤링을 위해 최소 8개 이상 보장)
   const marqueeLocationList = useMemo(() => {
     if (locationProfiles.length === 0) return [];
-    if (locationProfiles.length < 5) {
-      let repeated = [...locationProfiles];
-      while (repeated.length < 6) {
-        repeated = [...repeated, ...locationProfiles];
-      }
-      return repeated;
+    let repeated = [...locationProfiles];
+    while (repeated.length < 8) {
+      repeated = [...repeated, ...locationProfiles];
     }
-    return locationProfiles;
+    return repeated;
   }, [locationProfiles]);
 
   const marqueeLiveList = useMemo(() => {
@@ -947,185 +975,79 @@ function Home() {
 
   return (
     <div className={styles.page}>
-      {/* 1. 히어로: 엔진 스타트 스타일 매칭 버튼 / 우측 3D 카드 스택 */}
+      {/* 1. 히어로: 중앙 3D 카드 스택 & Silhouette 로고 워드마크 */}
       <section className={styles.hero}>
-        <div className={styles.heroLayout}>
-          {/* 왼쪽: 수정 사항 2 - 엔진 스타트 버튼 형태의 감각적인 매칭 버튼 */}
-          <div className={styles.heroMatchCol}>
-            {/* 블라인드 매칭: 흑연·골드 에디션 엔진 스타트 버튼 */}
-            <button
-              type="button"
-              className={`${styles.heroEngineBtn} ${styles.heroEngineBlind}`}
-              onClick={handleBlindMatching}
-              aria-label="블라인드 랜덤 매칭 시동"
-            >
-              <div className={styles.engineBtnInfo}>
-                <div className={styles.engineStatusRow}>
-                  <span className={styles.enginePulseDot} />
-                  <span className={styles.engineStatusTag}>SYSTEM READY</span>
-                  <span className={styles.engineCountBadge}>
-                    {waitingBlindUsers.toLocaleString()}명 대기
-                  </span>
-                </div>
-                <h3 className={styles.engineMatchTitle}>블라인드 매칭</h3>
-                <p className={styles.engineMatchSub}>외모와 조건 없이 대화로 즉시 시동</p>
-              </div>
-
-              <div className={styles.engineIgnitionWrap}>
-                <div className={styles.engineBezel}>
-                  <div className={styles.engineHalo} />
-                  <div className={styles.engineCore}>
-                    <span className={styles.engineCoreLed} />
-                    <span className={styles.engineCoreTextTop}>ENGINE</span>
-                    <span className={styles.engineCoreTextMain}>START</span>
-                    <span className={styles.engineCoreTextSub}>MATCH</span>
-                  </div>
-                </div>
-              </div>
-            </button>
-
-            {/* 이상형 매칭: 크림·티타늄 에디션 엔진 스타트 버튼 */}
-            <button
-              type="button"
-              className={`${styles.heroEngineBtn} ${styles.heroEngineIdeal}`}
-              onClick={handleIdealStart}
-              aria-label="이상형 랜덤 매칭 시동"
-            >
-              <div className={styles.engineBtnInfo}>
-                <div className={styles.engineStatusRow}>
-                  <span className={`${styles.enginePulseDot} ${styles.enginePulseDotAmber}`} />
-                  <span className={styles.engineStatusTag}>AI TARGETING</span>
-                  <span className={styles.engineCountBadge}>
-                    {waitingIdealUsers.toLocaleString()}명 대기
-                  </span>
-                </div>
-                <h3 className={styles.engineMatchTitle}>이상형 매칭</h3>
-                <p className={styles.engineMatchSub}>가치관과 성향이 일치하는 상대 탐색</p>
-              </div>
-
-              <div className={styles.engineIgnitionWrap}>
-                <div className={`${styles.engineBezel} ${styles.engineBezelIdeal}`}>
-                  <div className={`${styles.engineHalo} ${styles.engineHaloIdeal}`} />
-                  <div className={`${styles.engineCore} ${styles.engineCoreIdeal}`}>
-                    <span className={`${styles.engineCoreLed} ${styles.engineCoreLedAmber}`} />
-                    <span className={styles.engineCoreTextTop}>ENGINE</span>
-                    <span className={styles.engineCoreTextMain}>START</span>
-                    <span className={styles.engineCoreTextSub}>AI IDEAL</span>
-                  </div>
-                </div>
-              </div>
-            </button>
+        <div className={styles.heroStage}>
+          <div className={styles.wordmarkWrap}>
+            <h1 className={styles.heroWordmark}>Silhouette</h1>
           </div>
 
-          {/* 오른쪽: 수정 사항 1 - 3D 카드 스택 (호버 시 부드러운 3D 부상 + 줌 인터랙션) */}
-          <div className={styles.heroStageCol}>
-            <div className={styles.wordmarkWrap}>
-              <h1 className={styles.heroWordmark}>Silhouette</h1>
-            </div>
+          <div className={styles.cardStage}>
+            {HERO_PROFILES.map((p, i) => {
+              const hasError = heroImageErrors[p.id];
 
-            <div className={styles.cardStage}>
-              {HERO_PROFILES.map((p, i) => {
-                const hasError = heroImageErrors[p.id];
-
-                return (
-                  <div
-                    key={p.id}
-                    className={`${styles.stackCard} ${[styles.cardFront, styles.cardMid, styles.cardBack][i]}`}
-                  >
-                    {!hasError ? (
-                      <img
-                        src={p.img}
-                        alt={p.name}
-                        onError={() => setHeroImageErrors((prev) => ({ ...prev, [p.id]: true }))}
-                      />
-                    ) : (
-                      <div className={styles.cardFallback}>
-                        <div className={styles.silhouetteAvatar}>
-                          <svg viewBox="0 0 24 24" fill="currentColor" className={styles.silhouetteSvg}>
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                          </svg>
-                        </div>
-                        <span className={styles.cardFallbackInitial}>
-                          {p.name.slice(0, 1)}
-                        </span>
+              return (
+                <div
+                  key={p.id}
+                  className={`${styles.stackCard} ${[styles.cardFront, styles.cardMid, styles.cardBack][i]}`}
+                >
+                  {!hasError ? (
+                    <img
+                      src={p.img}
+                      alt={p.name}
+                      onError={() => setHeroImageErrors((prev) => ({ ...prev, [p.id]: true }))}
+                    />
+                  ) : (
+                    <div className={styles.cardFallback}>
+                      <div className={styles.silhouetteAvatar}>
+                        <svg viewBox="0 0 24 24" fill="currentColor" className={styles.silhouetteSvg}>
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
                       </div>
-                    )}
-                    <div className={styles.cardShade} />
+                      <span className={styles.cardFallbackInitial}>
+                        {p.name.slice(0, 1)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={styles.cardShade} />
 
-                    {/* 카드 우측 상단 예시 뱃지 */}
-                    <span className={styles.cardSampleBadge}>예시</span>
+                  {/* 카드 우측 상단 예시 뱃지 */}
+                  <span className={styles.cardSampleBadge}>예시</span>
 
-                    {i === 0 ? (
-                      <>
-                        <span className={styles.cardBadge}>{p.badge}</span>
-                        <div className={styles.cardInfo}>
-                          <div>
-                            <p className={styles.cardName}>{p.name}</p>
-                            <p className={styles.cardSub}>{p.job}</p>
-                          </div>
-                          <span className={styles.cardView}>VIEW</span>
+                  {i === 0 ? (
+                    <>
+                      <span className={styles.cardBadge}>{p.badge}</span>
+                      <div className={styles.cardInfo}>
+                        <div>
+                          <p className={styles.cardName}>{p.name}</p>
+                          <p className={styles.cardSub}>{p.job}</p>
                         </div>
-                      </>
-                    ) : (
-                      <div className={styles.cardInfoSmall}>
-                        <span className={styles.cardRank}>TOP 0{i + 1}</span>
-                        <p className={styles.cardNameSmall}>{p.name}</p>
+                        <span className={styles.cardView}>VIEW</span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    </>
+                  ) : (
+                    <div className={styles.cardInfoSmall}>
+                      <span className={styles.cardRank}>TOP 0{i + 1}</span>
+                      <p className={styles.cardNameSmall}>{p.name}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* 실시간 매칭 오버레이 (취소하기 전까지 화면 고정) */}
+      {/* 실시간 매칭 큐 오버레이 (랜덤 미스터리 릴 & AI 이상형 실시간 랭킹 보드) */}
       {isMatchingNow && (
-        <div className={styles.matchOverlay}>
-          <div className={styles.matchModal}>
-            <div className={styles.lockBadge}>
-              <span>LOCKED · LIVE MATCHING</span>
-              <span>
-                {String(Math.floor(matchSeconds / 60)).padStart(2, '0')}:
-                {String(matchSeconds % 60).padStart(2, '0')}
-              </span>
-            </div>
-
-            <h2 className={styles.matchModalTitle}>
-              {isIdealMatching ? '이상형 랜덤 매칭 탐색 중' : '블라인드 랜덤 매칭 탐색 중'}
-            </h2>
-            <p className={styles.matchModalDesc}>
-              {isIdealMatching
-                ? '가치관이 잘 맞는 상대를 AI가 찾고 있습니다. 상대가 연결되면 자동으로 입장합니다.'
-                : '외모와 조건 없이 대화로 연결됩니다. 상대가 연결되면 자동으로 입장합니다.'}
-            </p>
-
-            <div className={styles.radar}>
-              <span className={styles.radarRing} />
-              <span className={styles.radarRing} />
-              <span className={styles.radarRing} />
-              <div className={styles.radarCore}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={styles.radarIcon}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-
-            <div className={styles.waitingLine}>
-              <span>현재 실시간 대기 인원</span>
-              <strong>{(isIdealMatching ? waitingIdealUsers : waitingBlindUsers).toLocaleString()}명</strong>
-            </div>
-
-            <button
-              type="button"
-              className={styles.matchCancel}
-              onClick={isIdealMatching ? handleIdealCancel : handleCancelBlindMatching}
-            >
-              취소하기
-            </button>
-          </div>
-        </div>
+        <MatchQueueOverlay
+          isBlindMatching={isBlindMatching}
+          isIdealMatching={isIdealMatching}
+          matchSeconds={matchSeconds}
+          waitingBlindUsers={waitingBlindUsers}
+          waitingIdealUsers={waitingIdealUsers}
+          onCancel={isIdealMatching ? handleIdealCancel : handleCancelBlindMatching}
+        />
       )}
 
       {/* 수정 사항 4: 상단 메뉴 줄 (위치 하향 조정 + 촌스러운 검은색 원 제거 + 허니 옐로 캡슐 필 바) */}
@@ -1152,10 +1074,79 @@ function Home() {
         </div>
       </nav>
 
-      {/* 노란 히어로 아래 2단 그리드 영역 (좌: 내 주변 매칭 + 라이브 방송 / 우: 친구·채팅 sticky 사이드바) */}
+      {/* 메인 콘텐츠 영역: 매칭 큐 + 내 주변 매칭 + 라이브 방송 */}
       <div className={styles.mainColumns}>
-        <main className={styles.leftMainCol}>
-          {/* 3. 내 주변 가까운 매칭 (수정 사항 3: 리스트 내 온보딩 프로필 이미지 표시 강화) */}
+        <main className={styles.leftMainCol} ref={leftColRef}>
+          {/* 2. 매칭 큐 섹션 (블라인드 매칭 & 이상형 매칭 50% 분할) */}
+          <section className={styles.matchingSection}>
+            <div className={styles.matchingGrid}>
+              {/* 블라인드 매칭: 흑연·골드 에디션 엔진 스타트 버튼 */}
+              <button
+                type="button"
+                className={`${styles.heroEngineBtn} ${styles.heroEngineBlind}`}
+                onClick={handleBlindMatching}
+                aria-label="블라인드 랜덤 매칭 시동"
+              >
+                <div className={styles.engineBtnInfo}>
+                  <div className={styles.engineStatusRow}>
+                    <span className={styles.enginePulseDot} />
+                    <span className={styles.engineStatusTag}>SYSTEM READY</span>
+                    <span className={styles.engineCountBadge}>
+                      {waitingBlindUsers.toLocaleString()}명 대기
+                    </span>
+                  </div>
+                  <h3 className={styles.engineMatchTitle}>블라인드 매칭</h3>
+                  <p className={styles.engineMatchSub}>외모와 조건 없이 대화로 즉시 시동</p>
+                </div>
+
+                <div className={styles.engineIgnitionWrap}>
+                  <div className={styles.engineBezel}>
+                    <div className={styles.engineHalo} />
+                    <div className={styles.engineCore}>
+                      <span className={styles.engineCoreLed} />
+                      <span className={styles.engineCoreTextTop}>ENGINE</span>
+                      <span className={styles.engineCoreTextMain}>START</span>
+                      <span className={styles.engineCoreTextSub}>MATCH</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* 이상형 매칭: 크림·티타늄 에디션 엔진 스타트 버튼 */}
+              <button
+                type="button"
+                className={`${styles.heroEngineBtn} ${styles.heroEngineIdeal}`}
+                onClick={handleIdealStart}
+                aria-label="이상형 랜덤 매칭 시동"
+              >
+                <div className={styles.engineBtnInfo}>
+                  <div className={styles.engineStatusRow}>
+                    <span className={`${styles.enginePulseDot} ${styles.enginePulseDotAmber}`} />
+                    <span className={styles.engineStatusTag}>AI TARGETING</span>
+                    <span className={styles.engineCountBadge}>
+                      {waitingIdealUsers.toLocaleString()}명 대기
+                    </span>
+                  </div>
+                  <h3 className={styles.engineMatchTitle}>이상형 매칭</h3>
+                  <p className={styles.engineMatchSub}>가치관과 성향이 일치하는 상대 탐색</p>
+                </div>
+
+                <div className={styles.engineIgnitionWrap}>
+                  <div className={`${styles.engineBezel} ${styles.engineBezelIdeal}`}>
+                    <div className={`${styles.engineHalo} ${styles.engineHaloIdeal}`} />
+                    <div className={`${styles.engineCore} ${styles.engineCoreIdeal}`}>
+                      <span className={`${styles.engineCoreLed} ${styles.engineCoreLedAmber}`} />
+                      <span className={styles.engineCoreTextTop}>ENGINE</span>
+                      <span className={styles.engineCoreTextMain}>START</span>
+                      <span className={styles.engineCoreTextSub}>AI IDEAL</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          {/* 3. 내 주변 가까운 매칭 (물 흐르듯 연속 롤링 마퀴) */}
           <section className={styles.flowSection}>
             <div className={styles.sectionHeader}>
               <div>
@@ -1503,8 +1494,11 @@ function Home() {
         </main>
 
         {/* 오른쪽 열: 친구 · 채팅 Sticky 사이드바 (PC 데스크톱) */}
-        <aside className={styles.rightSidebarCol}>
-          <div className={styles.sidebarStickyCard}>
+        <aside className={styles.rightSidebarCol} ref={sideColRef}>
+          <div
+            className={styles.sidebarStickyCard}
+            style={{ transform: `translateX(${sidebarShift}px)` }}
+          >
             <div className={styles.sidebarStickyHeader}>
               <div className={styles.friendHeaderLeft}>
                 <div className={styles.friendHeaderAvatar}>💬</div>
@@ -1826,6 +1820,7 @@ function Home() {
             </div>
           </div>
         </aside>
+
       </div>
 
       {/* 2. 친구 · 채팅 플로팅 버튼 (모바일 / 태블릿용, AI 챗봇 바로 위 고정) */}

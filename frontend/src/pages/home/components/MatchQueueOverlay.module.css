@@ -1,0 +1,1466 @@
+/* ==========================================================================
+   실루엣 매칭 큐 v4 — 모던 릴 & 실시간 랭킹 엔진
+   ========================================================================== */
+
+/* 1. 배경 오버레이 및 모달 박스 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 17, 16, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSpring {
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modalBox {
+  width: 100%;
+  max-width: 440px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  animation: modalSpring 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modalBox::-webkit-scrollbar {
+  display: none;
+}
+.modalBox {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 아이콘 범용 사이즈 */
+.iconXs { width: 14px; height: 14px; }
+.iconSm { width: 16px; height: 16px; }
+.iconMd { width: 18px; height: 18px; }
+
+/* 라이브 펄스 점 */
+@keyframes livePulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+.livePulseDot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+.livePulseDot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.livePulseDotIndigo {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6366F1;
+}
+.livePulseDotIndigo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==========================================================================
+   [STATE 1-A] 블라인드 매칭 큐: 100% 랜덤 미스터리 릴
+   ========================================================================== */
+.blindSearchCard {
+  background: #141312;
+  color: #fff;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.blindStageSurface {
+  padding: 22px 22px 18px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 78, 0.16) 0%, transparent 60%),
+    radial-gradient(circle at 50% 100%, rgba(255, 117, 85, 0.1) 0%, transparent 55%),
+    #181615;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.stageTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.liveTagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.liveTagText {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
+.timerAndMinRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.elapsedTimer {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--honey);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-family: monospace;
+}
+
+.minimizeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.minimizeBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.titleScrambleRow {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.queueCountMeta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+}
+.highlightHoney {
+  color: var(--honey);
+}
+
+.blindHeading {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 3px 0 0;
+}
+
+.serialBadge {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--honey);
+  background: rgba(255, 211, 78, 0.15);
+  border: 1px solid rgba(255, 211, 78, 0.35);
+  padding: 4px 10px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.blindSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 6px 0 0;
+}
+
+/* 수평 릴 스테이지 */
+.reelStage {
+  position: relative;
+  margin-top: 20px;
+  padding: 12px 0;
+}
+
+@keyframes pointerBounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 3px); }
+}
+
+.reelPointer {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  pointer-events: none;
+}
+.pointerTick {
+  animation: pointerBounce 0.4s ease-in-out infinite;
+}
+
+.pointerArrow {
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid var(--honey);
+  filter: drop-shadow(0 0 6px rgba(255, 211, 78, 0.8));
+}
+
+.reelCenterFrame {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 84px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 211, 78, 0.45);
+  background: rgba(255, 211, 78, 0.05);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.reelMask {
+  overflow: hidden;
+  padding: 4px 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+}
+
+.reelTrack {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  will-change: transform;
+}
+
+.mysteryCard {
+  width: 76px;
+  height: 98px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #22201e 0%, #1a1816 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.mysteryCardLocked {
+  background: linear-gradient(180deg, rgba(255, 211, 78, 0.25) 0%, rgba(255, 117, 85, 0.15) 100%) !important;
+  border-color: var(--honey) !important;
+  box-shadow: 0 0 24px rgba(255, 211, 78, 0.45), inset 0 0 0 1px rgba(255, 211, 78, 0.4);
+  transform: scale(1.08);
+}
+
+.mysteryCardIconWrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mysteryCardCode {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.progressBarTrack {
+  margin-top: 14px;
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.progressBarFillBlind {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--honey), #ff7555);
+  transition: width 0.4s ease;
+}
+
+/* 블라인드 하단 */
+.blindFooter {
+  padding: 22px;
+  background: #181716;
+}
+
+.pillBadgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.dimPill {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.honeyPill {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(255, 211, 78, 0.15);
+  border: 1px solid rgba(255, 211, 78, 0.35);
+  color: var(--honey);
+}
+
+.shuffleActionBtn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.shuffleActionBtn:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+.shuffleActionBtn:active {
+  transform: scale(0.98);
+}
+
+.shuffleBtnLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+@keyframes diceShake {
+  0% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-18deg) scale(1.15); }
+  45% { transform: rotate(16deg) scale(1.15); }
+  70% { transform: rotate(-10deg) scale(1.06); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.diceIconBox {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(255, 211, 78, 0.2);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.diceShaking {
+  animation: diceShake 0.48s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shuffleBtnTexts {
+  display: flex;
+  flex-direction: column;
+}
+.shuffleMainText {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+.shuffleSubText {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 2px 0 0;
+}
+
+.shuffleTag {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--honey);
+  background: rgba(255, 211, 78, 0.15);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.dualModalBtns {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btnSecondary {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btnCancelText {
+  padding: 11px 18px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.btnCancelText:hover {
+  color: #fff;
+}
+
+/* ==========================================================================
+   [STATE 1-B] AI 이상형 매칭 큐: 실시간 랭킹 보드
+   ========================================================================== */
+.idealSearchCard {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+}
+
+.rankingStageBg {
+  padding: 22px 22px 18px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.08), transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(255, 211, 78, 0.1), transparent 50%),
+    #faf9f5;
+  border-bottom: 1px solid var(--hairline);
+  position: relative;
+}
+
+.liveTagPillWhite {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.liveTagTextDark {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.elapsedTimerDark {
+  font-size: 12px;
+  font-weight: 800;
+  color: #4F46E5;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-family: monospace;
+}
+
+.minimizeBtnLight {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.minimizeBtnLight:hover {
+  background: var(--sand);
+}
+
+.idealHeadingDark {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 3px 0 0;
+}
+
+.idealSubDark {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: 4px 0 0;
+}
+.highlightInk {
+  color: var(--ink);
+}
+
+.rankingPhaseBadge {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4F46E5;
+  flex-shrink: 0;
+}
+
+/* 5개 슬롯 랭킹 컨테이너 */
+.rankingContainer {
+  position: relative;
+  height: 250px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.rankRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 2px 6px rgba(34, 32, 30, 0.03);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease,
+    border-color 0.35s ease,
+    background-color 0.35s ease,
+    box-shadow 0.35s ease;
+  will-change: transform;
+}
+
+.rankRowTop {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+}
+
+.rankRowDimmed {
+  opacity: 0.4;
+  background: var(--sand);
+  border-color: rgba(34, 32, 30, 0.05);
+}
+
+@keyframes rankShine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+.rankRowWinner {
+  background: linear-gradient(90deg, #EEF2FF 0%, #FFFFFF 50%, #ECFDF5 100%) !important;
+  border-color: #6366F1 !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25) !important;
+  z-index: 20 !important;
+  overflow: hidden;
+}
+.rankRowWinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  animation: rankShine 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+.rankRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rankNum {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--sand);
+  color: var(--text-sub);
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rankNumTop {
+  background: #6366F1;
+  color: #fff;
+}
+
+.rankAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ink);
+  flex-shrink: 0;
+}
+.rankAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(5px);
+  transform: scale(1.15);
+}
+
+.rankInfo {
+  min-width: 0;
+}
+.rankName {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rankMbti {
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4F46E5;
+  font-family: monospace;
+}
+.rankMeta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 1px 0 0;
+  font-family: monospace;
+}
+
+.rankRowRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rankMiniBarBack {
+  width: 48px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #E2E8F0;
+  overflow: hidden;
+}
+.rankMiniBarFill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #94A3B8;
+  transition: width 0.4s ease;
+}
+.rankMiniBarFillTop {
+  background: linear-gradient(90deg, #6366F1, #10B981);
+}
+
+.rankScore {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* 이상형 하단 */
+.idealFooter {
+  padding: 22px;
+  background: #fff;
+}
+
+.weightsHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.weightsSubTitle {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.weightsHint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4F46E5;
+}
+
+.boostChipsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chipBtn {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chipActive {
+  background: var(--ink);
+  color: var(--cream);
+}
+.chipInactive {
+  background: var(--sand);
+  color: var(--text-sub);
+}
+.chipInactive:hover {
+  background: #e9e4d6;
+}
+
+.rankingStepTrack {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+}
+.stepActive {
+  color: #4F46E5;
+  font-weight: 800;
+}
+.stepInactive {
+  color: var(--text-muted);
+}
+.stepArrow {
+  color: #CBD5E1;
+}
+
+.btnSecondaryLight {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 9999px;
+  background: var(--sand);
+  border: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btnSecondaryLight:hover {
+  background: #e9e4d6;
+}
+
+.btnCancelTextDark {
+  padding: 11px 18px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.btnCancelTextDark:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   [STATE 2-A] 블라인드 성사 리빌: 100% 랜덤 캡슐 카드
+   ========================================================================== */
+.blindFoundCard {
+  background: #141312;
+  color: #fff;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: modalSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.blindFoundHeader {
+  padding: 24px 22px 16px;
+  text-align: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 78, 0.22) 0%, transparent 65%),
+    #181615;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.randomPickBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 211, 78, 0.15);
+  border: 1px solid rgba(255, 211, 78, 0.35);
+  color: var(--honey);
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.foundAvatarFrame {
+  position: relative;
+  margin: 16px auto 12px;
+  width: 106px;
+  height: 106px;
+  border-radius: 24px;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--honey), #ff7555);
+  box-shadow: 0 10px 28px rgba(255, 211, 78, 0.28);
+}
+
+.foundAvatarInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 21px;
+  overflow: hidden;
+  background: #1a1816;
+}
+
+.foundAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(10px);
+  transform: scale(1.12);
+}
+
+.foundAvatarShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.foundAvatarLockIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--honey);
+}
+
+.blindLockedText {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: monospace;
+}
+
+.foundTitle {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+}
+.foundSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 4px 0 0;
+}
+
+.foundBody {
+  padding: 20px 22px 22px;
+  background: #181716;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 10초 보이스 미리듣기 */
+.voicePreviewBox {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: #22201e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voiceLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.voicePlayBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--honey);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(255, 211, 78, 0.35);
+  transition: transform 0.15s ease;
+}
+.voicePlayBtn:active {
+  transform: scale(0.92);
+}
+
+.voiceTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.voiceWave {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 12px;
+  margin-top: 4px;
+}
+
+@keyframes eqWave {
+  0%, 100% { transform: scaleY(0.28); }
+  50% { transform: scaleY(1); }
+}
+
+.eqBar {
+  width: 2.5px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 9999px;
+  transform-origin: bottom;
+}
+
+.isPlayingWave .eqBar {
+  animation: eqWave 0.58s ease-in-out infinite;
+  background: var(--honey) !important;
+}
+
+.voiceDuration {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--honey);
+  flex-shrink: 0;
+}
+
+.foundQuoteBox {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.quoteEyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.4);
+  display: block;
+  margin-bottom: 6px;
+}
+.quoteText {
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.tagWrap {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quoteTagPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.foundActionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.enterChatBtn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(255, 211, 78, 0.3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.enterChatBtn:hover {
+  background: var(--honey-bright);
+}
+.enterChatBtn:active {
+  transform: scale(0.98);
+}
+
+.btnIconText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.countdownBadge {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.subActionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* =========================================================
+   [STATE 2-B] AI 이상형 성사 리빌: TOP 1 선발 카드
+   ========================================================= */
+.idealFoundCard {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  animation: modalSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.idealFoundHeader {
+  padding: 24px 22px 18px;
+  text-align: center;
+  background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #ECFDF5 100%);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top1MatchedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #4F46E5;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.dualAvatarContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0 12px;
+}
+
+.myAvatarWrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #6366F1, #818CF8);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  z-index: 10;
+}
+
+.matchScoreBadge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 -12px;
+  z-index: 20;
+  border: 2px solid #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.partnerAvatarWrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  z-index: 10;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+.blurPartnerImg {
+  filter: blur(6px);
+  transform: scale(1.15);
+}
+
+.partnerLockOverlay {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.foundTitleDark {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+.foundSubDark {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: 4px 0 0;
+  font-family: monospace;
+}
+
+.bentoSpecGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.bentoSpecCell {
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+}
+.specLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+}
+.specValPrimary {
+  font-size: 16px;
+  font-weight: 800;
+  color: #4F46E5;
+  margin-top: 2px;
+  display: block;
+}
+.specValEmerald {
+  font-size: 16px;
+  font-weight: 800;
+  color: #059669;
+  margin-top: 2px;
+  display: block;
+}
+.specValSky {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0284C7;
+  margin-top: 2px;
+  display: block;
+}
+
+.foundQuoteBoxLight {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+}
+.quoteTextDark {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-main);
+  margin: 0;
+}
+.quoteTagPillLight {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+}
+
+.enterChatBtnDark {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(34, 32, 30, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.enterChatBtnDark:hover {
+  background: var(--ink-hover);
+}
+.enterChatBtnDark:active {
+  transform: scale(0.98);
+}
+.countdownBadgeLight {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   2. 백그라운드 플로팅 미니 알약 바 (우측 하단)
+   ========================================================================== */
+@keyframes miniSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.floatingPill {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  animation: modalSpring 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.floatingPillDark {
+  background: #181716;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.floatingPillLight {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+}
+
+.floatingPillBody {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.floatingSpinIconBox {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: miniSpin 3.5s linear infinite;
+  flex-shrink: 0;
+}
+.spinHoney {
+  background: rgba(255, 211, 78, 0.2);
+  color: var(--honey);
+}
+.spinIndigo {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366F1;
+}
+
+.floatingPillTexts {
+  display: flex;
+  flex-direction: column;
+}
+.floatingPillTitle {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+}
+.floatingPillSub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.floatingCloseBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.floatingPillDark .floatingCloseBtn {
+  background: rgba(255, 255, 255, 0.1);
+}
+.floatingCloseBtn:hover {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   3. 토스트 알림
+   ========================================================================== */
+.toastWrap {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  animation: modalSpring 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toastDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--honey);
+}
