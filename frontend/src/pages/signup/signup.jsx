@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../api/client';
 import { INITIAL_TERMS } from '../../mockData';
@@ -31,6 +31,30 @@ function Signup() {
   const [errors, setErrors] = useState({});
   const [idCheckStatus, setIdCheckStatus] = useState(null);
   const [idCheckMessage, setIdCheckMessage] = useState('');
+
+  // 휴대폰 본인인증 (Solapi SMS) 상태
+  const [phoneAuthCode, setPhoneAuthCode] = useState('');
+  const [isPhoneSending, setIsPhoneSending] = useState(false);
+  const [isPhoneCodeSent, setIsPhoneCodeSent] = useState(false);
+  const [isPhoneVerifying, setIsPhoneVerifying] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [phoneAuthStatus, setPhoneAuthStatus] = useState(null);
+  const [phoneAuthMessage, setPhoneAuthMessage] = useState('');
+  const [phoneTimer, setPhoneTimer] = useState(0);
+
+  useEffect(() => {
+    if (!isPhoneCodeSent || isPhoneVerified || phoneTimer <= 0) return;
+    const interval = setInterval(() => {
+      setPhoneTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPhoneCodeSent, isPhoneVerified, phoneTimer]);
 
   // 비밀번호 확인 상태
   const [pwConfirmMessage, setPwConfirmMessage] = useState('');
@@ -82,6 +106,13 @@ function Signup() {
         ...prev,
         [name]: formattedPhone
       }));
+
+      setIsPhoneCodeSent(false);
+      setIsPhoneVerified(false);
+      setPhoneAuthCode('');
+      setPhoneAuthStatus(null);
+      setPhoneAuthMessage('');
+      setPhoneTimer(0);
 
       return;
     }
@@ -167,11 +198,74 @@ function Signup() {
     }
   };
 
-  // 휴대폰 본인인증 안내
-  const handlePhoneAuth = () => {
-    alert(
-      '✨ 본인확인 인증 기능은 프로젝트 후반부에 연동 예정입니다.'
-    );
+  // 휴대폰 본인인증 (Solapi SMS 발송)
+  const handlePhoneAuth = async () => {
+    if (!regexPhone.test(formData.phone)) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage('핸드폰 번호를 010-XXXX-XXXX 양식으로 먼저 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsPhoneSending(true);
+      setPhoneAuthStatus(null);
+      setPhoneAuthMessage('');
+
+      const resp = await Client.post('/members/phone/send', {
+        phone: formData.phone
+      });
+
+      setIsPhoneCodeSent(true);
+      setIsPhoneVerified(false);
+      setPhoneAuthCode('');
+      setPhoneTimer(180);
+      setPhoneAuthStatus('SENT');
+      setPhoneAuthMessage(resp.data?.message || '인증번호가 발송되었습니다.');
+    } catch (error) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage(
+        error.response?.data?.message || '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+      );
+    } finally {
+      setIsPhoneSending(false);
+    }
+  };
+
+  // 휴대폰 인증번호 검증
+  const handleVerifyPhoneCode = async () => {
+    if (!phoneAuthCode.trim() || phoneAuthCode.trim().length !== 6) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage('6자리 인증번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsPhoneVerifying(true);
+      const resp = await Client.post('/members/phone/verify', {
+        phone: formData.phone,
+        code: phoneAuthCode.trim()
+      });
+
+      setIsPhoneVerified(true);
+      setPhoneTimer(0);
+      setPhoneAuthStatus('SUCCESS');
+      setPhoneAuthMessage(resp.data?.message || '휴대폰 본인인증이 완료되었습니다.');
+      setErrors((prev) => ({ ...prev, phone: undefined }));
+    } catch (error) {
+      setIsPhoneVerified(false);
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage(
+        error.response?.data?.message || '인증번호 확인에 실패했습니다.'
+      );
+    } finally {
+      setIsPhoneVerifying(false);
+    }
+  };
+
+  const formatTimer = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? `0${s}` : s}`;
   };
 
   // 카카오 우편번호 검색
@@ -744,16 +838,56 @@ function Signup() {
                 placeholder="010-1234-5678"
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isPhoneVerified}
               />
 
               <button
                 type="button"
                 className={styles.btnSecondary}
                 onClick={handlePhoneAuth}
+                disabled={isPhoneSending || isPhoneVerified}
               >
-                본인확인 인증
+                {isPhoneVerified
+                  ? '인증완료'
+                  : isPhoneSending
+                    ? '발송 중...'
+                    : isPhoneCodeSent
+                      ? '재전송'
+                      : '본인확인 인증'}
               </button>
             </div>
+
+            {isPhoneCodeSent && !isPhoneVerified && (
+              <div className={styles.inputWithButton} style={{ marginTop: '8px' }}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  className={styles.input}
+                  placeholder={`인증번호 6자리 입력 (${formatTimer(phoneTimer)})`}
+                  value={phoneAuthCode}
+                  onChange={(e) => setPhoneAuthCode(e.target.value.replace(/[^0-9]/g, ''))}
+                />
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={handleVerifyPhoneCode}
+                  disabled={isPhoneVerifying || phoneTimer === 0}
+                >
+                  {isPhoneVerifying ? '확인 중...' : '인증 확인'}
+                </button>
+              </div>
+            )}
+
+            {phoneAuthMessage && (
+              <div
+                className={`${styles.validationMsg} ${
+                  phoneAuthStatus === 'ERROR' ? styles.error : styles.success
+                }`}
+              >
+                {phoneAuthStatus === 'ERROR' ? '⚠️ ' : '✔ '}
+                {phoneAuthMessage}
+              </div>
+            )}
 
             {errors.phone && (
               <div className={`${styles.validationMsg} ${styles.error}`}>

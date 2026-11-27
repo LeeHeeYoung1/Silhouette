@@ -80,7 +80,7 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
       const res = await Client.post('/api/event/all-tests-reward', { memberSeq });
 
       setIsRewardClaimed(true);
-      alert(res.data?.message || '🎉 축하합니다! 무료 매칭 이용권 1장이 지급되었습니다. ✨');
+      alert(res.data?.message || '축하합니다! 무료 매칭 이용권 1장이 지급되었습니다.');
 
       if (onRewardClaimed) {
         onRewardClaimed();
@@ -130,17 +130,18 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
           <span
             style={{
               display: 'inline-block',
-              fontSize: '12px',
-              fontWeight: 700,
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
               color: '#22201e',
               background: '#ffd34e',
               border: 'none',
-              padding: '4px 12px',
+              padding: '5px 14px',
               borderRadius: '9999px',
               marginBottom: '10px',
             }}
           >
-            ✨ PROFILE & QUEST PERK
+            PROFILE & QUEST PERK
           </span>
           <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>
             성향 테스트 올클리어 & 프로필 보상
@@ -187,8 +188,25 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
                 borderRadius: '14px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px' }}>{m.done ? '✅' : '⬜'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    background: m.done ? '#22201e' : '#ffffff',
+                    color: m.done ? '#ffd34e' : 'transparent',
+                    border: m.done ? '1.5px solid #22201e' : '1.5px solid #e7e0ce',
+                    flexShrink: 0,
+                  }}
+                >
+                  ✓
+                </span>
                 <span
                   style={{
                     fontSize: '13.5px',
@@ -238,9 +256,9 @@ const ProfileQuestModal = ({ isOpen, onClose, onRewardClaimed }) => {
           }}
         >
           {isRewardClaimed
-            ? '보상 수령 완료 🎁'
+            ? '보상 수령 완료'
             : isAllCleared
-            ? '무료 매칭 이용권 1장 받기 🎟️'
+            ? '무료 매칭 이용권 1장 받기'
             : '모든 미션을 완료하면 활성화됩니다'}
         </button>
 

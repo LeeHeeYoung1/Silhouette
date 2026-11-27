@@ -21,6 +21,7 @@ public class InterceptorConfig implements WebMvcConfigurer{
 		.excludePathPatterns("/members/signup",
                 "/auth/login",
                 "/members/idCheck",
+                "/members/phone/**",
                 "/chat",
                 "/chat/**",
                 "/blind",                  // 블라인드 채팅 STOMP 핸드셰이크

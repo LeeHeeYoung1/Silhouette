@@ -42,14 +42,14 @@ const MENU_ACCOUNT = [
     { id: 'payment', icon: 'fa-credit-card', label: '결제 내역', code: 'M010' },
 ];
 
-// 사진이 없을 때 쓰는 기본 아바타
+// 사진이 없을 때 쓰는 기본 아바타 (홈 테마 잉크 & 허니 골드)
 const DEFAULT_AVATAR =
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-            '<rect width="100" height="100" fill="#1f1c35"/>' +
-            '<circle cx="50" cy="38" r="18" fill="#a855f7" opacity="0.6"/>' +
-            '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#a855f7" opacity="0.6"/></svg>'
+            '<rect width="100" height="100" fill="#22201e"/>' +
+            '<circle cx="50" cy="38" r="18" fill="#ffd34e" opacity="0.9"/>' +
+            '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ffd34e" opacity="0.9"/></svg>'
     );
 
 // ===== 기본 정보 규칙 (회원가입 signup.jsx와 같음) =====

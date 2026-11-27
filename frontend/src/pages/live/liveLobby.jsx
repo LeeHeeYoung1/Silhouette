@@ -77,10 +77,14 @@ function LiveLobby({ myId, notice, onStart, onWatch, onResume }) {
   return (
     <div className={styles.lobby}>
       <div className={styles.lobbyHeader}>
-        <h2>라이브</h2>
+        <div className={styles.lobbyTitleGroup}>
+          <span className={styles.lobbyBadge}>SILHOUETTE REAL-TIME LIVE</span>
+          <h2>실루엣 라이브 스테이지</h2>
+          <p className={styles.lobbySub}>실시간으로 대화하고 함께 즐기는 라이브 방송</p>
+        </div>
         <div className={styles.lobbyActions}>
           <button className={styles.ghostButton} onClick={() => setModal('bans')}>차단 목록</button>
-          <button className={styles.primaryButton} onClick={() => setModal('start')}>📡 방송하기</button>
+          <button className={styles.primaryButton} onClick={() => setModal('start')}>방송하기</button>
         </div>
       </div>
 

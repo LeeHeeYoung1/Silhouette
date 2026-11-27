@@ -6,15 +6,16 @@ import useOnboardingGuard from '../onboarding/useOnboardingGuard';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
+import Footer from '../../components/Footer/Footer';
 
-// 기본 프로필 아바타 이미지 (SVG)
+// 기본 프로필 아바타 이미지 (SVG - 실루엣 홈 테마 잉크 & 허니 골드)
 const DEFAULT_AVATAR =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-      '<rect width="100" height="100" fill="#2d2238"/>' +
-      '<circle cx="50" cy="38" r="18" fill="#ff758c" opacity="0.8"/>' +
-      '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ff758c" opacity="0.8"/></svg>'
+      '<rect width="100" height="100" fill="#22201e"/>' +
+      '<circle cx="50" cy="38" r="18" fill="#ffd34e" opacity="0.9"/>' +
+      '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ffd34e" opacity="0.9"/></svg>'
   );
 
 // 모든 페이지의 공통 상단 메뉴와 알림 드롭다운을 관리합니다.
@@ -323,7 +324,7 @@ function Layout() {
                   <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
                   <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
                   {role === 'ROLE_ADMIN' && (
-                    <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`} style={{ color: '#f87171', fontWeight: 'bold' }}>
+                    <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>
                       관리자
                     </NavLink>
                   )}
@@ -505,6 +506,8 @@ function Layout() {
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      {!isAuthPage && <Footer />}
     </div>
   );
 }
