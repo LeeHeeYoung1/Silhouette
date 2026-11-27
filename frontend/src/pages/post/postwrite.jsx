@@ -324,7 +324,7 @@ function PostWrite({ writeType = 'free' }) {
             {/* 헤더 */}
             <div className={styles.writeCardHeader}>
                 <h2>
-                    <i className="fa-solid fa-pen-fancy" style={{ color: '#a855f7' }}></i>
+                    <i className="fa-solid fa-pen-fancy" style={{ color: 'var(--ink)' }}></i>
                     {headerTitle}
                 </h2>
                 <Link to={listPath} className={styles.cancelBtn}>{isEdit ? '수정 취소' : '목록으로 취소'}</Link>
