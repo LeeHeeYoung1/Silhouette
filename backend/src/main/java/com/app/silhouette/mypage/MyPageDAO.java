@@ -25,4 +25,12 @@ public class MyPageDAO {
 	public int updateMyInfo(MyPageDTO dto) {
 		return mybatis.update("MyPage.updateMyInfo", dto);
 	}
+
+	public int checkPassword(Long memberSeq, String encryptedPassword) {
+		return mybatis.selectOne("MyPage.checkPassword", Map.of("memberSeq", memberSeq, "password", encryptedPassword));
+	}
+
+	public int withdrawMember(Long memberSeq) {
+		return mybatis.update("MyPage.withdrawMember", memberSeq);
+	}
 }
