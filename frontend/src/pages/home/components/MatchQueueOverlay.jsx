@@ -59,11 +59,19 @@ export default function MatchQueueOverlay({
   // 모달 상태: false(기본 모달 열림) | true(우측 하단 미니 플로팅 알약으로 최소화)
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // 블라인드 랜덤 릴 상태
-  const [serialCode, setSerialCode] = useState('#0742');
-  const [reelOffset, setReelOffset] = useState(0);
-  const [isDiceShaking, setIsDiceShaking] = useState(false);
-  const [shuffleClicks, setShuffleClicks] = useState(0);
+  // 블라인드 3D 회전 카드 컬러 팔레트 (Uiverse ilkhoeri 10색)
+  const BLIND_CARDS = [
+    '142, 249, 252',
+    '142, 252, 204',
+    '142, 252, 157',
+    '215, 252, 142',
+    '252, 252, 142',
+    '252, 208, 142',
+    '252, 142, 142',
+    '252, 142, 239',
+    '204, 142, 252',
+    '142, 202, 252'
+  ];
 
   // AI 이상형 실시간 랭킹 보드 상태
   const [rankingPhase, setRankingPhase] = useState('SCORING'); // 'SCORING' | 'RE-RANKING' | 'TOP 1 SURGE'
@@ -84,7 +92,6 @@ export default function MatchQueueOverlay({
   });
 
   const [toastText, setToastText] = useState('');
-  const reelTrackRef = useRef(null);
 
   // 시간 포맷 (00:00)
   const formatTime = (sec) => {
@@ -98,29 +105,7 @@ export default function MatchQueueOverlay({
     setTimeout(() => setToastText(''), 2500);
   };
 
-  // 1. 블라인드 매칭 대기 중: 지속적인 미스터리 릴 회전 & 시리얼 번호 스크램블링
-  useEffect(() => {
-    if (!isBlindMatching) return;
-
-    // 시리얼 번호 실시간 스크램블 효과
-    const scrambleInterval = setInterval(() => {
-      const rand = '#' + String(Math.floor(100 + Math.random() * 899)).padStart(4, '0');
-      setSerialCode(rand);
-    }, 120);
-
-    // 릴 카드 주기적 좌우 회전 효과
-    const reelTimer = setInterval(() => {
-      const randomShift = -((Math.floor(Math.random() * 12) + 6) * 86 - 140);
-      setReelOffset(randomShift);
-    }, 3200);
-
-    return () => {
-      clearInterval(scrambleInterval);
-      clearInterval(reelTimer);
-    };
-  }, [isBlindMatching]);
-
-  // 2. AI 이상형 매칭 대기 중: 가중치 점수 및 랭킹 순위 실시간 변동(스왑 애니메이션)
+  // AI 이상형 매칭 대기 중: 가중치 점수 및 랭킹 순위 실시간 변동(스왑 애니메이션)
   useEffect(() => {
     if (!isIdealMatching) return;
 
@@ -140,17 +125,6 @@ export default function MatchQueueOverlay({
 
     return () => clearInterval(rankCycleTimer);
   }, [isIdealMatching]);
-
-  // 블라인드 주사위 흔들기(대기 풀 섞기)
-  const handleShufflePool = () => {
-    setIsDiceShaking(true);
-    setTimeout(() => setIsDiceShaking(false), 500);
-    setShuffleClicks((prev) => prev + 1);
-
-    const randomShift = -((Math.floor(Math.random() * 14) + 4) * 86 - 140);
-    setReelOffset(randomShift);
-    showToast(`대기 풀을 다시 섞었어요! (셔플 ${shuffleClicks + 1}회)`);
-  };
 
   // 가중치 칩 클릭
   const toggleChip = (key, label) => {
@@ -176,130 +150,184 @@ export default function MatchQueueOverlay({
     <>
       {/* 1. 메인 모달 오버레이 (최소화 상태가 아닐 때 렌더링) */}
       {!isMinimized && (
-        <div className={styles.overlay}>
-          <div className={styles.modalBox}>
+        <div className={`${styles.overlay} ${isBlindMatching ? styles.overlayBlind : ''}`}>
+          <div className={`${styles.modalBox} ${isBlindMatching ? styles.modalBoxBlind : ''}`}>
             {/* =========================================================
-                블라인드 매칭 큐: 100% 랜덤 미스터리 릴 & 셔플 주사위
+                블라인드 매칭 큐: SUTERA 스타일 아키텍처 다이어그램 + 중앙 홀로그램 카드
                 ========================================================= */}
             {isBlindMatching && (
-              <div className={styles.blindSearchCard}>
-                {/* 상단 릴 스테이지 */}
-                <div className={styles.blindStageSurface}>
-                  <div className={styles.stageTopRow}>
-                    <div className={styles.liveTagPill}>
-                      <span className={styles.livePulseDot} />
-                      <span className={styles.liveTagText}>100% RANDOM REEL</span>
-                    </div>
-                    <div className={styles.timerAndMinRow}>
-                      <span className={styles.elapsedTimer}>{formatTime(matchSeconds)}</span>
-                      <button
-                        type="button"
-                        className={styles.minimizeBtn}
-                        onClick={() => {
-                          setIsMinimized(true);
-                          showToast('우측 하단에서 100% 랜덤 매칭 큐가 계속 돌아갑니다.');
-                        }}
-                        title="둘러보며 대기하기"
-                      >
-                        <IconMinimize className={styles.iconSm} />
-                      </button>
+              <div className={styles.suteraContainer}>
+                {/* 1) 시작 인트로: Silhouette 메인 로고 스플래시 (1.6초 후 페이드 아웃) */}
+                <div className={styles.suteraIntroOverlay} aria-hidden="true">
+                  <div className={styles.suteraIntroCenter}>
+                    <h2 className={styles.suteraIntroLogo}>Silhouette</h2>
+                    <p className={styles.suteraIntroSub}>실시간 블라인드 매칭 엔진 가동 중</p>
+                  </div>
+                  <div className={styles.suteraIntroBottom}>
+                    <span className={styles.suteraIntroPct}>매칭 알고리즘 트리 초기화 100%</span>
+                    <div className={styles.suteraIntroBar}>
+                      <div className={styles.suteraIntroBarFill} />
                     </div>
                   </div>
+                </div>
 
-                  <div className={styles.titleScrambleRow}>
-                    <div>
-                      <p className={styles.queueCountMeta}>
-                        실시간 대기 풀 <strong className={styles.highlightHoney}>{waitingBlindUsers.toLocaleString()}</strong>명
+                {/* 2) 배경 테크니컬 그리드 & 십자(+) 마커 */}
+                <div className={styles.suteraGridBg} aria-hidden="true">
+                  <span className={`${styles.suteraCross} ${styles.cross1}`}>+</span>
+                  <span className={`${styles.suteraCross} ${styles.cross2}`}>+</span>
+                  <span className={`${styles.suteraCross} ${styles.cross3}`}>+</span>
+                  <span className={`${styles.suteraCross} ${styles.cross4}`}>+</span>
+                  <span className={`${styles.suteraCross} ${styles.cross5}`}>+</span>
+                  <span className={`${styles.suteraCross} ${styles.cross6}`}>+</span>
+                </div>
+
+                {/* 3) 메인 스테이지 */}
+                <div className={styles.suteraStage}>
+                  {/* 상단 헤더 바 */}
+                  <header className={styles.suteraTopBar}>
+                    <div className={styles.suteraTopLeft}>
+                      <span className={styles.suteraBrandMini}>SILHOUETTE // 실시간 매칭</span>
+                    </div>
+                    <div className={styles.suteraTopCenter}>
+                      <span className={styles.suteraTopBox}>블라인드 매칭 프로토콜</span>
+                    </div>
+                    <div className={styles.suteraTopRight}>
+                      <span>실시간 대기 인원 · {waitingBlindUsers.toLocaleString()}명</span>
+                      <span className={styles.suteraTimerMono}>경과 {formatTime(matchSeconds)}</span>
+                    </div>
+                  </header>
+
+                  {/* 좌상단 대형 헤드라인 */}
+                  <div className={styles.suteraHeroTitle}>
+                    <h3>DESTINY,</h3>
+                    <h3>BY DESIGN.</h3>
+                  </div>
+
+                  {/* 중앙: 홀로그램 매칭 카드 + 3방향 트리 리더 라인 & 한글 알고리즘 설명 */}
+                  <div className={styles.suteraCenterArea}>
+                    {/* SVG 꺾은선 트리 커넥터 */}
+                    <svg
+                      className={styles.suteraSvgLines}
+                      viewBox="0 0 900 440"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                    >
+                      {/* Top-Right Branch */}
+                      <polyline
+                        className={styles.suteraLinePath}
+                        points="460,82 515,42 640,42"
+                      />
+                      <rect x="456" y="78" width="7" height="7" className={styles.suteraNodeAnchor} />
+
+                      {/* Left Branch */}
+                      <polyline
+                        className={styles.suteraLinePath}
+                        points="350,185 280,145 190,145"
+                      />
+                      <rect x="346" y="181" width="7" height="7" className={styles.suteraNodeAnchor} />
+
+                      {/* Bottom-Left Branch */}
+                      <polyline
+                        className={styles.suteraLinePath}
+                        points="415,358 345,398 245,398"
+                      />
+                      <rect x="411" y="354" width="7" height="7" className={styles.suteraNodeAnchor} />
+                    </svg>
+
+                    {/* 노드 1 (Top-Right): 무편견 블라인드 필터 */}
+                    <div className={`${styles.suteraCallout} ${styles.calloutTopRight}`}>
+                      <p className={styles.calloutTitle}>무편견 블라인드 매칭</p>
+                      <p className={styles.calloutDesc}>
+                        외모와 조건에 대한 선입견을 모두 지우고 오직 대화의 결만으로 상대를 연결합니다
                       </p>
-                      <h3 className={styles.blindHeading}>누구와 연결될지 아무도 몰라요</h3>
                     </div>
-                    <span className={styles.serialBadge}>{serialCode}</span>
-                  </div>
-                  <p className={styles.blindSub}>조건과 필터를 모두 끄고 완전한 우연으로 상대를 매칭하는 중</p>
 
-                  {/* 수평 미스터리 랜덤 릴 */}
-                  <div className={styles.reelStage}>
-                    {/* 상단 타겟 포인터 */}
-                    <div className={`${styles.reelPointer} ${styles.pointerTick}`}>
-                      <span className={styles.pointerArrow} />
+                    {/* 노드 2 (Mid-Left): 실시간 STOMP 큐 */}
+                    <div className={`${styles.suteraCallout} ${styles.calloutMidLeft}`}>
+                      <p className={styles.calloutTitle}>실시간 STOMP 대기열</p>
+                      <p className={styles.calloutDesc}>
+                        현재 접속 중인 대기 풀에서 웹소켓 채널을 통해 가장 빠른 상대를 즉시 매칭합니다
+                      </p>
                     </div>
-                    <div className={styles.reelCenterFrame} />
 
-                    <div className={styles.reelMask}>
-                      <div
-                        ref={reelTrackRef}
-                        className={styles.reelTrack}
-                        style={{
-                          transform: `translateX(${reelOffset}px)`,
-                          transition: 'transform 2.2s cubic-bezier(0.12, 0.8, 0.2, 1)'
-                        }}
-                      >
-                        {Array.from({ length: 26 }).map((_, idx) => (
-                          <div key={idx} className={styles.mysteryCard}>
-                            <span className={styles.mysteryCardIconWrap}>
-                              <IconHelp className={styles.iconMd} />
-                            </span>
-                            <span className={styles.mysteryCardCode}>
-                              {`#${String(100 + idx * 37).slice(0, 4)}`}
-                            </span>
+                    {/* 노드 3 (Bottom-Left): 단계적 프로필 공개 */}
+                    <div className={`${styles.suteraCallout} ${styles.calloutBottomLeft}`}>
+                      <p className={styles.calloutTitle}>단계적 실루엣 공개</p>
+                      <p className={styles.calloutDesc}>
+                        대화가 이어지고 서로의 호감과 신뢰가 쌓일수록 프로필과 사진이 서서히 열립니다
+                      </p>
+                    </div>
+
+                    {/* 중앙 오브제 (돌 대신 들어간 이쁜 홀로그램 프리즘 카드 + 픽셀 스캔 효과) */}
+                    <div className={styles.suteraCardFloatWrap}>
+                      <div className={styles.suteraHoloCard}>
+                        <div className={styles.suteraCardGlow} />
+                        <div className={styles.suteraCardInnerBorder}>
+                          <div className={styles.suteraCardTopMeta}>
+                            <span>실루엣 // #01</span>
+                            <span>100% 블라인드</span>
                           </div>
-                        ))}
+
+                          <div className={styles.suteraCardEmblem}>
+                            <div className={styles.suteraCardRingOuter} />
+                            <div className={styles.suteraCardRingInner} />
+                            <span className={styles.suteraCardS}>S</span>
+                          </div>
+
+                          <div className={styles.suteraCardBottomMeta}>
+                            <span className={styles.suteraCardStatusDot} />
+                            <span>대화 상대 탐색 중...</span>
+                          </div>
+                        </div>
+
+                        {/* 영상 속 돌 위를 스캔하던 반투명 글래스 픽셀 타일 효과 */}
+                        <span className={`${styles.suteraScanTile} ${styles.tile1}`} />
+                        <span className={`${styles.suteraScanTile} ${styles.tile2}`} />
+                        <span className={`${styles.suteraScanTile} ${styles.tile3}`} />
                       </div>
                     </div>
                   </div>
 
-                  {/* 하단 진행 바 */}
-                  <div className={styles.progressBarTrack}>
-                    <div
-                      className={styles.progressBarFillBlind}
-                      style={{ width: `${Math.min(98, 20 + (matchSeconds % 35) * 2.3)}%` }}
-                    />
+                  {/* 우하단: 매칭 알고리즘 안내 박스 */}
+                  <div className={styles.suteraAlgoPanel}>
+                    <div className={styles.algoBanner}>
+                      <span>실루엣 블라인드 매칭 알고리즘</span>
+                    </div>
+                    <div className={styles.algoDescBox}>
+                      <p>
+                        실루엣의 블라인드 매칭 엔진은 사진과 스펙 필터를 잠시 꺼두고, 실시간 STOMP
+                        웹소켓 대기열에서 지금 바로 대화할 수 있는 두 사람을 1:1 익명 채팅방으로
+                        즉시 연결합니다.
+                      </p>
+                    </div>
+                    <div className={styles.algoTagsRow}>
+                      <span>무조건·무필터</span>
+                      <span>실시간 웹소켓</span>
+                      <span>1:1 익명 대화</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* 하단 셔플 주사위 & 컨트롤 */}
-                <div className={styles.blindFooter}>
-                  <div className={styles.pillBadgeRow}>
-                    <span className={styles.dimPill}>조건 0개</span>
-                    <span className={styles.dimPill}>완전 블라인드</span>
-                    <span className={styles.honeyPill}>100% 랜덤</span>
-                  </div>
-
+                {/* 4) 하단 고정 버튼 2개: 둘러보며 대기하기 & 매칭 취소 */}
+                <footer className={styles.suteraFooter}>
                   <button
                     type="button"
-                    className={styles.shuffleActionBtn}
-                    onClick={handleShufflePool}
+                    className={styles.suteraWaitBtn}
+                    onClick={() => {
+                      setIsMinimized(true);
+                      showToast('우측 하단에서 매칭 큐가 계속 진행됩니다.');
+                    }}
                   >
-                    <div className={styles.shuffleBtnLeft}>
-                      <span className={`${styles.diceIconBox} ${isDiceShaking ? styles.diceShaking : ''}`}>
-                        <IconDice className={styles.iconMd} />
-                      </span>
-                      <div className={styles.shuffleBtnTexts}>
-                        <p className={styles.shuffleMainText}>대기 풀 한 번 더 섞기</p>
-                        <p className={styles.shuffleSubText}>
-                          {shuffleClicks > 0 ? `셔플 ${shuffleClicks}회 완료! 무작위로 다시 섞였어요` : '눌러서 우연의 확률을 흔들어 보세요'}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={styles.shuffleTag}>SHUFFLE</span>
+                    둘러보며 대기하기
                   </button>
-
-                  <div className={styles.dualModalBtns}>
-                    <button
-                      type="button"
-                      className={styles.btnSecondary}
-                      onClick={() => {
-                        setIsMinimized(true);
-                        showToast('우측 하단에서 매칭 큐가 계속 진행됩니다.');
-                      }}
-                    >
-                      둘러보며 대기하기
-                    </button>
-                    <button type="button" className={styles.btnCancelText} onClick={onCancel}>
-                      매칭 취소
-                    </button>
-                  </div>
-                </div>
+                  <button
+                    type="button"
+                    className={styles.suteraCancelBtn}
+                    onClick={onCancel}
+                  >
+                    매칭 취소
+                  </button>
+                </footer>
               </div>
             )}
 
