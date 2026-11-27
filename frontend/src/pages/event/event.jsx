@@ -5,6 +5,7 @@ import Client from '../../api/client';
 import { getMyMemberSeq, getWeeklyAttendance, checkInAttendance } from '../../api/attendance';
 import DailyRouletteModal from './DailyRouletteModal';
 import ProfileQuestModal from './ProfileQuestModal';
+import PageHero from '../../components/PageHero/PageHero';
 import styles from './event.module.css';
 
 const Event = () => {
@@ -244,25 +245,17 @@ const Event = () => {
 
   return (
     <div className={styles.container}>
-      {/* 1. 상단 히어로 배너 */}
-      <section className={styles.heroBanner}>
-        <div className={styles.heroContent}>
-          <div className={styles.badge}>
-            <span>SILHOUETTE EVENT & PERKS</span>
-          </div>
-          <h1 className={styles.heroTitle}>
-            인연을 더 가깝게 만드는 <br />
-            <span className={styles.titleHighlight}>실루엣 이벤트 & 혜택 센터</span>
-          </h1>
-          <p className={styles.heroDesc}>
-            매일 출석체크로 하트를 모으고, 연애 성향 및 취향 밸런스 테스트로 나만의 특별한 인연을 찾아보세요.
-          </p>
-        </div>
-
+      {/* 1. 상단 히어로 (라이브·게시판과 같은 허니 옐로 띠) + 내 혜택 현황 */}
+      <PageHero
+        eyebrow="EVENT & PERKS"
+        title="이벤트 & 혜택"
+        description="매일 출석체크로 마일리지를 모으고, 연애 성향·취향 테스트로 나만의 인연을 찾아보세요."
+        wordmark="EVENT"
+      >
         <div className={styles.heroStats}>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>연속 출석</span>
-            <span className={`${styles.statValue} ${styles.statPink}`}>{streakDays}일째</span>
+            <span className={styles.statValue}>{streakDays}일째</span>
           </div>
           <div className={styles.statBox}>
             <span className={styles.statLabel}>보유 마일리지</span>
@@ -273,7 +266,7 @@ const Event = () => {
             <span className={styles.statValue}>{ticketCount}장</span>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* 2. 카테고리 탭 네비게이션 */}
       <nav className={styles.tabBar} aria-label="이벤트 카테고리">

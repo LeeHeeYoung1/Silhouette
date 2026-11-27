@@ -1,0 +1,170 @@
+/* PageHero.module.css — 라이브·게시판·이벤트 공통 허니 옐로 히어로 */
+
+.hero {
+  position: relative;
+  z-index: 1;
+  /* 아래 경계에 걸친 이동 바의 아래쪽 절반(26px) + 본문 탭 바와의 간격(40px) */
+  margin-bottom: 66px;
+  color: var(--ink);
+}
+
+/* 히어로 바닥까지 화면 가로 전체를 허니 옐로로 채우는 띠 (아래쪽은 잘라서 본문 위에서 끝남, 헤더는 z-index가 더 높아 위에 보임) */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--honey);
+  box-shadow: 0 0 0 100vmax var(--honey);
+  clip-path: inset(-100vmax -100vmax 0 -100vmax);
+}
+
+/* 띠 높이: 세 페이지 모두 같은 높이 (내용이 가장 많은 이벤트 기준) */
+.body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 232px;
+  padding: 8px 0 52px;
+  box-sizing: content-box;
+}
+
+/* 홈처럼 띠 아래 경계 가운데에 걸친 페이지 이동 바 */
+.navDock {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  width: min(520px, 100%);
+  transform: translate(-50%, 50%);
+}
+
+.text {
+  /* 칩·제목 위치가 페이지마다 같도록 위쪽 정렬 (워드마크는 세로 가운데) */
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 600px;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--honey);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  box-shadow: 0 0 8px rgba(255, 77, 79, 0.9);
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.description {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(34, 32, 30, 0.75);
+  word-break: keep-all;
+}
+
+.extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.primaryButton,
+.ghostButton {
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 9999px;
+  padding: 12px 22px;
+  font-weight: 800;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primaryButton {
+  border: 0;
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: 0 10px 24px rgba(34, 32, 30, 0.2);
+}
+
+.primaryButton:hover {
+  background: var(--ink-hover);
+  transform: translateY(-2px);
+}
+
+.ghostButton {
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+}
+
+.ghostButton:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.primaryButton:focus-visible,
+.ghostButton:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* 홈 히어로의 Silhouette 워드마크와 같은 서체. 글자 수가 많을수록 작아져서 한 줄에 들어감 */
+.wordmark {
+  flex-shrink: 0;
+  font-family: 'Archivo Black', 'Pretendard', sans-serif;
+  font-size: clamp(56px, calc(56vw / var(--wordmark-len, 4)), 180px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .wordmark {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .body {
+    min-height: 250px;
+  }
+}

@@ -521,6 +521,8 @@
   }
 
   .header {
+    /* 세로 배치에서는 flex-basis 1140px이 높이로 적용돼 헤더 위아래가 크게 비므로 내용 높이로 */
+    flex: none;
     width: 100%;
     max-width: 1140px;
     flex-wrap: wrap;
@@ -571,6 +573,16 @@
   background: var(--honey);
   z-index: 0;
   pointer-events: none;
+}
+
+/* 이벤트·게시판·라이브처럼 PageHero가 있는 화면: 이동 바는 히어로 아래 경계(홈과 같은 위치)에 있으므로 헤더의 이동 바는 숨김 */
+.loggedIn:has(:global([data-page-hero])) .navLinks {
+  display: none;
+}
+
+/* 라이브 방송방 안: 오른쪽 채팅 입력창을 가리지 않도록 플로팅 버튼(친구 · 채팅, AI 챗봇) 숨김 */
+.appContainer:has(:global([data-live-room])) :global([data-floating-dock]) {
+  display: none;
 }
 
 .headerRow { margin-bottom: 8px; }

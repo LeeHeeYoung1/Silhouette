@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
+import PageHero from '../../components/PageHero/PageHero';
 import styles from './post.module.css';
 
 /* =========================================================
@@ -13,19 +14,16 @@ import styles from './post.module.css';
 const tabClass = ({ isActive }) => `${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''}`;
 
 function Post() {
-    const navigate = useNavigate();
-
     return (
         <div className={styles.postContainer}>
             <div className={styles.postInner}>
-                {/* 상단 라운지 헤더 */}
-                <div className={styles.headerSection}>
-                    <div className={styles.titleArea} onClick={() => navigate('/post/free')}>
-                        <span className={styles.headerBadge}>SILHOUETTE COMMUNITY & LOUNGE</span>
-                        <h1>실루엣 라운지 & 커뮤니티</h1>
-                        <p>익명 소통, 연애 상담 및 공지사항과 1:1 고객센터를 이용하세요.</p>
-                    </div>
-                </div>
+                {/* 상단 히어로 (라이브·이벤트와 같은 허니 옐로 띠) */}
+                <PageHero
+                    eyebrow="COMMUNITY & LOUNGE"
+                    title="실루엣 라운지"
+                    description="자유·익명 게시판에서 이야기를 나누고, 공지사항과 FAQ, 1:1 문의를 이용하세요."
+                    wordmark="LOUNGE"
+                />
 
                 {/* 메인 탭 네비게이션 (주소 이동 NavLink) */}
                 <nav className={styles.tabNav}>

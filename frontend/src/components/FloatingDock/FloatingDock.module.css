@@ -1,0 +1,361 @@
+/* FloatingDock.module.css — 모든 페이지 공통 친구 · 채팅 버튼/팝업 + AI 챗봇 (홈에서 옮겨 온 스타일) */
+
+/* 묶음 래퍼는 레이아웃에 영향 없음 (라이브 방송방에서 통째로 숨기는 용도) */
+.dock {
+  display: contents;
+}
+
+
+.friendFab {
+  position: fixed;
+  right: 24px;
+  bottom: 84px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 18px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(34, 32, 30, 0.28);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.friendFab:hover {
+  background: var(--ink-hover);
+  transform: translateY(-2px);
+}
+
+.friendFabActive {
+  background: var(--ink-hover);
+}
+
+.friendFabIcon {
+  font-size: 13px;
+}
+
+.friendFabBadge {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.friendFabUnread {
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.friendWindow {
+  position: fixed;
+  right: 24px;
+  bottom: 148px;
+  z-index: 900;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  height: 520px;
+  max-height: calc(100vh - 170px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--cream);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 25px 60px rgba(34, 32, 30, 0.25);
+  animation: popUpChat 0.28s ease-out forwards;
+}
+
+.friendHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--honey);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.friendHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.friendHeaderAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.friendHeaderTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.friendHeaderStatus {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  opacity: 0.8;
+}
+
+.friendCloseBtn {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chatbotFab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(34, 32, 30, 0.3);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.chatbotFab:hover { background: var(--ink-hover); transform: translateY(-2px); }
+
+.chatbotFabActive { background: var(--ink-hover); }
+
+.chatbotFabIcon { font-size: 12px; font-weight: 800; color: var(--honey); }
+
+.chatbotFabBadge { font-size: 12px; font-weight: 800; }
+
+.chatbotOnlineDot { width: 8px; height: 8px; border-radius: 50%; background: var(--honey); order: -1; }
+
+.chatbotWindow {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  z-index: 900;
+  width: 370px;
+  max-width: calc(100vw - 32px);
+  height: 500px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--cream);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 25px 60px rgba(34, 32, 30, 0.25);
+  animation: popUpChat 0.28s ease-out forwards;
+}
+
+.chatbotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--honey);
+  color: var(--ink);
+}
+
+.chatbotHeaderLeft { display: flex; align-items: center; gap: 10px; }
+
+.chatbotAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.chatbotTitle { font-size: 14px; font-weight: 800; color: var(--ink); }
+
+.chatbotStatus { font-size: 11px; font-weight: 700; color: var(--ink); opacity: 0.8; }
+
+.chatbotCloseBtn {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quickChipsContainer {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: var(--sand);
+}
+
+.quickChipsContainer::-webkit-scrollbar { height: 4px; }
+
+.quickChipsContainer::-webkit-scrollbar-thumb { background: #dcd3be; border-radius: 9999px; }
+
+.quickChip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.quickChip:hover { background: var(--honey); }
+
+.chatbotMessages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.chatBubbleRow { display: flex; align-items: flex-start; gap: 8px; }
+
+.userRow { justify-content: flex-end; }
+
+.chatBotAvatarSmall {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.chatBubble { max-width: 82%; padding: 12px 14px; font-size: 12px; line-height: 1.6; }
+
+.userBubble { border-radius: 16px 16px 0 16px; background: var(--ink); color: var(--cream); font-weight: 700; }
+
+.aiBubble { border-radius: 0 16px 16px 16px; background: var(--sand); color: var(--ink); }
+
+.chatBubbleText { white-space: pre-line; }
+
+.chatTime { display: block; margin-top: 4px; font-size: 10px; opacity: 0.5; }
+
+.chatbotInputArea { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--sand); }
+
+.chatbotInput {
+  flex: 1;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  outline: none;
+}
+
+.chatbotInput::placeholder { color: var(--text-muted); }
+
+.chatbotInput:focus { box-shadow: 0 0 0 2px var(--honey); }
+
+.chatbotSendBtn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chatbotSendBtn:hover { background: var(--ink-hover); }
+
+.sendIcon { width: 18px; height: 18px; transform: rotate(90deg); }
+
+@media (max-width: 900px) {
+.friendWindow,
+  .chatbotWindow {
+    right: 16px;
+    width: calc(100vw - 32px);
+  }
+.friendFab {
+    right: 16px;
+    bottom: 76px;
+  }
+.chatbotFab {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@keyframes popUpChat {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 친구 · 채팅 버튼과 AI 챗봇 버튼 크기 통일 (같은 너비 · 높이, 내용 가운데 정렬) */
+.friendFab,
+.chatbotFab {
+  width: 156px;
+  height: 46px;
+  padding: 0 16px;
+  gap: 8px;
+  justify-content: center;
+  box-sizing: border-box;
+  letter-spacing: 0.04em;
+}
+
+/* 같은 우선순위에서 위 규칙을 덮어쓰도록 파일 맨 끝에 둠 */
+/* 홈 데스크톱(>1024px)에서는 오른쪽 sticky 사이드바와 중복되므로 친구 · 채팅 버튼/팝업 숨김 */
+.friendFabMobileOnly,
+.friendWindowMobileOnly {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .friendFabMobileOnly,
+  .friendWindowMobileOnly {
+    display: flex;
+  }
+}
