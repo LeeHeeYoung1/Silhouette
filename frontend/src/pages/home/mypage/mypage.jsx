@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../../api/client';
+import useAuthStore from '../../../stores/useAuthStore';
 import styles from './mypage.module.css';
 import ob from '../../onboarding/onboarding.module.css';   // 수정 모드 칩 · 입력칸 (온보딩 · 프로필과 같은 모양)
 import {
@@ -482,9 +483,10 @@ function MyPage() {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [form, setForm] = useState({ title: '', startAt: '', memo: '' });
 
-    // 회원 탈퇴 (목업)
+    // 회원 탈퇴 (비밀번호 확인만)
     const [withdrawCheck, setWithdrawCheck] = useState(false);
     const [withdrawPw, setWithdrawPw] = useState('');
+    const [withdrawing, setWithdrawing] = useState(false);
 
     // 토스트 메시지
     const [toast, setToast] = useState('');
@@ -930,12 +932,26 @@ function MyPage() {
         showToast('일정이 삭제되었습니다.');
     };
 
-    /* ===================== 회원 탈퇴 (목업) ===================== */
-    const handleWithdraw = () => {
+    /* ===================== 회원 탈퇴 (비밀번호 확인만) ===================== */
+    const handleWithdraw = async () => {
         if (!withdrawCheck) { alert('유의사항 확인 및 탈퇴 동의에 체크해 주세요.'); return; }
-        if (!withdrawPw) { alert('비밀번호를 입력해 주세요.'); return; }
-        if (window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) {
-            alert('탈퇴 처리가 완료되었습니다.');
+        if (!withdrawPw) { alert('본인 확인 비밀번호를 입력해 주세요.'); return; }
+        if (withdrawing) return;
+
+        if (!window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) return;
+
+        try {
+            setWithdrawing(true);
+            const resp = await Client.post('/api/mypage/withdraw', {
+                password: withdrawPw
+            });
+            alert(resp.data?.message || '탈퇴 처리가 완료되었습니다.');
+            useAuthStore.getState().logout();
+            navigate('/login');
+        } catch (err) {
+            alert(errorMessage(err, '회원 탈퇴에 실패했습니다.'));
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -1615,8 +1631,13 @@ function MyPage() {
                                     <label className={cx('web-label')}>본인 확인 비밀번호</label>
                                     <input type="password" className={cx('web-input')} value={withdrawPw} onChange={(e) => setWithdrawPw(e.target.value)} placeholder="비밀번호를 입력하세요" />
                                 </div>
-                                <button className={cx('btn-secondary')} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }} onClick={handleWithdraw}>
-                                    실루엣 회원 탈퇴 확정
+                                <button
+                                    className={cx('btn-secondary')}
+                                    style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }}
+                                    onClick={handleWithdraw}
+                                    disabled={withdrawing}
+                                >
+                                    {withdrawing ? '탈퇴 처리 중...' : '실루엣 회원 탈퇴 확정'}
                                 </button>
                             </div>
                         </div>
