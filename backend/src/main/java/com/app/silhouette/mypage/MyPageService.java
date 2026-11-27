@@ -43,6 +43,9 @@ public class MyPageService {
 		if (!NICKNAME.matcher(value).matches()) {
 			throw new IllegalArgumentException("닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.");
 		}
+		if (value.toLowerCase().contains("admin") || value.contains("관리자")) {
+			throw new IllegalArgumentException("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+		}
 		boolean available = myPageDAO.countNickname(me.getMemberSeq(), value) == 0;
 		return Map.of("available", available);
 	}
@@ -62,6 +65,9 @@ public class MyPageService {
 
 		if (!NICKNAME.matcher(nickname).matches()) {
 			throw new IllegalArgumentException("닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.");
+		}
+		if (nickname.toLowerCase().contains("admin") || nickname.contains("관리자")) {
+			throw new IllegalArgumentException("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
 		}
 		if (!PHONE.matcher(phone).matches()) {
 			throw new IllegalArgumentException("핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.");

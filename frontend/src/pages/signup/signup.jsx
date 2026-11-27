@@ -31,6 +31,8 @@ function Signup() {
   const [errors, setErrors] = useState({});
   const [idCheckStatus, setIdCheckStatus] = useState(null);
   const [idCheckMessage, setIdCheckMessage] = useState('');
+  const [nicknameCheckStatus, setNicknameCheckStatus] = useState(null);
+  const [nicknameCheckMessage, setNicknameCheckMessage] = useState('');
 
   // 휴대폰 본인인증 (Solapi SMS) 상태
   const [phoneAuthCode, setPhoneAuthCode] = useState('');
@@ -123,6 +125,12 @@ function Signup() {
       setIdCheckMessage('');
     }
 
+    // 닉네임 변경 시 중복검사 초기화
+    if (name === 'nickname') {
+      setNicknameCheckStatus(null);
+      setNicknameCheckMessage('');
+    }
+
     // 비밀번호 변경 시 비밀번호 확인 상태 초기화
     if (name === 'password' || name === 'passwordConfirm') {
       setPwConfirmMessage('');
@@ -195,6 +203,54 @@ function Signup() {
       console.log(error);
       setIdCheckStatus('INVALID');
       setIdCheckMessage('아이디 중복 확인에 실패했습니다.');
+    }
+  };
+
+  // 닉네임 중복 확인
+  const handleCheckNicknameDuplicate = async () => {
+    const nick = formData.nickname.trim();
+    if (!nick) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage('닉네임을 먼저 입력해 주세요.');
+      return;
+    }
+
+    if (!regexNickname.test(nick)) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage(
+        '닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.'
+      );
+      return;
+    }
+
+    if (nick.toLowerCase().includes('admin') || nick.includes('관리자')) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+      return;
+    }
+
+    try {
+      const resp = await Client.get(
+        '/members/nicknameCheck',
+        {
+          params: {
+            nickname: nick,
+          },
+        }
+      );
+
+      if (resp.data === true) {
+        setNicknameCheckStatus('SUCCESS');
+        setNicknameCheckMessage('사용 가능한 닉네임입니다.');
+      } else {
+        setNicknameCheckStatus('DUPLICATE');
+        setNicknameCheckMessage('이미 사용 중인 닉네임입니다.');
+      }
+
+    } catch (error) {
+      console.log(error);
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage('닉네임 중복 확인에 실패했습니다.');
     }
   };
 
@@ -384,9 +440,18 @@ function Signup() {
         '이름은 한글 2~10자리로 입력해 주세요.';
     }
 
-    if (!regexNickname.test(formData.nickname)) {
+    if (!formData.nickname.trim()) {
+      newErrors.nickname = '닉네임을 입력해 주세요.';
+    } else if (!regexNickname.test(formData.nickname)) {
       newErrors.nickname =
         '닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.';
+    } else if (
+      formData.nickname.toLowerCase().includes('admin') ||
+      formData.nickname.includes('관리자')
+    ) {
+      newErrors.nickname = "닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.";
+    } else if (nicknameCheckStatus !== 'SUCCESS') {
+      newErrors.nickname = '닉네임 중복 검사를 진행해 주세요.';
     }
 
     if (!regexEmail.test(formData.email)) {
@@ -467,6 +532,13 @@ function Signup() {
     // 아이디 중복검사 여부 재확인
     if (idCheckStatus !== 'SUCCESS') {
       alert('아이디 중복 검사를 진행해 주세요.');
+      setCurrentStep(1);
+      return;
+    }
+
+    // 닉네임 중복검사 여부 재확인
+    if (nicknameCheckStatus !== 'SUCCESS') {
+      alert('닉네임 중복 검사를 진행해 주세요.');
       setCurrentStep(1);
       return;
     }
@@ -728,57 +800,79 @@ function Signup() {
             )}
           </div>
 
-          {/* 이름과 닉네임 */}
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label
-                className={styles.formLabel}
-                htmlFor="name"
-              >
-                성명 *
-              </label>
+          {/* 성명 */}
+          <div className={styles.formGroup}>
+            <label
+              className={styles.formLabel}
+              htmlFor="name"
+            >
+              성명 *
+            </label>
 
-              <input
-                id="name"
-                name="name"
-                type="text"
-                className={styles.input}
-                placeholder="홍길동"
-                value={formData.name}
-                onChange={handleChange}
-              />
+            <input
+              id="name"
+              name="name"
+              type="text"
+              className={styles.input}
+              placeholder="홍길동"
+              value={formData.name}
+              onChange={handleChange}
+            />
 
-              {errors.name && (
-                <div className={`${styles.validationMsg} ${styles.error}`}>
-                  ⚠️ {errors.name}
-                </div>
-              )}
-            </div>
+            {errors.name && (
+              <div className={`${styles.validationMsg} ${styles.error}`}>
+                ⚠️ {errors.name}
+              </div>
+            )}
+          </div>
 
-            <div className={styles.formGroup}>
-              <label
-                className={styles.formLabel}
-                htmlFor="nickname"
-              >
-                닉네임 *
-              </label>
+          {/* 닉네임 */}
+          <div className={styles.formGroup}>
+            <label
+              className={styles.formLabel}
+              htmlFor="nickname"
+            >
+              닉네임 (NICKNAME) *
+            </label>
 
+            <div className={styles.inputWithButton}>
               <input
                 id="nickname"
                 name="nickname"
                 type="text"
                 className={styles.input}
-                placeholder="닉네임"
+                placeholder="영문, 숫자, 한글 2~20자리"
                 value={formData.nickname}
                 onChange={handleChange}
               />
 
-              {errors.nickname && (
-                <div className={`${styles.validationMsg} ${styles.error}`}>
-                  ⚠️ {errors.nickname}
-                </div>
-              )}
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={handleCheckNicknameDuplicate}
+              >
+                중복검사
+              </button>
             </div>
+
+            {nicknameCheckMessage && (
+              <div
+                className={`${styles.validationMsg} ${
+                  nicknameCheckStatus === 'SUCCESS'
+                    ? styles.success
+                    : styles.error
+                }`}
+              >
+                {nicknameCheckStatus === 'SUCCESS' ? '✓ ' : '⚠️ '}
+                {nicknameCheckMessage}
+              </div>
+            )}
+
+            {errors.nickname && !nicknameCheckMessage && (
+              <div className={`${styles.validationMsg} ${styles.error}`}>
+                ⚠️ {errors.nickname}
+              </div>
+            )}
           </div>
 
           {/* 성별과 생년월일 */}
