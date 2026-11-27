@@ -22,6 +22,12 @@ public class InterceptorConfig implements WebMvcConfigurer{
                 "/auth/login",
                 "/members/idCheck",
                 "/members/phone/**",
+                "/members/find-id/**",
+                "/members/find-pw/**",
+                "/api/profile/image/**",
+                "/api/notices/**",
+                "/api/faqs/**",
+                "/error",
                 "/chat",
                 "/chat/**",
                 "/blind",                  // 블라인드 채팅 STOMP 핸드셰이크
