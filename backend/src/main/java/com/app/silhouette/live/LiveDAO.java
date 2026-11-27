@@ -137,7 +137,12 @@ public class LiveDAO {
         return mybatis.update(NS + "kickViewer",
                 Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
     }
-    
+
+    // 이번 방송 강퇴 목록 (방송자가 차단한 회원 제외)
+    public List<LiveViewerDTO> selectKicked(long liveRoomSeq, long hostSeq) {
+        return mybatis.selectList(NS + "selectKicked",
+                Map.of("liveRoomSeq", liveRoomSeq, "hostSeq", hostSeq));
+    }
 
     public int unkickViewer(long liveRoomSeq, long memberSeq) {
         return mybatis.update(NS + "unkickViewer",
@@ -220,5 +225,16 @@ public class LiveDAO {
 
     public int updateReportsDoneByRoom(long liveRoomSeq) {
         return mybatis.update(NS + "updateReportsDoneByRoom", liveRoomSeq);
+    }
+
+    // ===== 관리자: 채팅 신고 작성자 강퇴 =====
+
+    public LiveReportDTO selectReportTarget(long liveReportSeq) {
+        return mybatis.selectOne(NS + "selectReportTarget", liveReportSeq);
+    }
+
+    public int updateReportsDoneByChatMember(long liveRoomSeq, long memberSeq) {
+        return mybatis.update(NS + "updateReportsDoneByChatMember",
+                Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
     }
 }

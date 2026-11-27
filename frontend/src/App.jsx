@@ -25,6 +25,7 @@ import FoodTest from './pages/event/foodTest';
 import BeautyTest from './pages/event/beautytest';
 import LoveValueTest from './pages/event/loveValueTest';
 import MBTITest from './pages/event/MBTITest';
+import Ticket from './pages/ticket/ticket';
 
 
 import Onboarding from './pages/onboarding/onboarding';
@@ -90,6 +91,7 @@ function App() {
         <Route path="/admin/live" element={<LiveAdmin />} />
         <Route path="/admin/reports" element={<AdminReport />} />          {/* 🛡️ 관리자 신고 · 블랙리스트 */}
         <Route path="/mypage" element={<MyPage />} />
+        <Route path="/ticket" element={<Ticket />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/chatting/:roomId" element={<Chatting />} />

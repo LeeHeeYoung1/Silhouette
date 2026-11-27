@@ -521,6 +521,8 @@
   }
 
   .header {
+    /* 세로 배치에서는 flex-basis 1140px이 높이로 적용돼 헤더 위아래가 크게 비므로 내용 높이로 */
+    flex: none;
     width: 100%;
     max-width: 1140px;
     flex-wrap: wrap;
@@ -573,6 +575,16 @@
   pointer-events: none;
 }
 
+/* 이벤트·게시판·라이브처럼 PageHero가 있는 화면: 이동 바는 히어로 아래 경계(홈과 같은 위치)에 있으므로 헤더의 이동 바는 숨김 */
+.loggedIn:has(:global([data-page-hero])) .navLinks {
+  display: none;
+}
+
+/* 라이브 방송방 안: 오른쪽 채팅 입력창을 가리지 않도록 플로팅 버튼(친구 · 채팅, AI 챗봇) 숨김 */
+.appContainer:has(:global([data-live-room])) :global([data-floating-dock]) {
+  display: none;
+}
+
 .headerRow { margin-bottom: 8px; }
 
 .header {
@@ -598,40 +610,57 @@
 .navLinks {
   flex: 0 0 auto;
   margin: 0;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 6px 8px;
   border-radius: 9999px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(34, 32, 30, 0.06);
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 4px 16px rgba(34, 32, 30, 0.05);
 }
 .navBtn {
-  padding: 6px 16px;
+  min-height: 40px;
+  padding: 8px 20px;
   border: 0;
   border-radius: 9999px;
   background: transparent;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 800;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  transition: all 0.2s ease;
 }
-.navBtn:hover { background: var(--sand); color: var(--ink); border-color: transparent; transform: none; }
+.navBtn:hover {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  border-color: transparent;
+  transform: none;
+}
 .navBtnActive,
-.navBtnActive:hover { background: var(--ink); color: var(--cream) !important; border: 0; box-shadow: none; }
+.navBtnActive:hover {
+  background: var(--honey) !important;
+  color: var(--ink) !important;
+  font-weight: 800;
+  border: 0;
+  box-shadow: 0 2px 10px rgba(255, 211, 78, 0.45);
+}
 
 .userBar {
   flex: 0 0 auto;
   width: auto;
   gap: 4px;
   padding: 6px 10px;
-  border: 0;
+  border: 1px solid var(--hairline);
   border-radius: 9999px;
-  background: #fff;
+  background: var(--sand);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: 0 2px 8px rgba(34, 32, 30, 0.06);
+  box-shadow: 0 4px 16px rgba(34, 32, 30, 0.05);
 }
-.userProfileGroup:hover { background: var(--sand); }
+.userProfileGroup:hover { background: rgba(255, 255, 255, 0.65); }
 .userAvatar { border: 0; box-shadow: none; }
 .userNickname { font-weight: 800; }
 .userActionBtn {

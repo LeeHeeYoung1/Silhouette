@@ -1,0 +1,72 @@
+/* MainNav.module.css — 홈 · 이벤트 · 게시판 · 라이브 공통 이동 바 (홈 상단 메뉴와 같은 허니 옐로 캡슐 필 바) */
+
+.pillWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 9999px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 4px 16px rgba(34, 32, 30, 0.05);
+  max-width: 520px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pill {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.pill:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 활성 메뉴: 허니 옐로 캡슐 */
+.pillActive,
+.pillActive:hover {
+  background: var(--honey);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(255, 211, 78, 0.45);
+}
+
+@media (max-width: 768px) {
+  .pillWrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    justify-content: flex-start;
+    padding: 5px 6px;
+    gap: 6px;
+  }
+
+  .pillWrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pill {
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}

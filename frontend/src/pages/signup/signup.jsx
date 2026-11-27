@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../api/client';
 import { INITIAL_TERMS } from '../../mockData';
@@ -31,6 +31,32 @@ function Signup() {
   const [errors, setErrors] = useState({});
   const [idCheckStatus, setIdCheckStatus] = useState(null);
   const [idCheckMessage, setIdCheckMessage] = useState('');
+  const [nicknameCheckStatus, setNicknameCheckStatus] = useState(null);
+  const [nicknameCheckMessage, setNicknameCheckMessage] = useState('');
+
+  // 휴대폰 본인인증 (Solapi SMS) 상태
+  const [phoneAuthCode, setPhoneAuthCode] = useState('');
+  const [isPhoneSending, setIsPhoneSending] = useState(false);
+  const [isPhoneCodeSent, setIsPhoneCodeSent] = useState(false);
+  const [isPhoneVerifying, setIsPhoneVerifying] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [phoneAuthStatus, setPhoneAuthStatus] = useState(null);
+  const [phoneAuthMessage, setPhoneAuthMessage] = useState('');
+  const [phoneTimer, setPhoneTimer] = useState(0);
+
+  useEffect(() => {
+    if (!isPhoneCodeSent || isPhoneVerified || phoneTimer <= 0) return;
+    const interval = setInterval(() => {
+      setPhoneTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPhoneCodeSent, isPhoneVerified, phoneTimer]);
 
   // 비밀번호 확인 상태
   const [pwConfirmMessage, setPwConfirmMessage] = useState('');
@@ -83,6 +109,13 @@ function Signup() {
         [name]: formattedPhone
       }));
 
+      setIsPhoneCodeSent(false);
+      setIsPhoneVerified(false);
+      setPhoneAuthCode('');
+      setPhoneAuthStatus(null);
+      setPhoneAuthMessage('');
+      setPhoneTimer(0);
+
       return;
     }
 
@@ -90,6 +123,12 @@ function Signup() {
     if (name === 'loginId') {
       setIdCheckStatus(null);
       setIdCheckMessage('');
+    }
+
+    // 닉네임 변경 시 중복검사 초기화
+    if (name === 'nickname') {
+      setNicknameCheckStatus(null);
+      setNicknameCheckMessage('');
     }
 
     // 비밀번호 변경 시 비밀번호 확인 상태 초기화
@@ -167,11 +206,122 @@ function Signup() {
     }
   };
 
-  // 휴대폰 본인인증 안내
-  const handlePhoneAuth = () => {
-    alert(
-      '✨ 본인확인 인증 기능은 프로젝트 후반부에 연동 예정입니다.'
-    );
+  // 닉네임 중복 확인
+  const handleCheckNicknameDuplicate = async () => {
+    const nick = formData.nickname.trim();
+    if (!nick) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage('닉네임을 먼저 입력해 주세요.');
+      return;
+    }
+
+    if (!regexNickname.test(nick)) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage(
+        '닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.'
+      );
+      return;
+    }
+
+    if (nick.toLowerCase().includes('admin') || nick.includes('관리자')) {
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+      return;
+    }
+
+    try {
+      const resp = await Client.get(
+        '/members/nicknameCheck',
+        {
+          params: {
+            nickname: nick,
+          },
+        }
+      );
+
+      if (resp.data === true) {
+        setNicknameCheckStatus('SUCCESS');
+        setNicknameCheckMessage('사용 가능한 닉네임입니다.');
+      } else {
+        setNicknameCheckStatus('DUPLICATE');
+        setNicknameCheckMessage('이미 사용 중인 닉네임입니다.');
+      }
+
+    } catch (error) {
+      console.log(error);
+      setNicknameCheckStatus('INVALID');
+      setNicknameCheckMessage('닉네임 중복 확인에 실패했습니다.');
+    }
+  };
+
+  // 휴대폰 본인인증 (Solapi SMS 발송)
+  const handlePhoneAuth = async () => {
+    if (!regexPhone.test(formData.phone)) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage('핸드폰 번호를 010-XXXX-XXXX 양식으로 먼저 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsPhoneSending(true);
+      setPhoneAuthStatus(null);
+      setPhoneAuthMessage('');
+
+      const resp = await Client.post('/members/phone/send', {
+        phone: formData.phone
+      });
+
+      setIsPhoneCodeSent(true);
+      setIsPhoneVerified(false);
+      setPhoneAuthCode('');
+      setPhoneTimer(180);
+      setPhoneAuthStatus('SENT');
+      setPhoneAuthMessage(resp.data?.message || '인증번호가 발송되었습니다.');
+    } catch (error) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage(
+        error.response?.data?.message || '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+      );
+    } finally {
+      setIsPhoneSending(false);
+    }
+  };
+
+  // 휴대폰 인증번호 검증
+  const handleVerifyPhoneCode = async () => {
+    if (!phoneAuthCode.trim() || phoneAuthCode.trim().length !== 6) {
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage('6자리 인증번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsPhoneVerifying(true);
+      const resp = await Client.post('/members/phone/verify', {
+        phone: formData.phone,
+        code: phoneAuthCode.trim()
+      });
+
+      setIsPhoneVerified(true);
+      setPhoneTimer(0);
+      setPhoneAuthStatus('SUCCESS');
+      setPhoneAuthMessage(resp.data?.message || '휴대폰 본인인증이 완료되었습니다.');
+      setErrors((prev) => ({ ...prev, phone: undefined }));
+    } catch (error) {
+      setIsPhoneVerified(false);
+      setPhoneAuthStatus('ERROR');
+      setPhoneAuthMessage(
+        error.response?.data?.message || '인증번호 확인에 실패했습니다.'
+      );
+    } finally {
+      setIsPhoneVerifying(false);
+    }
+  };
+
+  const formatTimer = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? `0${s}` : s}`;
   };
 
   // 카카오 우편번호 검색
@@ -290,9 +440,18 @@ function Signup() {
         '이름은 한글 2~10자리로 입력해 주세요.';
     }
 
-    if (!regexNickname.test(formData.nickname)) {
+    if (!formData.nickname.trim()) {
+      newErrors.nickname = '닉네임을 입력해 주세요.';
+    } else if (!regexNickname.test(formData.nickname)) {
       newErrors.nickname =
         '닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.';
+    } else if (
+      formData.nickname.toLowerCase().includes('admin') ||
+      formData.nickname.includes('관리자')
+    ) {
+      newErrors.nickname = "닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.";
+    } else if (nicknameCheckStatus !== 'SUCCESS') {
+      newErrors.nickname = '닉네임 중복 검사를 진행해 주세요.';
     }
 
     if (!regexEmail.test(formData.email)) {
@@ -303,6 +462,9 @@ function Signup() {
     if (!regexPhone.test(formData.phone)) {
       newErrors.phone =
         '핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.';
+    } else if (!isPhoneVerified) {
+      newErrors.phone =
+        '휴대폰 본인인증을 완료해 주세요.';
     }
 
     if (!formData.birthDate) {
@@ -370,6 +532,20 @@ function Signup() {
     // 아이디 중복검사 여부 재확인
     if (idCheckStatus !== 'SUCCESS') {
       alert('아이디 중복 검사를 진행해 주세요.');
+      setCurrentStep(1);
+      return;
+    }
+
+    // 닉네임 중복검사 여부 재확인
+    if (nicknameCheckStatus !== 'SUCCESS') {
+      alert('닉네임 중복 검사를 진행해 주세요.');
+      setCurrentStep(1);
+      return;
+    }
+
+    // 휴대폰 본인인증 여부 재확인
+    if (!isPhoneVerified) {
+      alert('휴대폰 본인인증을 완료해 주세요.');
       setCurrentStep(1);
       return;
     }
@@ -624,57 +800,79 @@ function Signup() {
             )}
           </div>
 
-          {/* 이름과 닉네임 */}
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label
-                className={styles.formLabel}
-                htmlFor="name"
-              >
-                성명 *
-              </label>
+          {/* 성명 */}
+          <div className={styles.formGroup}>
+            <label
+              className={styles.formLabel}
+              htmlFor="name"
+            >
+              성명 *
+            </label>
 
-              <input
-                id="name"
-                name="name"
-                type="text"
-                className={styles.input}
-                placeholder="홍길동"
-                value={formData.name}
-                onChange={handleChange}
-              />
+            <input
+              id="name"
+              name="name"
+              type="text"
+              className={styles.input}
+              placeholder="홍길동"
+              value={formData.name}
+              onChange={handleChange}
+            />
 
-              {errors.name && (
-                <div className={`${styles.validationMsg} ${styles.error}`}>
-                  ⚠️ {errors.name}
-                </div>
-              )}
-            </div>
+            {errors.name && (
+              <div className={`${styles.validationMsg} ${styles.error}`}>
+                ⚠️ {errors.name}
+              </div>
+            )}
+          </div>
 
-            <div className={styles.formGroup}>
-              <label
-                className={styles.formLabel}
-                htmlFor="nickname"
-              >
-                닉네임 *
-              </label>
+          {/* 닉네임 */}
+          <div className={styles.formGroup}>
+            <label
+              className={styles.formLabel}
+              htmlFor="nickname"
+            >
+              닉네임 (NICKNAME) *
+            </label>
 
+            <div className={styles.inputWithButton}>
               <input
                 id="nickname"
                 name="nickname"
                 type="text"
                 className={styles.input}
-                placeholder="닉네임"
+                placeholder="영문, 숫자, 한글 2~20자리"
                 value={formData.nickname}
                 onChange={handleChange}
               />
 
-              {errors.nickname && (
-                <div className={`${styles.validationMsg} ${styles.error}`}>
-                  ⚠️ {errors.nickname}
-                </div>
-              )}
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={handleCheckNicknameDuplicate}
+              >
+                중복검사
+              </button>
             </div>
+
+            {nicknameCheckMessage && (
+              <div
+                className={`${styles.validationMsg} ${
+                  nicknameCheckStatus === 'SUCCESS'
+                    ? styles.success
+                    : styles.error
+                }`}
+              >
+                {nicknameCheckStatus === 'SUCCESS' ? '✓ ' : '⚠️ '}
+                {nicknameCheckMessage}
+              </div>
+            )}
+
+            {errors.nickname && !nicknameCheckMessage && (
+              <div className={`${styles.validationMsg} ${styles.error}`}>
+                ⚠️ {errors.nickname}
+              </div>
+            )}
           </div>
 
           {/* 성별과 생년월일 */}
@@ -744,16 +942,56 @@ function Signup() {
                 placeholder="010-1234-5678"
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isPhoneVerified}
               />
 
               <button
                 type="button"
                 className={styles.btnSecondary}
                 onClick={handlePhoneAuth}
+                disabled={isPhoneSending || isPhoneVerified}
               >
-                본인확인 인증
+                {isPhoneVerified
+                  ? '인증완료'
+                  : isPhoneSending
+                    ? '발송 중...'
+                    : isPhoneCodeSent
+                      ? '재전송'
+                      : '본인확인 인증'}
               </button>
             </div>
+
+            {isPhoneCodeSent && !isPhoneVerified && (
+              <div className={styles.inputWithButton} style={{ marginTop: '8px' }}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  className={styles.input}
+                  placeholder={`인증번호 6자리 입력 (${formatTimer(phoneTimer)})`}
+                  value={phoneAuthCode}
+                  onChange={(e) => setPhoneAuthCode(e.target.value.replace(/[^0-9]/g, ''))}
+                />
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={handleVerifyPhoneCode}
+                  disabled={isPhoneVerifying || phoneTimer === 0}
+                >
+                  {isPhoneVerifying ? '확인 중...' : '인증 확인'}
+                </button>
+              </div>
+            )}
+
+            {phoneAuthMessage && (
+              <div
+                className={`${styles.validationMsg} ${
+                  phoneAuthStatus === 'ERROR' ? styles.error : styles.success
+                }`}
+              >
+                {phoneAuthStatus === 'ERROR' ? '⚠️ ' : '✔ '}
+                {phoneAuthMessage}
+              </div>
+            )}
 
             {errors.phone && (
               <div className={`${styles.validationMsg} ${styles.error}`}>

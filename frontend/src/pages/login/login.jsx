@@ -1,8 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import styles from './login.module.css';
 import Client from '../../api/client';
+
+const REGEX_PASSWORD =
+  /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?~`-]).{8,20}$/;
+
+const formatPhone = (value) => {
+  const numbers = value.replace(/[^0-9]/g, '');
+  if (numbers.length > 7) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  }
+  if (numbers.length > 3) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  }
+  return numbers;
+};
 
 function Login() {
   const navigate = useNavigate();
@@ -17,24 +31,242 @@ function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 아이디 찾기 입력 상태 (UI용)
+  // 아이디 찾기 입력 및 본인인증 상태 (이름 + 본인인증)
   const [findIdForm, setFindIdForm] = useState({
     name: '',
-    birthDate: '',
     phone: '',
   });
+  const [findIdCode, setFindIdCode] = useState('');
+  const [isFindIdSending, setIsFindIdSending] = useState(false);
+  const [isFindIdCodeSent, setIsFindIdCodeSent] = useState(false);
+  const [isFindIdVerifying, setIsFindIdVerifying] = useState(false);
+  const [findIdTimer, setFindIdTimer] = useState(0);
+  const [findIdStatus, setFindIdStatus] = useState(null);
+  const [findIdMessage, setFindIdMessage] = useState('');
+  const [foundLoginId, setFoundLoginId] = useState('');
 
-  // 비밀번호 찾기 입력 상태 (UI용)
+  // 비밀번호 찾기 입력 및 본인인증 상태 (아이디 + 이름 + 본인인증)
   const [findPwForm, setFindPwForm] = useState({
     id: '',
     name: '',
-    birthDate: '',
     phone: '',
   });
+  const [findPwCode, setFindPwCode] = useState('');
+  const [isFindPwSending, setIsFindPwSending] = useState(false);
+  const [isFindPwCodeSent, setIsFindPwCodeSent] = useState(false);
+  const [isFindPwVerifying, setIsFindPwVerifying] = useState(false);
+  const [isFindPwVerified, setIsFindPwVerified] = useState(false);
+  const [findPwTimer, setFindPwTimer] = useState(0);
+  const [findPwStatus, setFindPwStatus] = useState(null);
+  const [findPwMessage, setFindPwMessage] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [isResettingPw, setIsResettingPw] = useState(false);
+
+  useEffect(() => {
+    if (!isFindIdCodeSent || foundLoginId || findIdTimer <= 0) return;
+    const interval = setInterval(() => {
+      setFindIdTimer((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isFindIdCodeSent, foundLoginId, findIdTimer]);
+
+  useEffect(() => {
+    if (!isFindPwCodeSent || isFindPwVerified || findPwTimer <= 0) return;
+    const interval = setInterval(() => {
+      setFindPwTimer((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isFindPwCodeSent, isFindPwVerified, findPwTimer]);
+
+  const formatTimer = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? `0${s}` : s}`;
+  };
 
   const handleViewChange = (view) => {
     setErrorMessage('');
     setCurrentView(view);
+  };
+
+  // ==================== 아이디 찾기 핸들러 ====================
+  const handleSendFindIdCode = async () => {
+    if (!findIdForm.name.trim()) {
+      setFindIdStatus('ERROR');
+      setFindIdMessage('이름을 입력해 주세요.');
+      return;
+    }
+    if (findIdForm.phone.replace(/\D/g, '').length < 10) {
+      setFindIdStatus('ERROR');
+      setFindIdMessage('휴대폰 번호를 정확히 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsFindIdSending(true);
+      setFindIdStatus(null);
+      setFindIdMessage('');
+      setFoundLoginId('');
+
+      const resp = await Client.post('/members/find-id/send', {
+        name: findIdForm.name.trim(),
+        phone: findIdForm.phone.trim(),
+      });
+
+      setIsFindIdCodeSent(true);
+      setFindIdCode('');
+      setFindIdTimer(180);
+      setFindIdStatus('SENT');
+      setFindIdMessage(resp.data?.message || '인증번호가 발송되었습니다.');
+    } catch (err) {
+      setFindIdStatus('ERROR');
+      setFindIdMessage(
+        err.response?.data?.message || '인증번호 발송에 실패했습니다.'
+      );
+    } finally {
+      setIsFindIdSending(false);
+    }
+  };
+
+  const handleVerifyFindIdCode = async () => {
+    if (findIdCode.trim().length !== 6) {
+      setFindIdStatus('ERROR');
+      setFindIdMessage('6자리 인증번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsFindIdVerifying(true);
+      const resp = await Client.post('/members/find-id/verify', {
+        name: findIdForm.name.trim(),
+        phone: findIdForm.phone.trim(),
+        code: findIdCode.trim(),
+      });
+
+      setFoundLoginId(resp.data?.loginId || '');
+      setFindIdTimer(0);
+      setFindIdStatus('SUCCESS');
+      setFindIdMessage(resp.data?.message || '본인인증이 완료되었습니다.');
+    } catch (err) {
+      setFindIdStatus('ERROR');
+      setFindIdMessage(
+        err.response?.data?.message || '인증번호 확인에 실패했습니다.'
+      );
+    } finally {
+      setIsFindIdVerifying(false);
+    }
+  };
+
+  // ==================== 비밀번호 찾기 핸들러 ====================
+  const handleSendFindPwCode = async () => {
+    if (!findPwForm.id.trim()) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('아이디를 입력해 주세요.');
+      return;
+    }
+    if (!findPwForm.name.trim()) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('이름을 입력해 주세요.');
+      return;
+    }
+    if (findPwForm.phone.replace(/\D/g, '').length < 10) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('휴대폰 번호를 정확히 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsFindPwSending(true);
+      setFindPwStatus(null);
+      setFindPwMessage('');
+      setIsFindPwVerified(false);
+
+      const resp = await Client.post('/members/find-pw/send', {
+        loginId: findPwForm.id.trim(),
+        name: findPwForm.name.trim(),
+        phone: findPwForm.phone.trim(),
+      });
+
+      setIsFindPwCodeSent(true);
+      setFindPwCode('');
+      setFindPwTimer(180);
+      setFindPwStatus('SENT');
+      setFindPwMessage(resp.data?.message || '인증번호가 발송되었습니다.');
+    } catch (err) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage(
+        err.response?.data?.message || '인증번호 발송에 실패했습니다.'
+      );
+    } finally {
+      setIsFindPwSending(false);
+    }
+  };
+
+  const handleVerifyFindPwCode = async () => {
+    if (findPwCode.trim().length !== 6) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('6자리 인증번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsFindPwVerifying(true);
+      const resp = await Client.post('/members/find-pw/verify', {
+        loginId: findPwForm.id.trim(),
+        name: findPwForm.name.trim(),
+        phone: findPwForm.phone.trim(),
+        code: findPwCode.trim(),
+      });
+
+      setIsFindPwVerified(true);
+      setFindPwTimer(0);
+      setFindPwStatus('SUCCESS');
+      setFindPwMessage(resp.data?.message || '본인인증이 완료되었습니다. 새 비밀번호를 입력해 주세요.');
+    } catch (err) {
+      setIsFindPwVerified(false);
+      setFindPwStatus('ERROR');
+      setFindPwMessage(
+        err.response?.data?.message || '인증번호 확인에 실패했습니다.'
+      );
+    } finally {
+      setIsFindPwVerifying(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!REGEX_PASSWORD.test(newPassword)) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('새 비밀번호는 영문 대소문자, 숫자, 특수기호 포함 8~20자리여야 합니다.');
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      setIsResettingPw(true);
+      const resp = await Client.post('/members/find-pw/reset', {
+        loginId: findPwForm.id.trim(),
+        name: findPwForm.name.trim(),
+        phone: findPwForm.phone.trim(),
+        newPassword,
+      });
+
+      alert(resp.data?.message || '비밀번호가 성공적으로 변경되었습니다.');
+      setLoginId(findPwForm.id.trim());
+      setPassword('');
+      handleViewChange('login');
+    } catch (err) {
+      setFindPwStatus('ERROR');
+      setFindPwMessage(
+        err.response?.data?.message || '비밀번호 재설정에 실패했습니다.'
+      );
+    } finally {
+      setIsResettingPw(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -66,9 +298,12 @@ function Login() {
 
       navigate('/');
     } catch (error) {
-      setErrorMessage(
-        error.response?.data || '아이디 또는 비밀번호가 일치하지 않습니다.'
-      );
+      const data = error.response?.data;
+      const msg =
+        typeof data === 'string'
+          ? data
+          : data?.message || '아이디 또는 비밀번호가 일치하지 않습니다.';
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +434,7 @@ function Login() {
                 </div>
                 <h1 className={styles.title}>아이디 찾기</h1>
                 <p className={styles.subtitle}>
-                  가입 시 등록한 이름, 생년월일, 휴대폰 번호로<br />
+                  가입 시 등록한 이름과 휴대폰 번호로<br />
                   본인인증을 진행해 주세요.
                 </p>
               </div>
@@ -215,25 +450,9 @@ function Login() {
                     className={styles.input}
                     placeholder="이름을 입력하세요"
                     value={findIdForm.name}
+                    disabled={Boolean(foundLoginId)}
                     onChange={(e) =>
                       setFindIdForm({ ...findIdForm, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} htmlFor="findIdBirthDate">
-                    생년월일 (8자리)
-                  </label>
-                  <input
-                    id="findIdBirthDate"
-                    type="text"
-                    maxLength={8}
-                    className={styles.input}
-                    placeholder="예: 19990101"
-                    value={findIdForm.birthDate}
-                    onChange={(e) =>
-                      setFindIdForm({ ...findIdForm, birthDate: e.target.value })
                     }
                   />
                 </div>
@@ -242,29 +461,103 @@ function Login() {
                   <label className={styles.formLabel} htmlFor="findIdPhone">
                     휴대폰 번호
                   </label>
-                  <input
-                    id="findIdPhone"
-                    type="tel"
-                    className={styles.input}
-                    placeholder="휴대폰 번호 ('-' 제외 입력)"
-                    value={findIdForm.phone}
-                    onChange={(e) =>
-                      setFindIdForm({ ...findIdForm, phone: e.target.value })
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      id="findIdPhone"
+                      type="tel"
+                      maxLength={13}
+                      className={styles.input}
+                      placeholder="010-1234-5678"
+                      value={findIdForm.phone}
+                      disabled={Boolean(foundLoginId)}
+                      onChange={(e) => {
+                        setFindIdForm({
+                          ...findIdForm,
+                          phone: formatPhone(e.target.value),
+                        });
+                        setIsFindIdCodeSent(false);
+                        setFindIdCode('');
+                        setFindIdTimer(0);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.submitBtn}
+                      style={{ width: 'auto', marginTop: 0, padding: '0 18px', whiteSpace: 'nowrap', fontSize: '13px' }}
+                      onClick={handleSendFindIdCode}
+                      disabled={isFindIdSending || Boolean(foundLoginId)}
+                    >
+                      {foundLoginId
+                        ? '인증완료'
+                        : isFindIdSending
+                          ? '발송 중...'
+                          : isFindIdCodeSent
+                            ? '재전송'
+                            : '인증번호 발송'}
+                    </button>
+                  </div>
+                </div>
+
+                {isFindIdCodeSent && !foundLoginId && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel} htmlFor="findIdCode">
+                      인증번호 6자리 ({formatTimer(findIdTimer)})
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        id="findIdCode"
+                        type="text"
+                        maxLength={6}
+                        className={styles.input}
+                        placeholder="인증번호 6자리 입력"
+                        value={findIdCode}
+                        onChange={(e) =>
+                          setFindIdCode(e.target.value.replace(/[^0-9]/g, ''))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className={styles.submitBtn}
+                        style={{ width: 'auto', marginTop: 0, padding: '0 18px', whiteSpace: 'nowrap', fontSize: '13px' }}
+                        onClick={handleVerifyFindIdCode}
+                        disabled={isFindIdVerifying || findIdTimer === 0}
+                      >
+                        {isFindIdVerifying ? '확인 중...' : '인증 확인'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {findIdMessage && (
+                  <div
+                    className={
+                      findIdStatus === 'ERROR'
+                        ? styles.errorBanner
+                        : styles.authInfoNotice
                     }
-                  />
-                </div>
+                    style={{ marginBottom: '10px' }}
+                  >
+                    {findIdStatus === 'ERROR' ? '⚠️ ' : '✔ '}
+                    {findIdMessage}
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={() => alert('본인인증 기능은 추후 연동될 예정입니다.')}
-                >
-                  본인인증하기
-                </button>
-
-                <div className={styles.authInfoNotice}>
-                  💡 본인인증 API 연동 준비 중입니다.
-                </div>
+                {foundLoginId && (
+                  <div className={styles.authInfoNotice} style={{ marginBottom: '12px', fontSize: '14px' }}>
+                    회원님의 아이디는 <strong style={{ fontSize: '16px', textDecoration: 'underline' }}>{foundLoginId}</strong> 입니다.
+                    <button
+                      type="button"
+                      className={styles.submitBtn}
+                      style={{ marginTop: '12px' }}
+                      onClick={() => {
+                        setLoginId(foundLoginId);
+                        handleViewChange('login');
+                      }}
+                    >
+                      이 아이디로 로그인하기
+                    </button>
+                  </div>
+                )}
 
                 <div className={styles.findLinks}>
                   <button
@@ -296,7 +589,7 @@ function Login() {
                 </div>
                 <h1 className={styles.title}>비밀번호 찾기</h1>
                 <p className={styles.subtitle}>
-                  아이디와 본인 확인 정보를 입력하여<br />
+                  아이디와 이름, 휴대폰 번호로<br />
                   본인인증을 진행해 주세요.
                 </p>
               </div>
@@ -312,6 +605,7 @@ function Login() {
                     className={styles.input}
                     placeholder="아이디를 입력하세요"
                     value={findPwForm.id}
+                    disabled={isFindPwVerified}
                     onChange={(e) =>
                       setFindPwForm({ ...findPwForm, id: e.target.value })
                     }
@@ -328,25 +622,9 @@ function Login() {
                     className={styles.input}
                     placeholder="이름을 입력하세요"
                     value={findPwForm.name}
+                    disabled={isFindPwVerified}
                     onChange={(e) =>
                       setFindPwForm({ ...findPwForm, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} htmlFor="findPwBirthDate">
-                    생년월일 (8자리)
-                  </label>
-                  <input
-                    id="findPwBirthDate"
-                    type="text"
-                    maxLength={8}
-                    className={styles.input}
-                    placeholder="예: 19990101"
-                    value={findPwForm.birthDate}
-                    onChange={(e) =>
-                      setFindPwForm({ ...findPwForm, birthDate: e.target.value })
                     }
                   />
                 </div>
@@ -355,29 +633,126 @@ function Login() {
                   <label className={styles.formLabel} htmlFor="findPwPhone">
                     휴대폰 번호
                   </label>
-                  <input
-                    id="findPwPhone"
-                    type="tel"
-                    className={styles.input}
-                    placeholder="휴대폰 번호 ('-' 제외 입력)"
-                    value={findPwForm.phone}
-                    onChange={(e) =>
-                      setFindPwForm({ ...findPwForm, phone: e.target.value })
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      id="findPwPhone"
+                      type="tel"
+                      maxLength={13}
+                      className={styles.input}
+                      placeholder="010-1234-5678"
+                      value={findPwForm.phone}
+                      disabled={isFindPwVerified}
+                      onChange={(e) => {
+                        setFindPwForm({
+                          ...findPwForm,
+                          phone: formatPhone(e.target.value),
+                        });
+                        setIsFindPwCodeSent(false);
+                        setIsFindPwVerified(false);
+                        setFindPwCode('');
+                        setFindPwTimer(0);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.submitBtn}
+                      style={{ width: 'auto', marginTop: 0, padding: '0 18px', whiteSpace: 'nowrap', fontSize: '13px' }}
+                      onClick={handleSendFindPwCode}
+                      disabled={isFindPwSending || isFindPwVerified}
+                    >
+                      {isFindPwVerified
+                        ? '인증완료'
+                        : isFindPwSending
+                          ? '발송 중...'
+                          : isFindPwCodeSent
+                            ? '재전송'
+                            : '인증번호 발송'}
+                    </button>
+                  </div>
+                </div>
+
+                {isFindPwCodeSent && !isFindPwVerified && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel} htmlFor="findPwCode">
+                      인증번호 6자리 ({formatTimer(findPwTimer)})
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        id="findPwCode"
+                        type="text"
+                        maxLength={6}
+                        className={styles.input}
+                        placeholder="인증번호 6자리 입력"
+                        value={findPwCode}
+                        onChange={(e) =>
+                          setFindPwCode(e.target.value.replace(/[^0-9]/g, ''))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className={styles.submitBtn}
+                        style={{ width: 'auto', marginTop: 0, padding: '0 18px', whiteSpace: 'nowrap', fontSize: '13px' }}
+                        onClick={handleVerifyFindPwCode}
+                        disabled={isFindPwVerifying || findPwTimer === 0}
+                      >
+                        {isFindPwVerifying ? '확인 중...' : '인증 확인'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {findPwMessage && (
+                  <div
+                    className={
+                      findPwStatus === 'ERROR'
+                        ? styles.errorBanner
+                        : styles.authInfoNotice
                     }
-                  />
-                </div>
+                    style={{ marginBottom: '12px' }}
+                  >
+                    {findPwStatus === 'ERROR' ? '⚠️ ' : '✔ '}
+                    {findPwMessage}
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={() => alert('본인인증 기능은 추후 연동될 예정입니다.')}
-                >
-                  본인인증하기
-                </button>
-
-                <div className={styles.authInfoNotice}>
-                  💡 본인인증 API 연동 준비 중입니다.
-                </div>
+                {isFindPwVerified && (
+                  <>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel} htmlFor="newPassword">
+                        새 비밀번호
+                      </label>
+                      <input
+                        id="newPassword"
+                        type="password"
+                        className={styles.input}
+                        placeholder="영문 대/소문자+숫자+특수기호 8~20자"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel} htmlFor="newPasswordConfirm">
+                        새 비밀번호 확인
+                      </label>
+                      <input
+                        id="newPasswordConfirm"
+                        type="password"
+                        className={styles.input}
+                        placeholder="새 비밀번호를 다시 입력하세요"
+                        value={newPasswordConfirm}
+                        onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.submitBtn}
+                      onClick={handleResetPassword}
+                      disabled={isResettingPw}
+                    >
+                      {isResettingPw ? '변경 중...' : '비밀번호 재설정 완료'}
+                    </button>
+                  </>
+                )}
 
                 <div className={styles.findLinks}>
                   <button

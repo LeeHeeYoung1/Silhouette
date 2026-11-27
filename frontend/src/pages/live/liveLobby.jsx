@@ -3,6 +3,8 @@ import { getLiveList } from '../../api/live';
 import { CATEGORIES, categoryLabel, errorMessage } from './liveConstants';
 import LiveForm from './liveForm';
 import { BanListModal } from './liveModals';
+import PageHero from '../../components/PageHero/PageHero';
+import { heroButton } from '../../components/PageHero/heroButton';
 import styles from './live.module.css';
 
 const PAGE_SIZE = 20;
@@ -76,13 +78,16 @@ function LiveLobby({ myId, notice, onStart, onWatch, onResume }) {
 
   return (
     <div className={styles.lobby}>
-      <div className={styles.lobbyHeader}>
-        <h2>라이브</h2>
-        <div className={styles.lobbyActions}>
-          <button className={styles.ghostButton} onClick={() => setModal('bans')}>차단 목록</button>
-          <button className={styles.primaryButton} onClick={() => setModal('start')}>📡 방송하기</button>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="ON AIR"
+        live
+        title="라이브 방송"
+        description="지금 방송 중인 사람들과 실시간으로 대화하고, 마음에 들면 바로 연락해보세요."
+        wordmark="LIVE"
+      >
+        <button className={heroButton.primary} onClick={() => setModal('start')}>방송하기</button>
+        <button className={heroButton.ghost} onClick={() => setModal('bans')}>차단 목록</button>
+      </PageHero>
 
       {notice && <p className={styles.noticeBox}>{notice}</p>}
 

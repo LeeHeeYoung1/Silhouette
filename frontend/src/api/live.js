@@ -28,6 +28,11 @@ export const getViewers = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}/
 export const kickViewer = (liveRoomSeq, memberSeq) =>
   Client.post(`/api/live/${liveRoomSeq}/kick/${memberSeq}`);
 
+// 이번 방송 강퇴 목록 (방송자) / 강퇴 취소
+export const getKicked = (liveRoomSeq) => Client.get(`/api/live/${liveRoomSeq}/kick`);
+export const unkickViewer = (liveRoomSeq, memberSeq) =>
+  Client.delete(`/api/live/${liveRoomSeq}/kick/${memberSeq}`);
+
 // 차단 (내 모든 방송) / 해제 / 목록
 export const banMember = (memberSeq) => Client.post(`/api/live/ban/${memberSeq}`);
 export const unbanMember = (memberSeq) => Client.delete(`/api/live/ban/${memberSeq}`);
@@ -51,6 +56,10 @@ export const adminEndLive = (liveRoomSeq, endReason) =>
 
 // 신고 목록 { status: WAIT|DONE, page }
 export const getLiveReports = (params) => Client.get('/api/admin/live/report', { params });
+
+// 채팅 신고 → 채팅 작성자를 그 방송에서 강퇴 (관련 대기 신고도 처리 완료)
+export const kickReportedChatAuthor = (liveReportSeq) =>
+  Client.post(`/api/admin/live/report/${liveReportSeq}/kick`);
 
 // 신고 처리 완료
 export const doneLiveReport = (liveReportSeq) =>

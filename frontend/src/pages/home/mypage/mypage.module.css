@@ -182,6 +182,18 @@
     align-items: start;
 }
 
+/* 상단 히어로: 아래 본문(main-wrapper)과 같은 폭으로 정렬 */
+.mypage-hero {
+    max-width: 1320px;
+    width: 100%;
+    margin: 16px auto 0;
+    padding: 0 24px;
+}
+
+.mypage-hero + .main-wrapper {
+    margin-top: 24px; /* 이동 바 아래 간격을 다른 페이지(64px)와 맞춤 */
+}
+
 /* 사이드바 (LNB / 프로필 카드) */
 .sidebar {
     display: flex;
@@ -395,7 +407,7 @@
 }
 
 .page-title-icon {
-    color: #a855f7;
+    color: var(--ink);
 }
 
 .page-subdesc {
@@ -461,15 +473,15 @@
 }
 
 .card-title i {
-    color: #a855f7;
+    color: var(--ink);
 }
 
 .card-link {
     background: none;
     border: none;
-    color: #c084fc;
+    color: var(--ink);
     font-size: 0.82rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -477,7 +489,7 @@
 }
 
 .card-link:hover {
-    color: #e879f9;
+    text-decoration: underline;
 }
 
 /* 테이블 / 그리드 정보 스타일 (M005: 마이페이지) */
@@ -519,7 +531,7 @@
 
 .ideal-row {
     background: var(--bg-input);
-    border-left: 3px solid #8b5cf6;
+    border-left: 3px solid var(--honey);
     padding: 14px 18px;
     border-radius: var(--radius-sm);
     display: flex;
@@ -607,7 +619,7 @@
     content: '';
     width: 5px;
     height: 5px;
-    background: #ec4899;
+    background: var(--honey);
     border-radius: 50%;
     position: absolute;
     bottom: 6px;
@@ -621,7 +633,7 @@
 
 .sched-card {
     background: var(--bg-input);
-    border-left: 3px solid #ec4899;
+    border-left: 3px solid var(--honey);
     padding: 12px 14px;
     border-radius: var(--radius-sm);
     display: flex;
@@ -929,6 +941,36 @@
     border-radius: 4px;
 }
 
+.status-badge-wait {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.btn-cancel-pay {
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel-pay:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+.btn-cancel-pay:active {
+    transform: scale(0.96);
+}
+
 /* 모달 팝업 */
 .modal-overlay {
     position: fixed;
@@ -1086,3 +1128,54 @@
 .mp-toast { background: var(--ink); color: var(--honey); border: 0; border-radius: 9999px; box-shadow: 0 12px 30px rgba(34, 32, 30, 0.25); }
 .empty-state { border-color: var(--hairline); }
 .empty-state i { color: var(--ink); }
+
+/* ==========================================================================
+   기본 정보: 항목 하나당 한 줄 (박스가 가로를 꽉 채움)
+   ========================================================================== */
+.info-table-single {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.info-table-single .info-cell.full {
+    grid-column: auto;
+}
+
+/* ==========================================================================
+   이상형 MBTI: 여러 개면 MBTI 순서대로 4개씩, 오른쪽 정렬 (16개 전부면 '상관없음' 하나)
+   ========================================================================== */
+.mbti-pref-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;   /* 마지막 줄도 오른쪽에 붙음 */
+    gap: 6px;
+    max-width: calc(56px * 4 + 6px * 3);   /* 한 줄에 4개 */
+}
+
+.mbti-pref-pill {
+    width: 56px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* ==========================================================================
+   내 정보 · 이상형 수정 화면: 수정 항목 하나 = 박스 하나 + 항목 사이 간격
+   (박스는 카드보다 한 톤 진하게 → 흰 선택 칩·입력칸이 잘 보임)
+   ========================================================================== */
+.edit-field {
+    background: var(--sand-hover);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    gap: 10px;
+}
+
+@media (max-width: 640px) {
+    .edit-field {
+        padding: 14px;
+    }
+
+    .mbti-pref-grid {
+        max-width: calc(56px * 2 + 6px);   /* 좁은 화면은 한 줄에 2개 */
+    }
+}

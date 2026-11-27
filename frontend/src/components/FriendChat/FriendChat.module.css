@@ -1,0 +1,272 @@
+.popupDockTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 16px 6px;
+  background: var(--cream);
+  flex-shrink: 0;
+}
+
+.dockTab {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--sand);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.dockTab:hover { color: var(--ink); }
+
+.dockTabActive,
+.dockTabActive:hover { background: var(--ink); color: var(--cream); }
+
+.dockBadge {
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.popupDockBody {
+  flex: 1;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebarListBox {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebarFixedTop {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sidebarScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebarScroll::-webkit-scrollbar { width: 4px; }
+
+.sidebarScroll::-webkit-scrollbar-thumb { background: #dcd3be; border-radius: 9999px; }
+
+.sidebarListTitle { font-size: 13px; font-weight: 800; color: var(--ink); }
+
+.sidebarCount { margin-left: 4px; font-size: 12px; color: var(--text-muted); font-weight: 700; }
+
+.sidebarTitleRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-direction: row; }
+
+.sidebarTitleActions { display: flex; gap: 6px; }
+
+.searchModeToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: var(--sand);
+}
+
+.searchModeBtn {
+  padding: 6px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.searchModeActive { background: #fff; color: var(--ink); font-weight: 800; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+.sidebarSearchRow { display: flex; gap: 6px; }
+
+.sidebarInput {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  outline: none;
+}
+
+.sidebarInput::placeholder { color: var(--text-muted); }
+
+.sidebarInput:focus { box-shadow: 0 0 0 2px var(--honey); }
+
+.sidebarSmallBtn,
+.sidebarPrimaryBtn {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebarSmallBtn { background: var(--sand); color: var(--ink); }
+
+.sidebarSmallBtn:hover { background: var(--sand-hover); }
+
+.sidebarPrimaryBtn { background: var(--honey); color: var(--ink); }
+
+.sidebarPrimaryBtn:hover { background: var(--honey-bright); }
+
+.sidebarEmpty { padding: 20px 0; text-align: center; font-size: 12px; color: var(--text-muted); }
+
+.sidebarPerson {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 16px;
+  transition: background 0.2s ease;
+}
+
+.sidebarPerson:hover { background: var(--sand); }
+
+.sidebarAvatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
+.sidebarAvatarFallback {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sidebarPersonName { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebarRoom {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebarRoom:hover { background: var(--sand); }
+
+.sidebarRoomTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.sidebarRoom strong { font-size: 12px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebarRoom span { font-size: 11px; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebarUnread {
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: var(--honey);
+  color: var(--ink) !important;
+  font-size: 9px !important;
+  font-weight: 800;
+}
+
+.createPanel { padding: 12px; border-radius: 18px; background: var(--sand); display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+
+.createPanel .sidebarInput { background: #fff; }
+
+.createLabel { font-size: 10px; font-weight: 800; color: var(--text-sub); }
+
+.createFriendList { max-height: 90px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+
+.createFriendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.createFriendItem:hover { background: #fff; }
+
+.createFriendSelected,
+.createFriendSelected:hover { background: var(--honey); }
+
+.createCheck { font-size: 12px; font-weight: 800; color: var(--ink); }
+
+.createSubmitBtn {
+  padding: 9px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.createSubmitBtn:hover { background: var(--ink-hover); }
+
+.inviteSection { padding: 12px; border-radius: 18px; background: var(--sand); display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+
+.inviteSectionTitle { font-size: 11px; font-weight: 800; color: var(--ink); }
+
+.inviteItem { display: flex; flex-direction: column; gap: 6px; }
+
+.inviteText { font-size: 11px; line-height: 1.5; color: var(--text-sub); }
+
+.inviteActions { display: flex; gap: 6px; }
+
+.inviteActions > button { flex: 1; }
+
+
+.friendChatBody {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.friendChatBody[hidden] {
+  display: none;
+}

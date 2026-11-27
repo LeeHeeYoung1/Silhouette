@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import styles from './layout.module.css';
@@ -6,15 +5,18 @@ import useOnboardingGuard from '../onboarding/useOnboardingGuard';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
+import FriendChatProvider from '../../components/FriendChat/FriendChatProvider';
+import FloatingDock from '../../components/FloatingDock/FloatingDock';
+import Footer from '../../components/Footer/Footer';
 
-// 기본 프로필 아바타 이미지 (SVG)
+// 기본 프로필 아바타 이미지 (SVG - 실루엣 홈 테마 잉크 & 허니 골드)
 const DEFAULT_AVATAR =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-      '<rect width="100" height="100" fill="#2d2238"/>' +
-      '<circle cx="50" cy="38" r="18" fill="#ff758c" opacity="0.8"/>' +
-      '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ff758c" opacity="0.8"/></svg>'
+      '<rect width="100" height="100" fill="#22201e"/>' +
+      '<circle cx="50" cy="38" r="18" fill="#ffd34e" opacity="0.9"/>' +
+      '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ffd34e" opacity="0.9"/></svg>'
   );
 
 // 모든 페이지의 공통 상단 메뉴와 알림 드롭다운을 관리합니다.
@@ -27,6 +29,7 @@ function Layout() {
   useOnboardingGuard();
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  const isChatRoomPage = /^\/(chatting|chat)\//.test(location.pathname);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('silhouette_theme') || 'light');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -282,6 +285,25 @@ function Layout() {
     }
   };
 
+  // 알림 하나를 X 버튼으로 닫습니다. 읽지 않은 알림은 먼저 읽음 처리합니다.
+  const hideNotification = async (item) => {
+    try {
+      if (item.read_yn === 'N') {
+        await markRead(item.notification_seq);
+      }
+
+      setHiddenNotificationIds((prev) => [
+        ...new Set([
+          ...prev,
+          item.notification_seq
+        ])
+      ]);
+    } catch (error) {
+      alert(error.response?.data || '알림을 읽음 처리하지 못했습니다.');
+      refreshNotifications();
+    }
+  };
+
   // 알림 목록 전체를 한 번에 숨깁니다.
   const hideAllNotifications = () => {
     setHiddenNotificationIds((prev) => [
@@ -298,7 +320,7 @@ function Layout() {
     .filter((item) => !hiddenNotificationIds.includes(item.notification_seq ?? item.notificationSeq));
 
   return (
-    <div className={`${styles.appContainer} ${location.pathname === '/' ? styles.homeMode : ''}`}>
+    <div className={`${styles.appContainer} ${location.pathname === '/' ? styles.homeMode : ''} ${token ? styles.loggedIn : ''}`}>
       {/* 
         상단바 2개를 같은 한 열에 배치하는 헤더 행
         - 좌측: 메인 네비게이션 상단바 (하단 매칭 모드 선택과 동일한 왼쪽 정렬)
@@ -323,7 +345,7 @@ function Layout() {
                   <NavLink to="/post" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>게시판</NavLink>
                   <NavLink to="/live" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>라이브</NavLink>
                   {role === 'ROLE_ADMIN' && (
-                    <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`} style={{ color: '#f87171', fontWeight: 'bold' }}>
+                    <NavLink to="/admin" className={({ isActive }) => `${styles.navBtn} ${isActive ? styles.navBtnActive : ''}`}>
                       관리자
                     </NavLink>
                   )}
@@ -458,12 +480,7 @@ function Layout() {
                             <button
                               type="button"
                               className={styles.notificationDelete}
-                              onClick={() => {
-                                setHiddenNotificationIds((prev) => [
-                                  ...prev,
-                                  item.notification_seq
-                                ]);
-                              }}
+                              onClick={() => hideNotification(item)}
                               aria-label="알림 숨기기"
                             >
                               ×
@@ -502,9 +519,19 @@ function Layout() {
         )}
       </div>
 
-      <main className={styles.main}>
-        <Outlet />
-      </main>
+      {/* 친구 · 채팅 데이터는 여기서 한 번만 불러 홈 사이드바와 모든 페이지의 플로팅 버튼이 같이 씀 */}
+      <FriendChatProvider>
+        <main className={styles.main}>
+          <Outlet />
+        </main>
+
+        {/* 오른쪽 아래 친구 · 채팅 + AI 챗봇 (채팅방 화면은 입력창을 가리므로 제외, 라이브 방송방 안은 CSS로 숨김) */}
+        {token && !isAuthPage && !isChatRoomPage && (
+          <FloatingDock hideFriendOnDesktop={location.pathname === '/'} />
+        )}
+      </FriendChatProvider>
+
+      {!isAuthPage && <Footer />}
     </div>
   );
 }

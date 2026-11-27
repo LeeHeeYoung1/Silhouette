@@ -137,17 +137,18 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
         <span
           style={{
             display: 'inline-block',
-            fontSize: '12px',
-            fontWeight: 700,
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
             color: '#22201e',
             background: '#ffd34e',
             border: 'none',
-            padding: '4px 12px',
+            padding: '5px 14px',
             borderRadius: '9999px',
             marginBottom: '10px',
           }}
         >
-          🎰 DAILY LUCKY ROULETTE
+          DAILY LUCKY ROULETTE
         </span>
 
         <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>
@@ -270,8 +271,8 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
               pointerEvents: 'none',
             }}
           >
-            <span style={{ fontSize: '18px', lineHeight: 1 }}>🎰</span>
-            <span style={{ fontSize: '11px', fontWeight: 900, color: '#f8faff', marginTop: '2px' }}>LUCKY</span>
+            <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.65)' }}>DAILY</span>
+            <span style={{ fontSize: '13px', fontWeight: 900, color: '#ffd34e', marginTop: '1px' }}>LUCKY</span>
           </div>
         </div>
 
@@ -287,11 +288,11 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
               animation: 'fadeIn 0.3s ease',
             }}
           >
-            <div style={{ color: 'black', fontWeight: 800, fontSize: '18px', marginBottom: '6px' }}>
-              🎉 {winResult.label} 보너스 획득!
+            <div style={{ color: '#22201e', fontWeight: 800, fontSize: '18px', marginBottom: '6px' }}>
+              {winResult.label} 보너스 획득!
             </div>
-            <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-sub, #c8d0e7)', lineHeight: 1.5 }}>
-              🔮 <strong>오늘의 연애운:</strong><br />
+            <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-sub, #5c5549)', lineHeight: 1.5 }}>
+              <strong>오늘의 연애운:</strong><br />
               {winResult.fortune}
             </p>
           </div>
@@ -310,10 +311,10 @@ const DailyRouletteModal = ({ isOpen, onClose, onRewardClaimed }) => {
           }}
         >
           {isSpinning
-            ? '행운의 룰렛 회전 중... 🎡'
+            ? '행운의 룰렛 회전 중...'
             : hasPlayedToday
             ? '오늘 참여 완료 (내일 다시 돌리기)'
-            : '룰렛 힘차게 돌리기! 👉'}
+            : '룰렛 힘차게 돌리기'}
         </button>
 
         <button

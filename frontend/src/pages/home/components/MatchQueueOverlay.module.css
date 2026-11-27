@@ -1,0 +1,1749 @@
+/* ==========================================================================
+   실루엣 매칭 큐 v4 — 모던 릴 & 실시간 랭킹 엔진
+   ========================================================================== */
+
+/* 1. 배경 오버레이 및 모달 박스 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 17, 16, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* 블라인드 매칭 시 뒤쪽 홈 화면이 비쳐 보이도록 투명 배경 처리 */
+.overlayBlind {
+  background: rgba(255, 253, 246, 0.25);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSpring {
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modalBox {
+  width: 100%;
+  max-width: 440px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  animation: modalSpring 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modalBoxBlind {
+  max-width: 960px;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: 0 20px 60px rgba(22, 21, 20, 0.14);
+}
+
+.modalBox::-webkit-scrollbar {
+  display: none;
+}
+.modalBox {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 아이콘 범용 사이즈 */
+.iconXs { width: 14px; height: 14px; }
+.iconSm { width: 16px; height: 16px; }
+.iconMd { width: 18px; height: 18px; }
+
+/* 라이브 펄스 점 */
+@keyframes livePulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+.livePulseDot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+.livePulseDot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.livePulseDotIndigo {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6366F1;
+}
+.livePulseDotIndigo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==========================================================================
+   [STATE 1-A] 블라인드 매칭 큐: SUTERA 스타일 테크니컬 트리 & 홀로그램 카드
+   ========================================================================== */
+.suteraContainer {
+  position: relative;
+  width: 100%;
+  min-height: 610px;
+  background: rgba(253, 252, 248, 0.62);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #161514;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 21, 20, 0.75);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 1) 시작 인트로: Silhouette 로고 스플래시 */
+@keyframes suteraIntroHide {
+  0%, 72% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@keyframes suteraLogoPop {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    letter-spacing: -0.02em;
+  }
+  45%, 75% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    letter-spacing: -0.05em;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.02);
+  }
+}
+
+@keyframes suteraBarProgress {
+  0% { width: 0%; }
+  70%, 100% { width: 100%; }
+}
+
+.suteraIntroOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(253, 252, 248, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: suteraIntroHide 2.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.suteraIntroCenter {
+  text-align: center;
+  animation: suteraLogoPop 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.suteraIntroLogo {
+  font-family: 'Archivo Black', 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: clamp(54px, 8vw, 96px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: #161514;
+  margin: 0;
+}
+
+.suteraIntroSub {
+  margin: 12px 0 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: #5c5549;
+}
+
+.suteraIntroBottom {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.suteraIntroPct {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #161514;
+}
+
+.suteraIntroBar {
+  width: 100%;
+  height: 3px;
+  background: rgba(22, 21, 20, 0.12);
+  overflow: hidden;
+}
+
+.suteraIntroBarFill {
+  height: 100%;
+  background: #161514;
+  animation: suteraBarProgress 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 2) 배경 테크니컬 그리드 & 십자 마커 */
+.suteraGridBg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(22, 21, 20, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(22, 21, 20, 0.055) 1px, transparent 1px);
+  background-size: 25% 33.333%;
+  z-index: 1;
+}
+
+.suteraCross {
+  position: absolute;
+  font-family: monospace;
+  font-size: 12px;
+  color: rgba(22, 21, 20, 0.35);
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+.cross1 { top: 33.33%; left: 25%; }
+.cross2 { top: 33.33%; left: 50%; }
+.cross3 { top: 33.33%; left: 75%; }
+.cross4 { top: 66.66%; left: 25%; }
+.cross5 { top: 66.66%; left: 50%; }
+.cross6 { top: 66.66%; left: 75%; }
+
+/* 3) 메인 스테이지 (인트로 직후 등장) */
+@keyframes suteraStageReveal {
+  0%, 55% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suteraStage {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  min-height: 530px;
+  padding: 20px 26px 14px;
+  animation: suteraStageReveal 2.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 상단 헤더 바 */
+.suteraTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #161514;
+}
+
+.suteraBrandMini {
+  font-weight: 900;
+}
+
+.suteraTopBox {
+  padding: 3px 10px;
+  border: 1px solid #161514;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.suteraTopRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+}
+
+.suteraTimerMono {
+  padding: 2px 7px;
+  background: #161514;
+  color: #ffd34e;
+  font-weight: 800;
+}
+
+/* 좌상단 헤드라인 */
+.suteraHeroTitle {
+  position: absolute;
+  top: 52px;
+  left: 26px;
+  z-index: 10;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.suteraHeroTitle h3 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: #161514;
+}
+
+/* 중앙 트리 다이어그램 & 카드 영역 */
+.suteraCenterArea {
+  position: relative;
+  width: 100%;
+  height: 440px;
+  margin-top: 6px;
+}
+
+.suteraSvgLines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes suteraLineDraw {
+  0%, 60% {
+    stroke-dashoffset: 400;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.suteraLinePath {
+  fill: none;
+  stroke: #161514;
+  stroke-width: 1.2;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: suteraLineDraw 2.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.suteraNodeAnchor {
+  fill: #ffffff;
+  stroke: #161514;
+  stroke-width: 1.4;
+}
+
+/* 트리 콜아웃 텍스트 노드 */
+.suteraCallout {
+  position: absolute;
+  z-index: 8;
+  max-width: 220px;
+  text-align: left;
+}
+
+.calloutTitle {
+  margin: 0 0 5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #161514;
+  background: #ffd34e;
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid #161514;
+}
+
+.calloutDesc {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.48;
+  letter-spacing: -0.01em;
+  color: #262320;
+  word-break: keep-all;
+}
+
+.calloutTopRight {
+  top: 14px;
+  left: 71.5%;
+}
+
+.calloutMidLeft {
+  top: 116px;
+  left: 2%;
+  max-width: 195px;
+}
+
+.calloutBottomLeft {
+  top: 368px;
+  left: 2%;
+  max-width: 220px;
+}
+
+/* 중앙 오브제: 홀로그램 프리즘 카드 (돌 위치 대체 — 밝은 배경에서도 선명하게 보이도록 고채도 코발트·바이올렛·골드 프리즘 적용) */
+@keyframes suteraFloatCard {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0px) rotateX(6deg) rotateY(-10deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px) rotateX(-4deg) rotateY(10deg);
+  }
+}
+
+@keyframes suteraSpinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.suteraCardFloatWrap {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  width: 170px;
+  height: 236px;
+  perspective: 900px;
+  z-index: 6;
+  animation: suteraFloatCard 5.5s ease-in-out infinite;
+}
+
+.suteraHoloCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  border: 2.5px solid #4f46e5;
+  background: radial-gradient(
+    circle at 50% 38%,
+    rgba(99, 102, 241, 0.78) 0%,
+    rgba(139, 92, 246, 0.9) 55%,
+    rgba(59, 130, 246, 0.96) 100%
+  );
+  box-shadow:
+    0 24px 48px rgba(79, 70, 229, 0.38),
+    0 0 32px rgba(139, 92, 246, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.suteraCardGlow {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(99, 102, 241, 0.55),
+    rgba(236, 72, 153, 0.45),
+    rgba(56, 189, 248, 0.55),
+    rgba(168, 85, 247, 0.55),
+    rgba(99, 102, 241, 0.55)
+  );
+  filter: blur(20px);
+  animation: suteraSpinSlow 9s linear infinite;
+  pointer-events: none;
+}
+
+.suteraCardInnerBorder {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px;
+  box-sizing: border-box;
+  color: #ffffff;
+}
+
+.suteraCardTopMeta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(30, 27, 75, 0.45);
+}
+
+.suteraCardEmblem {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suteraCardRingOuter {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.95);
+  animation: suteraSpinSlow 12s linear infinite;
+}
+
+.suteraCardRingInner {
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  border: 1.5px solid #ffd34e;
+  background: radial-gradient(circle, rgba(255, 211, 78, 0.35), rgba(255, 255, 255, 0.15) 70%);
+}
+
+.suteraCardS {
+  font-family: 'Archivo Black', 'Pretendard', sans-serif;
+  font-size: 32px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(30, 27, 75, 0.5), 0 0 16px rgba(255, 211, 78, 0.9);
+}
+
+.suteraCardBottomMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffd34e;
+  text-shadow: 0 1px 4px rgba(30, 27, 75, 0.5);
+}
+
+.suteraCardStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffd34e;
+  box-shadow: 0 0 8px #ffd34e;
+}
+
+/* 영상 속 돌 위를 스캔하는 글래스 픽셀 타일 애니메이션 */
+@keyframes suteraTileBlink {
+  0%, 100% { opacity: 0; transform: scale(0.9); }
+  35%, 65% { opacity: 1; transform: scale(1); }
+}
+
+.suteraScanTile {
+  position: absolute;
+  z-index: 4;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px) contrast(1.2);
+  pointer-events: none;
+}
+
+.tile1 {
+  top: 24px;
+  left: 14px;
+  animation: suteraTileBlink 3.2s ease-in-out infinite;
+}
+.tile2 {
+  bottom: 34px;
+  right: 12px;
+  animation: suteraTileBlink 3.2s ease-in-out 1.1s infinite;
+}
+.tile3 {
+  top: 96px;
+  left: 58px;
+  animation: suteraTileBlink 3.2s ease-in-out 2.1s infinite;
+}
+
+/* 우하단: ALGORITHM SPEC 박스 */
+.suteraAlgoPanel {
+  position: absolute;
+  right: 26px;
+  bottom: 14px;
+  z-index: 10;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.algoBanner {
+  background: #161514;
+  color: #fdfcf8;
+  padding: 4px 9px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.algoDescBox {
+  border: 1px solid #161514;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(4px);
+  padding: 10px 11px;
+}
+
+.algoDescBox p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #161514;
+  word-break: keep-all;
+}
+
+.algoTagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.algoTagsRow span {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border: 1px solid #161514;
+  background: rgba(253, 252, 248, 0.85);
+  letter-spacing: -0.01em;
+}
+
+/* 하단 고정 버튼 바 (둘러보며 대기하기 / 매칭 취소) */
+.suteraFooter {
+  position: relative;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 26px 18px;
+  background: rgba(245, 242, 232, 0.65);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(22, 21, 20, 0.65);
+}
+
+.suteraWaitBtn {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: 9999px;
+  border: 1.5px solid #161514;
+  background: #161514;
+  color: #fdfcf8;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+}
+
+.suteraWaitBtn:hover {
+  background: #ffd34e;
+  color: #161514;
+  transform: translateY(-1px);
+}
+
+.suteraCancelBtn {
+  padding: 12px 22px;
+  border-radius: 9999px;
+  border: 1.5px solid #161514;
+  background: #ffffff;
+  color: #161514;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.suteraCancelBtn:hover {
+  background: #ece8dc;
+}
+
+@media (max-width: 768px) {
+  .suteraHeroTitle {
+    position: static;
+    margin-top: 12px;
+  }
+  .suteraThreadsPanel,
+  .suteraAlgoPanel,
+  .suteraFormulaBox,
+  .suteraCallout,
+  .suteraSvgLines {
+    display: none;
+  }
+  .suteraCenterArea {
+    height: 300px;
+  }
+}
+
+.dualModalBtns {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btnSecondary {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btnCancelText {
+  padding: 11px 18px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.btnCancelText:hover {
+  color: #fff;
+}
+
+/* ==========================================================================
+   [STATE 1-B] AI 이상형 매칭 큐: 실시간 랭킹 보드
+   ========================================================================== */
+.idealSearchCard {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+}
+
+.rankingStageBg {
+  padding: 22px 22px 18px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.08), transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(255, 211, 78, 0.1), transparent 50%),
+    #faf9f5;
+  border-bottom: 1px solid var(--hairline);
+  position: relative;
+}
+
+.liveTagPillWhite {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.liveTagTextDark {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.elapsedTimerDark {
+  font-size: 12px;
+  font-weight: 800;
+  color: #4F46E5;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-family: monospace;
+}
+
+.minimizeBtnLight {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline);
+  background: #fff;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.minimizeBtnLight:hover {
+  background: var(--sand);
+}
+
+.idealHeadingDark {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 3px 0 0;
+}
+
+.idealSubDark {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: 4px 0 0;
+}
+.highlightInk {
+  color: var(--ink);
+}
+
+.rankingPhaseBadge {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4F46E5;
+  flex-shrink: 0;
+}
+
+/* 5개 슬롯 랭킹 컨테이너 */
+.rankingContainer {
+  position: relative;
+  height: 250px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.rankRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 2px 6px rgba(34, 32, 30, 0.03);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease,
+    border-color 0.35s ease,
+    background-color 0.35s ease,
+    box-shadow 0.35s ease;
+  will-change: transform;
+}
+
+.rankRowTop {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+}
+
+.rankRowDimmed {
+  opacity: 0.4;
+  background: var(--sand);
+  border-color: rgba(34, 32, 30, 0.05);
+}
+
+@keyframes rankShine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+.rankRowWinner {
+  background: linear-gradient(90deg, #EEF2FF 0%, #FFFFFF 50%, #ECFDF5 100%) !important;
+  border-color: #6366F1 !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25) !important;
+  z-index: 20 !important;
+  overflow: hidden;
+}
+.rankRowWinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  animation: rankShine 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+.rankRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rankNum {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--sand);
+  color: var(--text-sub);
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rankNumTop {
+  background: #6366F1;
+  color: #fff;
+}
+
+.rankAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ink);
+  flex-shrink: 0;
+}
+.rankAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(5px);
+  transform: scale(1.15);
+}
+
+.rankInfo {
+  min-width: 0;
+}
+.rankName {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rankMbti {
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4F46E5;
+  font-family: monospace;
+}
+.rankMeta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 1px 0 0;
+  font-family: monospace;
+}
+
+.rankRowRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rankMiniBarBack {
+  width: 48px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #E2E8F0;
+  overflow: hidden;
+}
+.rankMiniBarFill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #94A3B8;
+  transition: width 0.4s ease;
+}
+.rankMiniBarFillTop {
+  background: linear-gradient(90deg, #6366F1, #10B981);
+}
+
+.rankScore {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* 이상형 하단 */
+.idealFooter {
+  padding: 22px;
+  background: #fff;
+}
+
+.weightsHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.weightsSubTitle {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.weightsHint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4F46E5;
+}
+
+.boostChipsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chipBtn {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chipActive {
+  background: var(--ink);
+  color: var(--cream);
+}
+.chipInactive {
+  background: var(--sand);
+  color: var(--text-sub);
+}
+.chipInactive:hover {
+  background: #e9e4d6;
+}
+
+.rankingStepTrack {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+}
+.stepActive {
+  color: #4F46E5;
+  font-weight: 800;
+}
+.stepInactive {
+  color: var(--text-muted);
+}
+.stepArrow {
+  color: #CBD5E1;
+}
+
+.btnSecondaryLight {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 9999px;
+  background: var(--sand);
+  border: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btnSecondaryLight:hover {
+  background: #e9e4d6;
+}
+
+.btnCancelTextDark {
+  padding: 11px 18px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.btnCancelTextDark:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   [STATE 2-A] 블라인드 성사 리빌: 100% 랜덤 캡슐 카드
+   ========================================================================== */
+.blindFoundCard {
+  background: #141312;
+  color: #fff;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: modalSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.blindFoundHeader {
+  padding: 24px 22px 16px;
+  text-align: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 78, 0.22) 0%, transparent 65%),
+    #181615;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.randomPickBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 211, 78, 0.15);
+  border: 1px solid rgba(255, 211, 78, 0.35);
+  color: var(--honey);
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.foundAvatarFrame {
+  position: relative;
+  margin: 16px auto 12px;
+  width: 106px;
+  height: 106px;
+  border-radius: 24px;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--honey), #ff7555);
+  box-shadow: 0 10px 28px rgba(255, 211, 78, 0.28);
+}
+
+.foundAvatarInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 21px;
+  overflow: hidden;
+  background: #1a1816;
+}
+
+.foundAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(10px);
+  transform: scale(1.12);
+}
+
+.foundAvatarShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.foundAvatarLockIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--honey);
+}
+
+.blindLockedText {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: monospace;
+}
+
+.foundTitle {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+}
+.foundSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 4px 0 0;
+}
+
+.foundBody {
+  padding: 20px 22px 22px;
+  background: #181716;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 10초 보이스 미리듣기 */
+.voicePreviewBox {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: #22201e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voiceLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.voicePlayBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--honey);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(255, 211, 78, 0.35);
+  transition: transform 0.15s ease;
+}
+.voicePlayBtn:active {
+  transform: scale(0.92);
+}
+
+.voiceTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.voiceWave {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 12px;
+  margin-top: 4px;
+}
+
+@keyframes eqWave {
+  0%, 100% { transform: scaleY(0.28); }
+  50% { transform: scaleY(1); }
+}
+
+.eqBar {
+  width: 2.5px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 9999px;
+  transform-origin: bottom;
+}
+
+.isPlayingWave .eqBar {
+  animation: eqWave 0.58s ease-in-out infinite;
+  background: var(--honey) !important;
+}
+
+.voiceDuration {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--honey);
+  flex-shrink: 0;
+}
+
+.foundQuoteBox {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.quoteEyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.4);
+  display: block;
+  margin-bottom: 6px;
+}
+.quoteText {
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.tagWrap {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quoteTagPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.foundActionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.enterChatBtn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(255, 211, 78, 0.3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.enterChatBtn:hover {
+  background: var(--honey-bright);
+}
+.enterChatBtn:active {
+  transform: scale(0.98);
+}
+
+.btnIconText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.countdownBadge {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.subActionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* =========================================================
+   [STATE 2-B] AI 이상형 성사 리빌: TOP 1 선발 카드
+   ========================================================= */
+.idealFoundCard {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  animation: modalSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.idealFoundHeader {
+  padding: 24px 22px 18px;
+  text-align: center;
+  background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #ECFDF5 100%);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top1MatchedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #4F46E5;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.dualAvatarContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0 12px;
+}
+
+.myAvatarWrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #6366F1, #818CF8);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  z-index: 10;
+}
+
+.matchScoreBadge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--honey);
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 -12px;
+  z-index: 20;
+  border: 2px solid #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.partnerAvatarWrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  z-index: 10;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+.blurPartnerImg {
+  filter: blur(6px);
+  transform: scale(1.15);
+}
+
+.partnerLockOverlay {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.foundTitleDark {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+.foundSubDark {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: 4px 0 0;
+  font-family: monospace;
+}
+
+.bentoSpecGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.bentoSpecCell {
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+}
+.specLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+}
+.specValPrimary {
+  font-size: 16px;
+  font-weight: 800;
+  color: #4F46E5;
+  margin-top: 2px;
+  display: block;
+}
+.specValEmerald {
+  font-size: 16px;
+  font-weight: 800;
+  color: #059669;
+  margin-top: 2px;
+  display: block;
+}
+.specValSky {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0284C7;
+  margin-top: 2px;
+  display: block;
+}
+
+.foundQuoteBoxLight {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--sand);
+  border: 1px solid var(--hairline);
+}
+.quoteTextDark {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-main);
+  margin: 0;
+}
+.quoteTagPillLight {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+}
+
+.enterChatBtnDark {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(34, 32, 30, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.enterChatBtnDark:hover {
+  background: var(--ink-hover);
+}
+.enterChatBtnDark:active {
+  transform: scale(0.98);
+}
+.countdownBadgeLight {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   2. 백그라운드 플로팅 미니 알약 바 (우측 하단)
+   ========================================================================== */
+@keyframes miniSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.floatingPill {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  animation: modalSpring 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 640px) {
+  .floatingPill {
+    bottom: 80px;
+    right: 16px;
+  }
+}
+
+.floatingPillDark {
+  background: #181716;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.floatingPillLight {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+}
+
+.floatingPillBody {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.floatingSpinIconBox {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: miniSpin 3.5s linear infinite;
+  flex-shrink: 0;
+}
+.spinHoney {
+  background: rgba(255, 211, 78, 0.2);
+  color: var(--honey);
+}
+.spinIndigo {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366F1;
+}
+
+.floatingPillTexts {
+  display: flex;
+  flex-direction: column;
+}
+.floatingPillTitle {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+}
+.floatingPillSub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.floatingCloseBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.floatingPillDark .floatingCloseBtn {
+  background: rgba(255, 255, 255, 0.1);
+}
+.floatingCloseBtn:hover {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   3. 토스트 알림
+   ========================================================================== */
+.toastWrap {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  animation: modalSpring 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toastDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--honey);
+}

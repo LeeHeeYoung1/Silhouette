@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Ticket">
+
+    <select id="selectProducts" resultType="com.app.silhouette.ticket.TicketProductDTO">
+        SELECT TICKET_PRODUCT_SEQ AS ticketProductSeq,
+               PRODUCT_NAME AS productName,
+               TICKET_COUNT AS ticketCount,
+               PRICE AS price,
+               ACTIVE_YN AS activeYn,
+               CREATED_AT AS createdAt
+          FROM TICKET_PRODUCT
+         WHERE ACTIVE_YN = 'Y'
+         ORDER BY PRICE
+    </select>
+
+    <select id="selectProduct" parameterType="long" resultType="com.app.silhouette.ticket.TicketProductDTO">
+        SELECT TICKET_PRODUCT_SEQ AS ticketProductSeq,
+               PRODUCT_NAME AS productName,
+               TICKET_COUNT AS ticketCount,
+               PRICE AS price,
+               ACTIVE_YN AS activeYn,
+               CREATED_AT AS createdAt
+          FROM TICKET_PRODUCT
+         WHERE TICKET_PRODUCT_SEQ = #{ticketProductSeq}
+           AND ACTIVE_YN = 'Y'
+    </select>
+
+    <insert id="createWalletIfAbsent" parameterType="long">
+        MERGE INTO MEMBER_WALLET W
+        USING (SELECT #{memberSeq} AS MEMBER_SEQ FROM DUAL) S
+           ON (W.MEMBER_SEQ = S.MEMBER_SEQ)
+        WHEN NOT MATCHED THEN
+            INSERT (MEMBER_WALLET_SEQ, MEMBER_SEQ, TICKET_BALANCE, MILEAGE_BALANCE, UPDATED_AT)
+            VALUES (SEQ_MEMBER_WALLET.NEXTVAL, S.MEMBER_SEQ, 0, 0, SYSDATE)
+    </insert>
+
+    <select id="selectWallet" parameterType="long" resultType="com.app.silhouette.ticket.MemberWalletDTO">
+        SELECT MEMBER_WALLET_SEQ AS memberWalletSeq,
+               MEMBER_SEQ AS memberSeq,
+               TICKET_BALANCE AS ticketBalance,
+               MILEAGE_BALANCE AS mileageBalance,
+               UPDATED_AT AS updatedAt
+          FROM MEMBER_WALLET
+         WHERE MEMBER_SEQ = #{memberSeq}
+    </select>
+
+    <select id="selectWalletForUpdate" parameterType="long" resultType="com.app.silhouette.ticket.MemberWalletDTO">
+        SELECT MEMBER_WALLET_SEQ AS memberWalletSeq,
+               MEMBER_SEQ AS memberSeq,
+               TICKET_BALANCE AS ticketBalance,
+               MILEAGE_BALANCE AS mileageBalance,
+               UPDATED_AT AS updatedAt
+          FROM MEMBER_WALLET
+         WHERE MEMBER_SEQ = #{memberSeq}
+         FOR UPDATE
+    </select>
+
+    <insert id="insertPendingPayment" parameterType="com.app.silhouette.ticket.PaymentDTO">
+        <selectKey keyProperty="paymentSeq" resultType="long" order="BEFORE">
+            SELECT SEQ_PAYMENT.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO PAYMENT (
+            PAYMENT_SEQ, MEMBER_SEQ, TICKET_PRODUCT_SEQ, PG_TRANSACTION_ID,
+            PAYMENT_METHOD, PRODUCT_PRICE, MILEAGE_USED, PAYMENT_AMOUNT,
+            TICKET_COUNT, PAYMENT_STATUS, PAID_AT, CREATED_AT
+        ) VALUES (
+            #{paymentSeq}, #{memberSeq}, #{ticketProductSeq}, #{pgTransactionId},
+            NULL, #{productPrice}, #{mileageUsed}, #{paymentAmount},
+            #{ticketCount}, 'READY', NULL, SYSDATE
+        )
+    </insert>
+
+    <select id="selectPaymentForUpdate" parameterType="com.app.silhouette.ticket.PaymentDTO"
+            resultType="com.app.silhouette.ticket.PaymentDTO">
+        SELECT PAYMENT_SEQ AS paymentSeq,
+               MEMBER_SEQ AS memberSeq,
+               TICKET_PRODUCT_SEQ AS ticketProductSeq,
+               PG_TRANSACTION_ID AS pgTransactionId,
+               PAYMENT_METHOD AS paymentMethod,
+               PRODUCT_PRICE AS productPrice,
+               MILEAGE_USED AS mileageUsed,
+               PAYMENT_AMOUNT AS paymentAmount,
+               TICKET_COUNT AS ticketCount,
+               PAYMENT_STATUS AS paymentStatus,
+               PAID_AT AS paidAt,
+               CREATED_AT AS createdAt
+          FROM PAYMENT
+         WHERE PG_TRANSACTION_ID = #{pgTransactionId}
+           AND MEMBER_SEQ = #{memberSeq}
+         FOR UPDATE
+    </select>
+
+    <update id="markPaymentPaid" parameterType="com.app.silhouette.ticket.PaymentDTO">
+        UPDATE PAYMENT
+           SET PAYMENT_STATUS = 'PAID',
+               PAYMENT_METHOD = #{paymentMethod},
+               PAID_AT = SYSDATE
+         WHERE PG_TRANSACTION_ID = #{pgTransactionId}
+           AND PAYMENT_STATUS = 'READY'
+    </update>
+
+    <!-- 잔액의 기준은 원장(출석·이벤트와 같은 방식): 가장 최근 줄의 BALANCE_AFTER -->
+    <select id="selectLatestMileageBalance" parameterType="long" resultType="int">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+              FROM (
+                    SELECT BALANCE_AFTER
+                      FROM MILEAGE_LEDGER
+                     WHERE MEMBER_SEQ = #{memberSeq}
+                     ORDER BY MILEAGE_LEDGER_SEQ DESC
+                   )
+             WHERE ROWNUM = 1
+        ), 0)
+          FROM DUAL
+    </select>
+
+    <select id="selectLatestTicketBalance" parameterType="long" resultType="int">
+        SELECT NVL((
+            SELECT BALANCE_AFTER
+              FROM (
+                    SELECT BALANCE_AFTER
+                      FROM TICKET_LEDGER
+                     WHERE MEMBER_SEQ = #{memberSeq}
+                     ORDER BY TICKET_LEDGER_SEQ DESC
+                   )
+             WHERE ROWNUM = 1
+        ), 0)
+          FROM DUAL
+    </select>
+
+    <!-- MEMBER_WALLET은 원장 잔액을 그대로 옮겨 두는 보조 테이블 (값을 더하지 않고 원장 기준으로 덮어씀) -->
+    <update id="syncWallet" parameterType="com.app.silhouette.ticket.MemberWalletDTO">
+        UPDATE MEMBER_WALLET
+           SET TICKET_BALANCE = #{ticketBalance},
+               MILEAGE_BALANCE = #{mileageBalance},
+               UPDATED_AT = SYSDATE
+         WHERE MEMBER_SEQ = #{memberSeq}
+    </update>
+
+    <insert id="insertTicketLedger" parameterType="com.app.silhouette.ticket.TicketLedgerDTO">
+        INSERT INTO TICKET_LEDGER (
+            TICKET_LEDGER_SEQ, MEMBER_SEQ, PAYMENT_SEQ, SOURCE_TYPE,
+            CHANGE_AMOUNT, BALANCE_AFTER, DESCRIPTION, CREATED_AT
+        ) VALUES (
+            SEQ_TICKET_LEDGER.NEXTVAL, #{memberSeq}, #{paymentSeq}, #{sourceType},
+            #{changeAmount}, #{balanceAfter}, #{description}, SYSDATE
+        )
+    </insert>
+
+    <insert id="insertMileageLedger" parameterType="com.app.silhouette.ticket.MileageLedgerDTO">
+        INSERT INTO MILEAGE_LEDGER (
+            MILEAGE_LEDGER_SEQ, MEMBER_SEQ, PAYMENT_SEQ, SOURCE_TYPE,
+            CHANGE_AMOUNT, BALANCE_AFTER, DESCRIPTION, CREATED_AT
+        ) VALUES (
+            SEQ_MILEAGE_LEDGER.NEXTVAL, #{memberSeq}, #{paymentSeq}, #{sourceType},
+            #{changeAmount}, #{balanceAfter}, #{description}, SYSDATE
+        )
+    </insert>
+
+    <select id="selectPaymentsByMemberSeq" parameterType="long" resultType="com.app.silhouette.ticket.PaymentDTO">
+        SELECT p.PAYMENT_SEQ AS paymentSeq,
+               p.MEMBER_SEQ AS memberSeq,
+               p.TICKET_PRODUCT_SEQ AS ticketProductSeq,
+               NVL(tp.PRODUCT_NAME, '채팅 이용권 ' || p.TICKET_COUNT || '개') AS productName,
+               p.PG_TRANSACTION_ID AS pgTransactionId,
+               p.PAYMENT_METHOD AS paymentMethod,
+               p.PRODUCT_PRICE AS productPrice,
+               p.MILEAGE_USED AS mileageUsed,
+               p.PAYMENT_AMOUNT AS paymentAmount,
+               p.TICKET_COUNT AS ticketCount,
+               p.PAYMENT_STATUS AS paymentStatus,
+               p.PAID_AT AS paidAt,
+               p.CREATED_AT AS createdAt
+          FROM PAYMENT p
+          LEFT JOIN TICKET_PRODUCT tp ON p.TICKET_PRODUCT_SEQ = tp.TICKET_PRODUCT_SEQ
+         WHERE p.MEMBER_SEQ = #{memberSeq}
+           AND p.PAYMENT_STATUS != 'READY'
+         ORDER BY p.PAYMENT_SEQ DESC
+    </select>
+
+    <update id="markPaymentCancelled" parameterType="long">
+        UPDATE PAYMENT
+           SET PAYMENT_STATUS = 'CANCELLED'
+         WHERE PAYMENT_SEQ = #{paymentSeq}
+           AND PAYMENT_STATUS = 'PAID'
+    </update>
+
+    <insert id="insertPaymentCancel" parameterType="com.app.silhouette.ticket.PaymentCancelDTO">
+        INSERT INTO PAYMENT_CANCEL (
+            PAYMENT_CANCEL_SEQ, PAYMENT_SEQ, PG_CANCEL_ID,
+            CANCEL_AMOUNT, CANCEL_REASON, CANCELLED_AT
+        ) VALUES (
+            SEQ_PAYMENT_CANCEL.NEXTVAL, #{paymentSeq}, #{pgCancelId},
+            #{cancelAmount}, #{cancelReason}, SYSDATE
+        )
+    </insert>
+</mapper>

@@ -370,8 +370,7 @@ const FoodTest = () => {
         {/* 1. 시작 화면 */}
         {stage === 'intro' && (
           <div className={styles.introWrapper}>
-            <div className={styles.introBadge}>🍽️ SILHOUETTE FOOD BALANCE</div>
-            <div className={styles.introIcon}>🍝🥩🥐</div>
+            <div className={styles.introBadge}>SILHOUETTE FOOD BALANCE</div>
             <h1 className={styles.introTitle}>첫 데이트 음식 취향<br />밸런스 게임</h1>
             <p className={styles.introDesc}>
               15가지 질문으로 알아보는 나의 데이트 미식 성향과<br />
@@ -382,9 +381,9 @@ const FoodTest = () => {
             {savedResult && (
               <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '16px',
+                  background: '#ffffff',
+                  border: '1px solid var(--hairline)',
+                  borderRadius: '20px',
                   padding: '16px 20px',
                   marginBottom: '10px',
                   width: '100%',
@@ -395,11 +394,11 @@ const FoodTest = () => {
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: '12px', color: 'var(--accent-pink)', fontWeight: 600 }}>
-                  ✨ 최근 나의 음식 취향 진단 결과
+                <span style={{ fontSize: '12px', color: 'var(--text-sub)', fontWeight: 700 }}>
+                  최근 나의 음식 취향 진단 결과
                 </span>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {savedResult.resultEmoji} {savedResult.resultTitle}
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)' }}>
+                  {savedResult.resultTitle}
                 </span>
                 <button
                   type="button"
@@ -407,8 +406,9 @@ const FoodTest = () => {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#60a5fa',
+                    color: 'var(--ink)',
                     fontSize: '13px',
+                    fontWeight: 700,
                     textDecoration: 'underline',
                     cursor: 'pointer',
                     marginTop: '2px',

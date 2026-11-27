@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../../api/client';
+import useAuthStore from '../../../stores/useAuthStore';
+import PageHero from '../../../components/PageHero/PageHero';
 import styles from './mypage.module.css';
 import ob from '../../onboarding/onboarding.module.css';   // 수정 모드 칩 · 입력칸 (온보딩 · 프로필과 같은 모양)
 import {
@@ -37,19 +39,20 @@ const MENU_MAIN = [
     { id: 'ideal', icon: 'fa-heart-circle-check', label: '이상형 (온보딩)', code: 'M011' },
     { id: 'bookmarks', icon: 'fa-bookmark', label: '북마크', code: 'M008' },
     { id: 'calendar', icon: 'fa-calendar-check', label: '캘린더', code: 'M012' },
+    { id: 'ticket', icon: 'fa-ticket', label: '이용권 구매', code: 'P001' },
 ];
 const MENU_ACCOUNT = [
     { id: 'payment', icon: 'fa-credit-card', label: '결제 내역', code: 'M010' },
 ];
 
-// 사진이 없을 때 쓰는 기본 아바타
+// 사진이 없을 때 쓰는 기본 아바타 (홈 테마 잉크 & 허니 골드)
 const DEFAULT_AVATAR =
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-            '<rect width="100" height="100" fill="#1f1c35"/>' +
-            '<circle cx="50" cy="38" r="18" fill="#a855f7" opacity="0.6"/>' +
-            '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#a855f7" opacity="0.6"/></svg>'
+            '<rect width="100" height="100" fill="#22201e"/>' +
+            '<circle cx="50" cy="38" r="18" fill="#ffd34e" opacity="0.9"/>' +
+            '<path d="M18 88c4-18 18-28 32-28s28 10 32 28z" fill="#ffd34e" opacity="0.9"/></svg>'
     );
 
 // ===== 기본 정보 규칙 (회원가입 signup.jsx와 같음) =====
@@ -85,6 +88,28 @@ const toDateText = (v) => {
         return `${y}-${pad(m)}-${pad(d)}`;
     }
     return String(v).slice(0, 10);
+};
+
+// 결제 일시 포맷 "2026-11-10 14:22"
+const formatDateTime = (v) => {
+    if (!v) return '-';
+    if (Array.isArray(v)) {
+        const [y, m, d, h = 0, min = 0] = v;
+        return `${y}-${pad(m)}-${pad(d)} ${pad(h)}:${pad(min)}`;
+    }
+    const s = String(v).replace('T', ' ');
+    return s.slice(0, 16);
+};
+
+// 결제 수단 명칭 변환
+const formatPayMethod = (method) => {
+    if (!method) return '신용카드';
+    const m = String(method).toUpperCase();
+    if (m === 'CARD') return '신용카드';
+    if (m === 'KAKAOPAY') return '카카오페이';
+    if (m === 'NAVERPAY') return '네이버페이';
+    if (m === 'TOSS' || m === 'TOSSPAY') return '토스페이';
+    return method;
 };
 
 // 만 나이
@@ -317,6 +342,20 @@ function TagPills({ value, pink }) {
     );
 }
 
+// 이상형 MBTI: 16개 전부면 '상관없음', 여러 개면 MBTI 순서대로 4개씩 정렬
+const MBTI_ANY = '상관없음';
+function MbtiPrefPills({ value }) {
+    const picked = toTags(value);
+    if (picked.length === 0) return <span>-</span>;
+    if (MBTI_LIST.every((m) => picked.includes(m))) return <span className={cx('badge-pill')}>{MBTI_ANY}</span>;
+    const ordered = MBTI_LIST.filter((m) => picked.includes(m));
+    return (
+        <div className={cx('mbti-pref-grid')}>
+            {ordered.map((m) => <span key={m} className={cx('badge-pill', 'mbti-pref-pill')}>{m}</span>)}
+        </div>
+    );
+}
+
 // 이상형 한 줄
 function IdealRow({ label, children }) {
     return (
@@ -387,9 +426,10 @@ function OptionCards({ options, value, onSelect }) {
     );
 }
 
+// 수정 화면 항목 하나 = 박스 하나 (항목 사이 간격은 .edit-field)
 function Field({ label, hint, children }) {
     return (
-        <div className={ob.field}>
+        <div className={`${ob.field} ${cx('edit-field')}`}>
             <label className={ob.label}>{label}</label>
             {hint && <p className={ob.hint}>{hint}</p>}
             {children}
@@ -482,9 +522,16 @@ function MyPage() {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [form, setForm] = useState({ title: '', startAt: '', memo: '' });
 
-    // 회원 탈퇴 (목업)
+    // 회원 탈퇴 (비밀번호 확인만)
     const [withdrawCheck, setWithdrawCheck] = useState(false);
     const [withdrawPw, setWithdrawPw] = useState('');
+    const [withdrawing, setWithdrawing] = useState(false);
+
+    // 결제 내역 (M010) & 지갑 잔액
+    const [payments, setPayments] = useState([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [cancelingId, setCancelingId] = useState(null);
+    const [wallet, setWallet] = useState(null);
 
     // 토스트 메시지
     const [toast, setToast] = useState('');
@@ -583,6 +630,11 @@ function MyPage() {
             setNickMessage('⚠️ 닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
             return;
         }
+        if (nickname.toLowerCase().includes('admin') || nickname.includes('관리자')) {
+            setNickChecked(false);
+            setNickMessage("⚠️ 닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+            return;
+        }
         if (nickname === member.nickname) {
             setNickChecked(true);
             setNickMessage('✓ 현재 사용 중인 닉네임입니다.');
@@ -636,6 +688,9 @@ function MyPage() {
     const handleSave = async () => {
         const f = editForm;
         if (!REGEX_NICKNAME.test(f.nickname.trim())) return alert('닉네임은 영문, 숫자, 한글로 2~20자리 입력해 주세요.');
+        if (f.nickname.toLowerCase().includes('admin') || f.nickname.includes('관리자')) {
+            return alert("닉네임에 'admin' 또는 '관리자'는 포함할 수 없습니다.");
+        }
         if (!nickChecked) return alert('닉네임 중복 확인을 해 주세요.');
         if (!REGEX_PHONE.test(f.phone)) return alert('핸드폰 번호를 010-XXXX-XXXX 양식으로 입력해 주세요.');
         if (!REGEX_EMAIL.test(f.email.trim())) return alert('올바른 이메일 양식을 입력해 주세요.');
@@ -746,6 +801,20 @@ function MyPage() {
             return { ...prev, ideal: { ...prev.ideal, [key]: list.includes(value) ? list.filter((v) => v !== value) : [...list, value] } };
         });
 
+    // 이상형 MBTI: '상관없음' = 16개 전부 선택 (매칭이 목록으로 비교하므로 저장은 16개 그대로)
+    // - '상관없음'을 누르면 전부 선택 / 다시 누르면 전부 해제
+    // - 전부 선택된 상태에서 하나를 누르면 그 하나만 선택
+    const toggleMbtiPref = (value) =>
+        setPForm((prev) => {
+            const list = prev.ideal.mbtiPref;
+            const isAll = MBTI_LIST.every((m) => list.includes(m));
+            let next;
+            if (value === MBTI_ANY) next = isAll ? [] : [...MBTI_LIST];
+            else if (isAll) next = [value];
+            else next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+            return { ...prev, ideal: { ...prev.ideal, mbtiPref: next } };
+        });
+
     // 이상형 병역: '상관없음'은 단독 선택
     const toggleMilitaryPref = (value) =>
         setPForm((prev) => {
@@ -826,6 +895,66 @@ function MyPage() {
             alert('북마크 해제에 실패했습니다.');
         }
     };
+
+    /* ===================== 결제 내역 (M010) & 지갑 잔액 ===================== */
+    const loadPayments = () => {
+        setPaymentsLoading(true);
+        Client.get('/api/ticket/payments')
+            .then((res) => {
+                setPayments(Array.isArray(res.data) ? res.data : []);
+            })
+            .catch((err) => {
+                console.error('결제 내역 조회 실패:', err);
+                setPayments([]);
+            })
+            .finally(() => {
+                setPaymentsLoading(false);
+            });
+    };
+
+    // 결제 취소(환불): 서버가 7일 이내 / 미사용 여부 등을 검증하고 PortOne 취소까지 처리
+    const handleCancelPayment = (p) => {
+        const name = p.productName || `채팅 이용권 ${p.ticketCount}개`;
+        const amount = Number(p.paymentAmount || 0).toLocaleString();
+        if (!window.confirm(`[${name}] 결제를 취소하고 ${amount}원을 환불받으시겠습니까?\n사용한 마일리지는 반환되고, 적립된 마일리지는 회수됩니다.`)) {
+            return;
+        }
+        setCancelingId(p.pgTransactionId);
+        Client.post('/api/ticket/cancel', { pgTransactionId: p.pgTransactionId })
+            .then(() => {
+                alert('결제가 취소되었습니다.');
+                loadPayments();
+                loadWallet();
+            })
+            .catch((err) => {
+                console.error('결제 취소 실패:', err);
+                alert(err.response?.data?.message || '결제 취소 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                setCancelingId(null);
+            });
+    };
+
+    const loadWallet = () => {
+        Client.get('/api/ticket/wallet')
+            .then((res) => {
+                setWallet(res.data);
+            })
+            .catch((err) => {
+                console.error('지갑 잔액 조회 실패:', err);
+            });
+    };
+
+    useEffect(() => {
+        loadWallet();
+    }, []);
+
+    useEffect(() => {
+        if (view === 'payment') {
+            loadPayments();
+            loadWallet();
+        }
+    }, [view]);
 
     /* ===================== 캘린더 (등록 · 수정 · 삭제 · 영구 저장) ===================== */
     useEffect(() => {
@@ -930,12 +1059,26 @@ function MyPage() {
         showToast('일정이 삭제되었습니다.');
     };
 
-    /* ===================== 회원 탈퇴 (목업) ===================== */
-    const handleWithdraw = () => {
+    /* ===================== 회원 탈퇴 (비밀번호 확인만) ===================== */
+    const handleWithdraw = async () => {
         if (!withdrawCheck) { alert('유의사항 확인 및 탈퇴 동의에 체크해 주세요.'); return; }
-        if (!withdrawPw) { alert('비밀번호를 입력해 주세요.'); return; }
-        if (window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) {
-            alert('탈퇴 처리가 완료되었습니다.');
+        if (!withdrawPw) { alert('본인 확인 비밀번호를 입력해 주세요.'); return; }
+        if (withdrawing) return;
+
+        if (!window.confirm('정말로 탈퇴하시겠습니까? 보유 자산은 즉시 소멸됩니다.')) return;
+
+        try {
+            setWithdrawing(true);
+            const resp = await Client.post('/api/mypage/withdraw', {
+                password: withdrawPw
+            });
+            alert(resp.data?.message || '탈퇴 처리가 완료되었습니다.');
+            useAuthStore.getState().logout();
+            navigate('/login');
+        } catch (err) {
+            alert(errorMessage(err, '회원 탈퇴에 실패했습니다.'));
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -945,7 +1088,14 @@ function MyPage() {
         <a
             key={m.id}
             className={cx('lnb-item', view === m.id && 'active')}
-            onClick={() => switchView(m.id)}
+            onClick={() => {
+                if (m.id === 'ticket') {
+                    navigate('/ticket');
+                    return;
+                }
+                switchView(m.id);
+            }}
+            style={{ cursor: 'pointer' }}
         >
             <div className={cx('lnb-item-left')}>
                 <i className={cx('fa-solid', m.icon)}></i>
@@ -1006,6 +1156,15 @@ function MyPage() {
 
     return (
         <div className={cx('mypage')}>
+            {/* 상단 히어로 (이벤트·게시판·라이브와 같은 허니 옐로 띠 + 아래 경계의 이동 바) */}
+            <div className={cx('mypage-hero')}>
+                <PageHero
+                    eyebrow="MY PAGE"
+                    title="마이페이지"
+                    description="내 정보와 이상형, 북마크·캘린더, 결제 내역을 한곳에서 관리하세요."
+                    wordmark="MYPAGE"
+                />
+            </div>
             <main className={cx('main-wrapper')}>
                 {/* ===== 왼쪽 사이드바 ===== */}
                 <aside className={cx('sidebar')}>
@@ -1024,13 +1183,17 @@ function MyPage() {
                             {region && <span className={cx('badge-pill')}>{region}</span>}
                         </div>
                         <div className={cx('side-asset-box')}>
-                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
+                            <div className={cx('side-asset-item')} onClick={() => navigate('/ticket')} style={{ cursor: 'pointer' }} title="이용권 충전하러 가기">
                                 <span className={cx('side-asset-label')}>채팅 이용권</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#c084fc' }}>-</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#ffd34e' }}>
+                                    {wallet ? `${wallet.ticketBalance}개` : '충전'}
+                                </span>
                             </div>
-                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }}>
+                            <div className={cx('side-asset-item')} onClick={() => switchView('payment')} style={{ cursor: 'pointer' }} title="결제 내역 보기">
                                 <span className={cx('side-asset-label')}>보유 마일리지</span>
-                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>-</span>
+                                <span className={cx('side-asset-val')} style={{ color: '#f472b6' }}>
+                                    {wallet ? `${wallet.mileageBalance.toLocaleString()}P` : '-'}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -1086,7 +1249,7 @@ function MyPage() {
                                 </div>
 
                                 {!editing ? (
-                                    <div className={cx('info-table')}>
+                                    <div className={cx('info-table', 'info-table-single')}>
                                         <InfoCell label="아이디" value={dash(member.loginId)} />
                                         <InfoCell label="이름" value={dash(member.name)} />
                                         <InfoCell label="닉네임" value={dash(member.nickname)} />
@@ -1196,7 +1359,7 @@ function MyPage() {
                                                 <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 6 }}>{pBasic.nickname}</div>
                                                 <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem', marginBottom: 12 }}>
                                                     {genderLabel(pBasic.gender)} · 만 {show(pBasic.age)}세
-                                                    {pData.mbti && <> · <strong style={{ color: '#fff' }}>{pData.mbti}</strong></>}
+                                                    {pData.mbti && <> · <strong style={{ color: 'var(--ink)' }}>{pData.mbti}</strong></>}
                                                     {pData.job && <> · {pData.job}</>}
                                                 </div>
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1349,7 +1512,7 @@ function MyPage() {
                                                 <IdealRow label="나이"><span className={cx('badge-pill')}>{rangeText(pIdeal.ageMin, pIdeal.ageMax, '세')}</span></IdealRow>
                                                 <IdealRow label="키"><span className={cx('badge-pill')}>{rangeText(pIdeal.minHeight, pIdeal.maxHeight, 'cm')}</span></IdealRow>
                                                 <IdealRow label="체형"><TagPills value={pIdeal.bodyType} /></IdealRow>
-                                                <IdealRow label="MBTI"><TagPills value={pIdeal.mbtiPref} pink /></IdealRow>
+                                                <IdealRow label="MBTI"><MbtiPrefPills value={pIdeal.mbtiPref} /></IdealRow>
                                                 <IdealRow label="흡연"><span className={cx('badge-pill')}>{prefText(pIdeal.smokingPref)}</span></IdealRow>
                                                 <IdealRow label="음주"><span className={cx('badge-pill')}>{prefText(pIdeal.drinkingPref)}</span></IdealRow>
                                                 {pIsFemale && <IdealRow label="병역"><TagPills value={pIdeal.militaryPref} /></IdealRow>}
@@ -1389,8 +1552,12 @@ function MyPage() {
                                         <Field label="체형" hint="여러 개 선택할 수 있어요.">
                                             <Chips options={BODY_TYPE_LIST} value={pForm.ideal.bodyType} onSelect={(v) => toggleIdealList('bodyType', v)} />
                                         </Field>
-                                        <Field label="MBTI" hint="여러 개 선택할 수 있어요.">
-                                            <Chips options={MBTI_LIST} value={pForm.ideal.mbtiPref} onSelect={(v) => toggleIdealList('mbtiPref', v)} />
+                                        <Field label="MBTI" hint="여러 개 선택할 수 있어요. '상관없음'은 단독으로 선택돼요.">
+                                            <Chips
+                                                options={[MBTI_ANY, ...MBTI_LIST]}
+                                                value={MBTI_LIST.every((m) => pForm.ideal.mbtiPref.includes(m)) ? [MBTI_ANY] : pForm.ideal.mbtiPref}
+                                                onSelect={toggleMbtiPref}
+                                            />
                                         </Field>
                                         <Field label="흡연">
                                             <Chips options={SMOKING_PREF_LIST} value={pForm.ideal.smokingPref}
@@ -1542,7 +1709,7 @@ function MyPage() {
                         </div>
                     )}
 
-                    {/* ==================== [뷰 6] 결제 내역 (M010) - 목업 ==================== */}
+                    {/* ==================== [뷰 6] 결제 내역 (M010) ==================== */}
                     {view === 'payment' && (
                         <div className={cx('view-section', 'active')}>
                             <PageHeader icon="fa-receipt" title="결제 내역 (M010)" desc="채팅 이용권(P001) 구매 내역 및 마일리지(P002) 사용 내역을 조회합니다." />
@@ -1557,25 +1724,54 @@ function MyPage() {
                                                 <th>마일리지 사용</th>
                                                 <th>최종 결제 금액</th>
                                                 <th>상태</th>
+                                                <th>관리</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td>2026-11-10 14:22</td>
-                                                <td>채팅 이용권 30회 패키지</td>
-                                                <td>신용카드</td>
-                                                <td>-1,000P</td>
-                                                <td>19,000원</td>
-                                                <td><span className={cx('status-badge-ok')}>결제완료</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td>2026-11-02 09:15</td>
-                                                <td>채팅 이용권 10회 패키지</td>
-                                                <td>카카오페이</td>
-                                                <td>-</td>
-                                                <td>9,900원</td>
-                                                <td><span className={cx('status-badge-ok')}>결제완료</span></td>
-                                            </tr>
+                                            {paymentsLoading ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-sub)' }}>
+                                                        결제 내역을 불러오는 중입니다...
+                                                    </td>
+                                                </tr>
+                                            ) : payments.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-sub)' }}>
+                                                        구매한 결제 내역이 없습니다.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                payments.map((p) => {
+                                                    const isPaid = p.paymentStatus === 'PAID';
+                                                    const statusLabel = isPaid ? '결제완료' : p.paymentStatus === 'CANCELLED' ? '결제취소' : p.paymentStatus;
+                                                    return (
+                                                        <tr key={p.paymentSeq || p.pgTransactionId}>
+                                                            <td>{formatDateTime(p.paidAt || p.createdAt)}</td>
+                                                            <td>{p.productName || `채팅 이용권 ${p.ticketCount}개`}</td>
+                                                            <td>{formatPayMethod(p.paymentMethod)}</td>
+                                                            <td>{p.mileageUsed > 0 ? `-${p.mileageUsed.toLocaleString()}P` : '-'}</td>
+                                                            <td>{Number(p.paymentAmount || 0).toLocaleString()}원</td>
+                                                            <td>
+                                                                <span className={cx(isPaid ? 'status-badge-ok' : 'status-badge-wait')}>
+                                                                    {statusLabel}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                {isPaid ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className={cx('btn-cancel-pay')}
+                                                                        onClick={() => handleCancelPayment(p)}
+                                                                        disabled={cancelingId === p.pgTransactionId}
+                                                                    >
+                                                                        {cancelingId === p.pgTransactionId ? '취소 중...' : '결제취소'}
+                                                                    </button>
+                                                                ) : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1615,8 +1811,13 @@ function MyPage() {
                                     <label className={cx('web-label')}>본인 확인 비밀번호</label>
                                     <input type="password" className={cx('web-input')} value={withdrawPw} onChange={(e) => setWithdrawPw(e.target.value)} placeholder="비밀번호를 입력하세요" />
                                 </div>
-                                <button className={cx('btn-secondary')} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }} onClick={handleWithdraw}>
-                                    실루엣 회원 탈퇴 확정
+                                <button
+                                    className={cx('btn-secondary')}
+                                    style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#f87171', padding: '12px 24px' }}
+                                    onClick={handleWithdraw}
+                                    disabled={withdrawing}
+                                >
+                                    {withdrawing ? '탈퇴 처리 중...' : '실루엣 회원 탈퇴 확정'}
                                 </button>
                             </div>
                         </div>

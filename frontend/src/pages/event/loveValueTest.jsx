@@ -397,8 +397,7 @@ const LoveValueTest = () => {
         {/* 1. 시작 화면 */}
         {stage === 'intro' && (
           <div className={styles.introWrapper}>
-            <div className={styles.introBadge}>💘 SILHOUETTE LOVE VALUE</div>
-            <div className={styles.introIcon}>💌🌿💍</div>
+            <div className={styles.introBadge}>SILHOUETTE LOVE VALUE</div>
             <h1 className={styles.introTitle}>나의 진짜 연애 가치관<br />심층 진단 테스트</h1>
             <p className={styles.introDesc}>
               연락 빈도, 갈등 해결, 데이트 비용, 미래관까지!<br />
@@ -410,9 +409,9 @@ const LoveValueTest = () => {
             {savedResult && (
               <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '16px',
+                  background: '#ffffff',
+                  border: '1px solid var(--hairline)',
+                  borderRadius: '20px',
                   padding: '16px 20px',
                   marginBottom: '10px',
                   width: '100%',
@@ -423,11 +422,11 @@ const LoveValueTest = () => {
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: '12px', color: 'var(--accent-pink)', fontWeight: 600 }}>
-                  ✨ 최근 나의 가치관 진단 결과
+                <span style={{ fontSize: '12px', color: 'var(--text-sub)', fontWeight: 700 }}>
+                  최근 나의 가치관 진단 결과
                 </span>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {savedResult.resultEmoji} {savedResult.resultTitle}
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)' }}>
+                  {savedResult.resultTitle}
                 </span>
                 <button
                   type="button"
@@ -435,8 +434,9 @@ const LoveValueTest = () => {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#60a5fa',
+                    color: 'var(--ink)',
                     fontSize: '13px',
+                    fontWeight: 700,
                     textDecoration: 'underline',
                     cursor: 'pointer',
                     marginTop: '2px',
