@@ -44,8 +44,20 @@ public class TicketDAO {
         return mybatis.update("Ticket.markPaymentPaid", paymentDTO);
     }
 
-    public void updateWallet(MemberWalletDTO walletDTO) {
-        mybatis.update("Ticket.updateWallet", walletDTO);
+    // 원장 기준 현재 잔액 (출석·이벤트와 같은 방식: 가장 최근 BALANCE_AFTER)
+    public int selectLatestMileageBalance(Long memberSeq) {
+        Integer balance = mybatis.selectOne("Ticket.selectLatestMileageBalance", memberSeq);
+        return balance == null ? 0 : balance;
+    }
+
+    public int selectLatestTicketBalance(Long memberSeq) {
+        Integer balance = mybatis.selectOne("Ticket.selectLatestTicketBalance", memberSeq);
+        return balance == null ? 0 : balance;
+    }
+
+    // MEMBER_WALLET을 원장 잔액과 같게 맞춤
+    public void syncWallet(MemberWalletDTO walletDTO) {
+        mybatis.update("Ticket.syncWallet", walletDTO);
     }
 
     public void insertTicketLedger(TicketLedgerDTO ledgerDTO) {

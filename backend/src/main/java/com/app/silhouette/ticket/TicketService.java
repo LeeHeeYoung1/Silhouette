@@ -44,11 +44,9 @@ public class TicketService {
         return ticketDAO.selectPaymentsByMemberSeq(member.getMemberSeq());
     }
 
-    @Transactional
     public MemberWalletDTO getWallet(String authorization) {
         AuthMemberDTO member = authMemberService.loginMember(authorization);
-        ticketDAO.createWalletIfAbsent(member.getMemberSeq());
-        return ticketDAO.selectWallet(member.getMemberSeq());
+        return readBalances(member.getMemberSeq());
     }
 
     @Transactional
@@ -63,8 +61,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "판매 중인 이용권 상품이 아닙니다.");
         }
 
-        ticketDAO.createWalletIfAbsent(member.getMemberSeq());
-        MemberWalletDTO wallet = ticketDAO.selectWalletForUpdate(member.getMemberSeq());
+        MemberWalletDTO wallet = lockAndReadBalances(member.getMemberSeq());
         int mileageUsed = paymentDTO.getMileageUsed();
 
         if (mileageUsed > wallet.getMileageBalance() || mileageUsed > product.getPrice()) {
@@ -104,7 +101,7 @@ public class TicketService {
         }
 
         if ("PAID".equals(payment.getPaymentStatus())) {
-            return ticketDAO.selectWallet(member.getMemberSeq());
+            return readBalances(member.getMemberSeq());
         }
         if (!"READY".equals(payment.getPaymentStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "결제 처리 가능한 주문 상태가 아닙니다.");
@@ -134,8 +131,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 결제입니다.");
         }
 
-        ticketDAO.createWalletIfAbsent(member.getMemberSeq());
-        MemberWalletDTO wallet = ticketDAO.selectWalletForUpdate(member.getMemberSeq());
+        MemberWalletDTO wallet = lockAndReadBalances(member.getMemberSeq());
         if (wallet.getMileageBalance() < payment.getMileageUsed()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "마일리지 잔액이 변경되었습니다. 고객센터에 문의해 주세요.");
         }
@@ -144,11 +140,7 @@ public class TicketService {
         int nextTicketBalance = wallet.getTicketBalance() + payment.getTicketCount();
         int nextMileageBalance = wallet.getMileageBalance() - payment.getMileageUsed() + rewardMileage;
 
-        MemberWalletDTO walletUpdate = new MemberWalletDTO();
-        walletUpdate.setMemberSeq(member.getMemberSeq());
-        walletUpdate.setTicketBalance(payment.getTicketCount());
-        walletUpdate.setMileageBalance(-payment.getMileageUsed() + rewardMileage);
-        ticketDAO.updateWallet(walletUpdate);
+        syncWallet(member.getMemberSeq(), nextTicketBalance, nextMileageBalance);
 
         TicketLedgerDTO ticketLedger = new TicketLedgerDTO();
         ticketLedger.setMemberSeq(member.getMemberSeq());
@@ -217,8 +209,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결제 후 7일이 지나 환불할 수 없습니다.");
         }
 
-        ticketDAO.createWalletIfAbsent(member.getMemberSeq());
-        MemberWalletDTO wallet = ticketDAO.selectWalletForUpdate(member.getMemberSeq());
+        MemberWalletDTO wallet = lockAndReadBalances(member.getMemberSeq());
 
         int refundTicket = payment.getTicketCount();
         int returnMileage = payment.getMileageUsed();
@@ -237,11 +228,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 결제입니다.");
         }
 
-        MemberWalletDTO walletUpdate = new MemberWalletDTO();
-        walletUpdate.setMemberSeq(member.getMemberSeq());
-        walletUpdate.setTicketBalance(-refundTicket);
-        walletUpdate.setMileageBalance(returnMileage - rewardMileage);
-        ticketDAO.updateWallet(walletUpdate);
+        syncWallet(member.getMemberSeq(), nextTicketBalance, nextMileageBalance);
 
         TicketLedgerDTO ticketLedger = new TicketLedgerDTO();
         ticketLedger.setMemberSeq(member.getMemberSeq());
@@ -315,5 +302,36 @@ public class TicketService {
         result.setTicketBalance(nextTicketBalance);
         result.setMileageBalance(nextMileageBalance);
         return result;
+    }
+
+    /*
+     * 잔액의 기준은 원장(MILEAGE_LEDGER · TICKET_LEDGER)의 가장 최근 BALANCE_AFTER
+     * - 출석체크 · 룰렛 · 이벤트 보상과 같은 기준이라, 이벤트로 받은 마일리지·이용권도 결제에 함께 반영됨
+     * - MEMBER_WALLET은 회원별 잠금(FOR UPDATE) 용도 + 원장 잔액을 옮겨 두는 보조 테이블
+     */
+
+    // 결제 · 취소용: 회원 지갑 행을 잠가 동시 결제/취소가 같은 잔액으로 계산되지 않게 한 뒤 원장 잔액을 읽음
+    private MemberWalletDTO lockAndReadBalances(Long memberSeq) {
+        ticketDAO.createWalletIfAbsent(memberSeq);
+        ticketDAO.selectWalletForUpdate(memberSeq);
+        return readBalances(memberSeq);
+    }
+
+    // 조회용: 원장 기준 현재 잔액
+    private MemberWalletDTO readBalances(Long memberSeq) {
+        MemberWalletDTO balances = new MemberWalletDTO();
+        balances.setMemberSeq(memberSeq);
+        balances.setTicketBalance(ticketDAO.selectLatestTicketBalance(memberSeq));
+        balances.setMileageBalance(ticketDAO.selectLatestMileageBalance(memberSeq));
+        return balances;
+    }
+
+    // 원장에 기록한 뒤 MEMBER_WALLET도 같은 값으로 맞춤
+    private void syncWallet(Long memberSeq, int ticketBalance, int mileageBalance) {
+        MemberWalletDTO walletUpdate = new MemberWalletDTO();
+        walletUpdate.setMemberSeq(memberSeq);
+        walletUpdate.setTicketBalance(ticketBalance);
+        walletUpdate.setMileageBalance(mileageBalance);
+        ticketDAO.syncWallet(walletUpdate);
     }
 }
