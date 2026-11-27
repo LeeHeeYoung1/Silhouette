@@ -1,0 +1,1078 @@
+/* ==========================================================================
+   ticket.module.css — Bumble & Home 감성 실루엣 티켓 스토어
+   (허니 옐로 #ffd34e / 웜 크림 #fffdf6 / 샌드 #f7f3e6 / 에스프레소 잉크 #22201e)
+   ========================================================================== */
+
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--cream);
+  color: var(--ink);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.mainLayout {
+  max-width: 1360px;
+  width: 100%;
+  margin: 32px auto;
+  padding: 0 24px 60px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .mainLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   왼쪽 사이드바 (Bumble 스타일)
+   ========================================================================== */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 96px;
+}
+
+.profileSidecard {
+  background: var(--sand);
+  border-radius: 28px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 1px solid var(--hairline);
+}
+
+.avatarWrap {
+  width: 92px;
+  height: 92px;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 3px solid var(--honey);
+  margin-bottom: 14px;
+  background: var(--ink);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sideNick {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.sideSubinfo {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.sideBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.badgePill {
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.badgePillWhite {
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--hairline);
+}
+
+.sideAssetBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--hairline);
+}
+
+.sideAssetItem {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--hairline);
+}
+
+.sideAssetItem:hover {
+  transform: translateY(-2px);
+  border-color: var(--honey);
+  box-shadow: 0 4px 12px rgba(255, 211, 78, 0.2);
+}
+
+.sideAssetLabel {
+  font-size: 11px;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.sideAssetVal {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* LNB 네비게이션 메뉴 */
+.lnbMenu {
+  background: var(--sand);
+  border-radius: 28px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--hairline);
+}
+
+.lnbGroupTitle {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-sub);
+  padding: 8px 14px 4px;
+}
+
+.lnbItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px;
+  border-radius: 9999px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lnbItem:hover {
+  background: #ffffff;
+  color: var(--ink);
+  transform: translateX(2px);
+}
+
+.lnbItem.active {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.lnbItem.active .lnbItemLeft i {
+  color: var(--honey);
+}
+
+.lnbItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lnbItemLeft i {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+  color: var(--text-sub);
+}
+
+.lnbCode {
+  font-size: 10px;
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   오른쪽 메인 콘텐츠 (Home 감성)
+   ========================================================================== */
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 상단 타이틀 헤더 */
+.topHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageTitleIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--honey);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.pageDesc {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 프리미엄 허니 배너 */
+.storeHeroBanner {
+  background: var(--ink);
+  border-radius: 28px;
+  padding: 28px 34px;
+  color: var(--cream);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(34, 32, 30, 0.14);
+}
+
+.storeHeroBanner::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(255, 211, 78, 0.28) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.heroBannerText {
+  position: relative;
+  z-index: 1;
+}
+
+.heroTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--honey);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.heroTitle {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.heroSubtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.heroAssets {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.heroAssetCard {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 14px 22px;
+  text-align: center;
+  min-width: 110px;
+}
+
+.heroAssetLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 4px;
+}
+
+.heroAssetValue {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.heroAssetValue.honey {
+  color: var(--honey);
+}
+
+/* ==========================================================================
+   티켓 구매 메인 그리드 + 주문 요약 레이아웃
+   ========================================================================== */
+.storeContentGrid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .storeContentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.sectionTitleDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+
+/* 티켓 카드 그리드 */
+.ticketGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ticketCard {
+  background: #ffffff;
+  border: 2px solid var(--hairline);
+  border-radius: 24px;
+  padding: 22px 20px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(34, 32, 30, 0.03);
+}
+
+.ticketCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--honey);
+  box-shadow: 0 16px 32px rgba(255, 211, 78, 0.16);
+}
+
+.ticketCard.selected {
+  border-color: var(--ink);
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(34, 32, 30, 0.12);
+  transform: translateY(-2px);
+}
+
+/* 카드 상단 배지 */
+.cardTag {
+  position: absolute;
+  top: -11px;
+  right: 18px;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--honey);
+  color: var(--ink);
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.cardTag.best {
+  background: var(--ink);
+  color: var(--honey);
+}
+
+.cardTag.vip {
+  background: linear-gradient(135deg, #22201e 0%, #4a443e 100%);
+  color: var(--honey);
+}
+
+.ticketCardTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.ticketIconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--sand);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+.ticketCard.selected .ticketIconWrap {
+  background: var(--honey);
+  color: var(--ink);
+}
+
+.ticketTitleWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.ticketCount {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.ticketUnitPrice {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+.ticketCardBottom {
+  padding-top: 16px;
+  border-top: 1px dashed var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ticketPrice {
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.selectRadio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ticketCard.selected .selectRadio {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+.selectRadioDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+
+/* 마일리지 박스 */
+.mileageCard {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mileageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.mileageHeader strong {
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.mileageInputGroup {
+  display: flex;
+  gap: 10px;
+}
+
+.mileageInput {
+  flex: 1;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--hairline);
+  background: #ffffff;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.mileageInput:focus {
+  border-color: var(--ink);
+}
+
+.btnAllUse {
+  padding: 0 22px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--sand);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnAllUse:hover {
+  background: var(--honey);
+}
+
+/* ==========================================================================
+   우측 주문 요약 패널 (Bumble Pill Button 스타일)
+   ========================================================================== */
+.orderSummaryPanel {
+  background: #ffffff;
+  border: 1.5px solid var(--hairline);
+  border-radius: 28px;
+  padding: 28px 24px;
+  position: sticky;
+  top: 96px;
+  box-shadow: 0 12px 30px rgba(34, 32, 30, 0.05);
+}
+
+.summaryTitle {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 20px 0;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--hairline);
+}
+
+.summaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.summaryRow.strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.summaryRow.discount span:last-child {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.summaryTotalRow {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summaryTotalLabel {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.summaryTotalPrice {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+
+.pointRewardBanner {
+  background: var(--sand);
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+.pointDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+
+/* 약관 동의 체크 */
+.termsSection {
+  background: var(--sand);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.termLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+  user-select: none;
+}
+
+.termLabel.all {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.termCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+/* 결제하기 메인 버튼 (Home ctaDark 느낌의 알약 버튼) */
+.btnPayCta {
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--ink);
+  color: var(--honey);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(34, 32, 30, 0.18);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnPayCta:hover:not(:disabled) {
+  background: var(--ink-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(34, 32, 30, 0.28);
+}
+
+.btnPayCta:disabled {
+  background: var(--hairline);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 안내 카드 */
+.guideCard {
+  background: var(--sand);
+  border-radius: 24px;
+  padding: 24px 28px;
+  border: 1px solid var(--hairline);
+  margin-top: 10px;
+}
+
+.guideTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guideList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guideList li {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  position: relative;
+  padding-left: 14px;
+}
+
+.guideList li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   결제 모달 (결제하기 누를 때 결제수단 선택하는 팝업)
+   ========================================================================== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.94) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.checkoutModal {
+  width: 100%;
+  max-width: 480px;
+  background: var(--cream);
+  border-radius: 32px;
+  padding: 34px 30px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modalTitleWrap h3 {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.modalTitleWrap p {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.modalCloseBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--sand);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modalCloseBtn:hover {
+  background: var(--hairline);
+}
+
+/* 주문 요약 미니 박스 */
+.modalOrderBox {
+  background: var(--sand);
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+}
+
+.modalOrderRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.modalOrderRow:last-child {
+  margin-bottom: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--hairline);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+/* 결제 수단 선택 그리드 (모달 내부) */
+.methodSelectionWrap {
+  margin-bottom: 24px;
+}
+
+.methodSectionTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px 0;
+}
+
+.methodsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.methodBtn {
+  background: #ffffff;
+  border: 1.5px solid var(--hairline);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: left;
+}
+
+.methodBtn:hover {
+  border-color: var(--ink);
+  background: var(--sand);
+}
+
+.methodBtn.active {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+  box-shadow: 0 6px 16px rgba(34, 32, 30, 0.2);
+}
+
+.methodIcon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+}
+
+.methodBtn.active .methodIcon {
+  color: var(--honey);
+}
+
+/* 카카오, 네이버 전용 톤 */
+.methodBtn.kakaopay.active {
+  background: #fee500;
+  color: #191919;
+  border-color: #fee500;
+}
+.methodBtn.kakaopay.active .methodIcon {
+  color: #191919;
+}
+
+.methodBtn.naverpay.active {
+  background: #03c75a;
+  color: #ffffff;
+  border-color: #03c75a;
+}
+.methodBtn.naverpay.active .methodIcon {
+  color: #ffffff;
+}
+
+.methodBtn.tosspay.active {
+  background: #0064ff;
+  color: #ffffff;
+  border-color: #0064ff;
+}
+.methodBtn.tosspay.active .methodIcon {
+  color: #ffffff;
+}
+
+/* 모달 하단 버튼 */
+.modalActionBtn {
+  width: 100%;
+  height: 52px;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--ink);
+  color: var(--honey);
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(34, 32, 30, 0.25);
+  transition: all 0.2s;
+}
+
+.modalActionBtn:hover:not(:disabled) {
+  background: var(--ink-hover);
+  transform: translateY(-2px);
+}
+
+.modalActionBtn:disabled {
+  background: var(--hairline);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 결제 완료 모달 */
+.successModal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--cream);
+  border-radius: 32px;
+  padding: 38px 30px;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.successIconCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--honey);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 20px;
+  box-shadow: 0 10px 24px rgba(255, 211, 78, 0.4);
+}
+
+.successTitle {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 8px 0;
+}
+
+.successDesc {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.successDesc strong {
+  color: var(--ink);
+}
