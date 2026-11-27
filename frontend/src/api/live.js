@@ -57,6 +57,10 @@ export const adminEndLive = (liveRoomSeq, endReason) =>
 // 신고 목록 { status: WAIT|DONE, page }
 export const getLiveReports = (params) => Client.get('/api/admin/live/report', { params });
 
+// 채팅 신고 → 채팅 작성자를 그 방송에서 강퇴 (관련 대기 신고도 처리 완료)
+export const kickReportedChatAuthor = (liveReportSeq) =>
+  Client.post(`/api/admin/live/report/${liveReportSeq}/kick`);
+
 // 신고 처리 완료
 export const doneLiveReport = (liveReportSeq) =>
   Client.post(`/api/admin/live/report/${liveReportSeq}/done`);

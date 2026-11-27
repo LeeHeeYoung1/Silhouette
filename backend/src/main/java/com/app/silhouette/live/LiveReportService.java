@@ -104,6 +104,28 @@ public class LiveReportService {
         }
     }
 
+    // 채팅 신고 → 채팅 작성자를 그 방송에서 강퇴 + 같은 회원 채팅에 대한 대기 중 신고 모두 처리 완료
+    public void kickChatAuthor(String loginId, long liveReportSeq) {
+        checkAdmin(loginId);
+        LiveReportDTO target = dao.selectReportTarget(liveReportSeq);
+        if (target == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "없는 신고예요.");
+        }
+        if (target.getLiveChatSeq() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "채팅 신고에서만 작성자를 강퇴할 수 있어요.");
+        }
+        if (!"WAIT".equals(target.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 신고예요.");
+        }
+        if (target.getChatMemberSeq() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "신고된 채팅을 찾을 수 없어요.");
+        }
+        long liveRoomSeq = target.getLiveRoomSeq();
+        long author = target.getChatMemberSeq();
+        liveService.kickByAdmin(liveRoomSeq, author);
+        dao.updateReportsDoneByChatMember(liveRoomSeq, author);
+    }
+
     // 관리자 강제 종료 → 해당 방송의 대기 중 신고도 처리 완료
     public void forceEnd(String loginId, long liveRoomSeq, String endReason) {
         checkAdmin(loginId);

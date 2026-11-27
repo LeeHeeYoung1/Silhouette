@@ -226,4 +226,15 @@ public class LiveDAO {
     public int updateReportsDoneByRoom(long liveRoomSeq) {
         return mybatis.update(NS + "updateReportsDoneByRoom", liveRoomSeq);
     }
+
+    // ===== 관리자: 채팅 신고 작성자 강퇴 =====
+
+    public LiveReportDTO selectReportTarget(long liveReportSeq) {
+        return mybatis.selectOne(NS + "selectReportTarget", liveReportSeq);
+    }
+
+    public int updateReportsDoneByChatMember(long liveRoomSeq, long memberSeq) {
+        return mybatis.update(NS + "updateReportsDoneByChatMember",
+                Map.of("liveRoomSeq", liveRoomSeq, "memberSeq", memberSeq));
+    }
 }

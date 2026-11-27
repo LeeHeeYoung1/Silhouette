@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
-import { adminEndLive, doneLiveReport, getLiveReports } from '../../api/live';
+import { adminEndLive, doneLiveReport, getLiveReports, kickReportedChatAuthor } from '../../api/live';
 import { REPORT_REASONS, errorMessage } from './liveConstants';
 import styles from './live.module.css';
 
@@ -46,6 +46,17 @@ function LiveAdmin() {
       reload();
     } catch (e) {
       setError(errorMessage(e, '처리하지 못했어요.'));
+    }
+  };
+
+  // 채팅 신고: 채팅 작성자만 이번 방송에서 내보냄 (방송은 계속)
+  const kickAuthor = async (r) => {
+    if (!window.confirm(`${r.chatMemberNickname}님을 "${r.roomTitle}" 방송에서 강퇴할까요?\n이번 방송에는 다시 들어올 수 없어요.`)) return;
+    try {
+      await kickReportedChatAuthor(r.liveReportSeq);
+      reload();
+    } catch (e) {
+      setError(errorMessage(e, '강퇴하지 못했어요.'));
     }
   };
 
@@ -111,6 +122,10 @@ function LiveAdmin() {
             {r.status === 'WAIT' && (
               <div className={styles.lobbyActions}>
                 <button className={styles.ghostButton} onClick={() => done(r)}>처리 완료</button>
+                {r.liveChatSeq && r.roomStatus === 'LIVE' && r.chatMemberSeq != null &&
+                  Number(r.chatMemberSeq) !== Number(r.hostSeq) && (
+                  <button className={styles.dangerButton} onClick={() => kickAuthor(r)}>채팅 작성자 강퇴</button>
+                )}
                 {r.roomStatus === 'LIVE' && (
                   <button className={styles.dangerButton} onClick={() => forceEnd(r)}>방송 강제 종료</button>
                 )}

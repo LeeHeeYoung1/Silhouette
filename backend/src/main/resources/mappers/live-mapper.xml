@@ -405,6 +405,30 @@
     </update>
 
     <!-- 강제 종료한 방송의 대기 중 신고 전부 처리 완료 -->
+    <!-- 관리자 처리용 신고 1건 (방송 상태, 방송자, 신고된 채팅 작성자) -->
+    <select id="selectReportTarget" resultType="com.app.silhouette.live.LiveReportDTO">
+        SELECT rp.LIVE_REPORT_SEQ, rp.LIVE_ROOM_SEQ, rp.LIVE_CHAT_SEQ, rp.STATUS,
+               r.STATUS AS ROOM_STATUS, r.HOST_SEQ,
+               c.MEMBER_SEQ AS CHAT_MEMBER_SEQ
+        FROM LIVE_REPORT rp
+        JOIN LIVE_ROOM r ON r.LIVE_ROOM_SEQ = rp.LIVE_ROOM_SEQ
+        LEFT JOIN LIVE_CHAT c ON c.LIVE_CHAT_SEQ = rp.LIVE_CHAT_SEQ
+        WHERE rp.LIVE_REPORT_SEQ = #{liveReportSeq}
+    </select>
+
+    <!-- 채팅 작성자 강퇴 → 같은 방송에서 그 회원 채팅에 들어온 대기 중 신고 모두 처리 완료 -->
+    <update id="updateReportsDoneByChatMember" parameterType="map">
+        UPDATE LIVE_REPORT
+        SET STATUS = 'DONE'
+        WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+          AND STATUS = 'WAIT'
+          AND LIVE_CHAT_SEQ IN (
+              SELECT LIVE_CHAT_SEQ FROM LIVE_CHAT
+              WHERE LIVE_ROOM_SEQ = #{liveRoomSeq}
+                AND MEMBER_SEQ = #{memberSeq}
+          )
+    </update>
+
     <update id="updateReportsDoneByRoom">
         UPDATE LIVE_REPORT
         SET STATUS = 'DONE'
