@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.Map;
@@ -24,7 +25,8 @@ import org.springframework.web.client.RestClient;
 public class PhoneAuthService {
 
     private static final String SOLAPI_SEND_URL = "https://api.solapi.com/messages/v4/send";
-    private static final long EXPIRE_SECONDS = 180L; // 3분 유효
+    private static final long EXPIRE_SECONDS = 180L;          // 인증번호 입력 유효시간 3분
+    private static final long VERIFIED_EXPIRE_SECONDS = 1800L; // 인증 완료 후 폼 제출 유효시간 30분
 
     @Value("${solapi.api-key:}")
     private String apiKey;
@@ -41,9 +43,27 @@ public class PhoneAuthService {
     // 휴대폰 번호(숫자만) -> 인증 정보 저장소
     private final Map<String, VerificationEntry> store = new ConcurrentHashMap<>();
 
+    // 번호별 최근 발송 시각 및 당일 발송 횟수 (Rate Limiting / 비용 공격 방지)
+    private final Map<String, SendRateLimit> rateLimits = new ConcurrentHashMap<>();
+
+    private static final long COOLDOWN_SECONDS = 60L; // 재발송 대기시간 1분
+    private static final int DAILY_MAX_SENDS = 5;     // 번호당 1일 최대 5회 발송
+
+    private static class SendRateLimit {
+        Instant lastSentAt;
+        int count;
+        LocalDate date;
+
+        SendRateLimit(Instant lastSentAt) {
+            this.lastSentAt = lastSentAt;
+            this.count = 1;
+            this.date = LocalDate.now();
+        }
+    }
+
     private static class VerificationEntry {
         final String code;
-        final Instant expiresAt;
+        Instant expiresAt;
         boolean verified;
 
         VerificationEntry(String code, Instant expiresAt) {
@@ -63,9 +83,12 @@ public class PhoneAuthService {
     // 1. 인증번호 생성 및 Solapi SMS 발송
     public void sendVerificationSms(String rawPhone) {
         String to = digitsOnly(rawPhone);
-        if (!to.matches("^010\\d{8}$")) {
+        if (!to.matches("^01\\d{8,9}$")) {
             throw new IllegalArgumentException("휴대폰 번호를 010-XXXX-XXXX 형식으로 정확히 입력해 주세요.");
         }
+
+        // [보안] 1분 재발송 쿨다운 및 1일 5회 발송 제한 검사
+        checkAndRecordRateLimit(to);
 
         String from = digitsOnly(sender);
         if (apiKey == null || apiKey.isBlank() || apiSecret == null || apiSecret.isBlank() || from.isBlank()) {
@@ -98,7 +121,9 @@ public class PhoneAuthService {
                 .toBodilessEntity();
         } catch (HttpStatusCodeException e) {
             store.remove(to);
-            throw new IllegalStateException("문자 발송에 실패했습니다. 발신번호 등록 여부 또는 API 키를 확인해 주세요. (" + e.getStatusCode() + ")");
+            String responseBody = e.getResponseBodyAsString();
+            System.err.println("SOLAPI ERROR RESPONSE: " + responseBody);
+            throw new IllegalStateException("Solapi 발송 실패: " + (responseBody.isBlank() ? e.getStatusCode().toString() : responseBody));
         } catch (Exception e) {
             store.remove(to);
             throw new IllegalStateException("문자 발송 서버 연결에 실패했습니다: " + e.getMessage());
@@ -123,16 +148,53 @@ public class PhoneAuthService {
         }
 
         entry.verified = true;
+        entry.expiresAt = Instant.now().plusSeconds(VERIFIED_EXPIRE_SECONDS);
         return true;
     }
 
     public boolean isVerified(String rawPhone) {
-        VerificationEntry entry = store.get(digitsOnly(rawPhone));
+        String key = digitsOnly(rawPhone);
+        VerificationEntry entry = store.get(key);
+        if (entry != null && Instant.now().isAfter(entry.expiresAt)) {
+            store.remove(key);
+            return false;
+        }
         return entry != null && entry.verified;
+    }
+
+    public void consumeVerification(String rawPhone) {
+        store.remove(digitsOnly(rawPhone));
     }
 
     private String digitsOnly(String str) {
         return str == null ? "" : str.replaceAll("\\D", "");
+    }
+
+    private synchronized void checkAndRecordRateLimit(String phone) {
+        LocalDate today = LocalDate.now();
+        Instant now = Instant.now();
+        SendRateLimit limit = rateLimits.get(phone);
+
+        if (limit != null) {
+            if (!today.equals(limit.date)) {
+                // 날짜가 바뀌면 카운트 초기화
+                limit.date = today;
+                limit.count = 0;
+            } else if (limit.count >= DAILY_MAX_SENDS) {
+                throw new IllegalStateException("해당 번호의 일일 인증번호 발송 한도(5회)를 초과했습니다. 내일 다시 시도해 주세요.");
+            }
+
+            long elapsedSeconds = Duration.between(limit.lastSentAt, now).getSeconds();
+            if (elapsedSeconds < COOLDOWN_SECONDS) {
+                long waitSec = COOLDOWN_SECONDS - elapsedSeconds;
+                throw new IllegalStateException("인증번호가 이미 발송되었습니다. " + waitSec + "초 후에 다시 시도해 주세요.");
+            }
+
+            limit.lastSentAt = now;
+            limit.count++;
+        } else {
+            rateLimits.put(phone, new SendRateLimit(now));
+        }
     }
 
     // Solapi REST API v4 HMAC-SHA256 Authorization 헤더 생성

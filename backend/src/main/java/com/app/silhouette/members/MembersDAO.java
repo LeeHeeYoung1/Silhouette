@@ -38,4 +38,31 @@ public class MembersDAO {
     public String selectRole(String loginId) {
         return this.mybatis.selectOne("Members.selectRole", loginId);
     }
+
+    // 아이디 찾기 (이름 + 휴대폰 번호)
+    public String findLoginIdByInfo(String name, String phone) {
+        Map<String, String> params = new HashMap<>();
+        params.put("name", name);
+        params.put("phone", phone);
+        return this.mybatis.selectOne("Members.findLoginIdByInfo", params);
+    }
+
+    // 비밀번호 찾기 회원 일치 확인 (아이디 + 이름 + 휴대폰 번호)
+    public int countMemberForPasswordReset(String loginId, String name, String phone) {
+        Map<String, String> params = new HashMap<>();
+        params.put("loginId", loginId);
+        params.put("name", name);
+        params.put("phone", phone);
+        return this.mybatis.selectOne("Members.countMemberForPasswordReset", params);
+    }
+
+    // 비밀번호 재설정
+    public int updatePasswordByInfo(String loginId, String name, String phone, String encryptedPassword) {
+        Map<String, String> params = new HashMap<>();
+        params.put("loginId", loginId);
+        params.put("name", name);
+        params.put("phone", phone);
+        params.put("password", encryptedPassword);
+        return this.mybatis.update("Members.updatePasswordByInfo", params);
+    }
 }
