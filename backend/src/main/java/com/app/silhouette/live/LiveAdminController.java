@@ -51,6 +51,14 @@ public class LiveAdminController {
         return ResponseEntity.ok("처리 완료했어요.");
     }
 
+    // 채팅 신고 → 채팅 작성자를 그 방송에서 강퇴 (+ 관련 신고 처리 완료)
+    @PostMapping("/report/{liveReportSeq}/kick")
+    public ResponseEntity<String> kickChatAuthor(@RequestAttribute("id") String loginId,
+            @PathVariable long liveReportSeq) {
+        service.kickChatAuthor(loginId, liveReportSeq);
+        return ResponseEntity.ok("채팅 작성자를 이번 방송에서 강퇴했어요.");
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<String> handleError(ResponseStatusException e) {
         return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
