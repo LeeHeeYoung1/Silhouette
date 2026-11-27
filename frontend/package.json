@@ -12,6 +12,7 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.25",
     "@livekit/components-styles": "^1.2.0",
+    "@portone/browser-sdk": "^0.2.1",
     "@stomp/stompjs": "^7.5.0",
     "axios": "^1.21.1",
     "livekit-client": "^2.24.1",
@@ -19,8 +20,8 @@
     "react-dom": "^19.3.1",
     "react-modal": "^3.16.3",
     "react-router-dom": "^7.18.5",
-    "sonner": "^2.0.8",
     "recharts": "^3.11.1",
+    "sonner": "^2.0.8",
     "stomp": "^0.1.1",
     "zustand": "^5.1.0"
   },

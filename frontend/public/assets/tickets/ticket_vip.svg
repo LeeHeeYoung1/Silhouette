@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="vipDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D2823"/>
+      <stop offset="50%" stop-color="#1B1917"/>
+      <stop offset="100%" stop-color="#0E0D0C"/>
+    </linearGradient>
+    <linearGradient id="vipGoldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="40%" stop-color="#FFD34E"/>
+      <stop offset="80%" stop-color="#E5A610"/>
+      <stop offset="100%" stop-color="#996500"/>
+    </linearGradient>
+    <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#D4F0FF"/>
+      <stop offset="100%" stop-color="#70C5FF"/>
+    </linearGradient>
+    <filter id="vipShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Glowing Aura -->
+  <circle cx="80" cy="60" r="58" fill="#FFD34E" opacity="0.15"/>
+  <circle cx="80" cy="60" r="42" fill="#FFD34E" opacity="0.1"/>
+
+  <!-- Back VIP Card -->
+  <g transform="translate(26, 22) rotate(-8 55 35)" opacity="0.7" filter="url(#vipShadow)">
+    <rect x="0" y="0" width="108" height="62" rx="10" fill="#1A1816" stroke="#996500" stroke-width="1.5"/>
+  </g>
+
+  <!-- Front VIP Card -->
+  <g transform="translate(26, 27) rotate(2 55 35)" filter="url(#vipShadow)">
+    <!-- Ticket Body with cutouts -->
+    <path d="M 10 0 
+             H 98 
+             A 10 10 0 0 1 108 10 
+             V 23 
+             A 7 7 0 0 0 108 37 
+             V 52 
+             A 10 10 0 0 1 98 62 
+             H 10 
+             A 10 10 0 0 1 0 52 
+             V 37 
+             A 7 7 0 0 0 0 23 
+             V 10 
+             A 10 10 0 0 1 10 0 Z" 
+          fill="url(#vipDark)" stroke="url(#vipGoldBorder)" stroke-width="2"/>
+
+    <!-- Subtle luxury inner border -->
+    <rect x="5" y="5" width="98" height="52" rx="6" fill="none" stroke="#FFD34E" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="4,2"/>
+
+    <!-- VIP Diamond Emblem -->
+    <g transform="translate(42, 31)">
+      <!-- Glow -->
+      <circle cx="0" cy="0" r="16" fill="#FFD34E" opacity="0.15"/>
+      <!-- Diamond Shape -->
+      <polygon points="0,-13 14,0 0,13 -14,0" fill="url(#diamondGrad)"/>
+      <polygon points="0,-13 0,13 14,0" fill="#70C5FF" opacity="0.4"/>
+      <!-- VIP Text -->
+      <text x="0" y="19" fill="#FFD34E" font-size="9" font-family="'Montserrat', sans-serif" font-weight="900" text-anchor="middle" letter-spacing="1.5">VIP</text>
+    </g>
+
+    <!-- Perforation line -->
+    <line x1="78" y1="6" x2="78" y2="56" stroke="#FFD34E" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.5"/>
+
+    <!-- Gold barcode lines -->
+    <line x1="86" y1="18" x2="98" y2="18" stroke="#FFD34E" stroke-width="2" stroke-linecap="round"/>
+    <line x1="84" y1="26" x2="100" y2="26" stroke="#FFD34E" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="86" y1="34" x2="96" y2="34" stroke="#FFD34E" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="84" y1="42" x2="99" y2="42" stroke="#FFD34E" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Diamond / Gold Star Glints -->
+  <polygon points="135,14 138,22 146,25 138,28 135,36 132,28 124,25 132,22" fill="#FFF2A3"/>
+  <polygon points="20,70 22,75 27,77 22,79 20,84 18,79 13,77 18,75" fill="#FFD34E"/>
+  <polygon points="134,80 136,84 140,86 136,88 134,92 132,88 128,86 132,84" fill="#70C5FF"/>
+</svg>
