@@ -1,0 +1,100 @@
+/* ==========================================================================
+   사이트 테마와 자연스럽게 동화되는 내추럴 샌드 푸터 (SILHOUETTE)
+   ========================================================================== */
+
+.footer {
+  /* 레이아웃(appContainer)의 좌우 16px / 하단 50px 패딩을 상쇄해 브라우저 끝까지 꽉 채움 */
+  width: calc(100% + 32px);
+  margin: 20px -16px -50px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  background-color: var(--sand);
+  color: var(--text-muted);
+  padding: 32px 0 28px;
+  border-top: 1px solid var(--hairline);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background-color 0.2s ease;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+/* 정책 및 약관 링크 */
+.policyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.policyRow a {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.policyRow a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.privacyLink {
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+}
+
+/* 간결한 사업자 정보 */
+.infoRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.divider {
+  color: var(--hairline);
+  user-select: none;
+}
+
+/* 카피라이트 */
+.copyright {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 24px 0 20px;
+  }
+  .container {
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .policyRow {
+    gap: 8px;
+  }
+  .infoRow {
+    gap: 6px;
+    font-size: 11px;
+  }
+}
