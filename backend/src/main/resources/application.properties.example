@@ -58,3 +58,5 @@ ai.server.url=
 sightengine.api.url=
 sightengine.api.user=
 sightengine.api.secret=
+
+portone.api-secret=
