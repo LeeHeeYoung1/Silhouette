@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Client from '../../../api/client';
+import PageHero from '../../../components/PageHero/PageHero';
 import styles from './mypage.module.css';
 import ob from '../../onboarding/onboarding.module.css';   // 수정 모드 칩 · 입력칸 (온보딩 · 프로필과 같은 모양)
 import {
@@ -1006,6 +1007,15 @@ function MyPage() {
 
     return (
         <div className={cx('mypage')}>
+            {/* 상단 히어로 (이벤트·게시판·라이브와 같은 허니 옐로 띠 + 아래 경계의 이동 바) */}
+            <div className={cx('mypage-hero')}>
+                <PageHero
+                    eyebrow="MY PAGE"
+                    title="마이페이지"
+                    description="내 정보와 이상형, 북마크·캘린더, 결제 내역을 한곳에서 관리하세요."
+                    wordmark="MYPAGE"
+                />
+            </div>
             <main className={cx('main-wrapper')}>
                 {/* ===== 왼쪽 사이드바 ===== */}
                 <aside className={cx('sidebar')}>

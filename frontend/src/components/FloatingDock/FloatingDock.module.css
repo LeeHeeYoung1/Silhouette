@@ -334,6 +334,18 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 친구 · 채팅 버튼과 AI 챗봇 버튼 크기 통일 (같은 너비 · 높이, 내용 가운데 정렬) */
+.friendFab,
+.chatbotFab {
+  width: 156px;
+  height: 46px;
+  padding: 0 16px;
+  gap: 8px;
+  justify-content: center;
+  box-sizing: border-box;
+  letter-spacing: 0.04em;
+}
+
 /* 같은 우선순위에서 위 규칙을 덮어쓰도록 파일 맨 끝에 둠 */
 /* 홈 데스크톱(>1024px)에서는 오른쪽 sticky 사이드바와 중복되므로 친구 · 채팅 버튼/팝업 숨김 */
 .friendFabMobileOnly,

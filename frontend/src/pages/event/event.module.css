@@ -13,6 +13,11 @@
   animation: fadeIn 0.35s ease forwards;
 }
 
+/* 이 페이지는 섹션 간격(gap)이 36px라 히어로 아래 여백을 12px 줄여 다른 페이지와 같은 간격(이동 바 아래 64px)으로 맞춤 */
+.container > :global([data-page-hero]) {
+  margin-bottom: 54px;
+}
+
 /* 히어로 안 내 혜택 현황 (히어로 자체는 components/PageHero) */
 .heroStats {
   display: flex;
