@@ -1,0 +1,142 @@
+/* PageHero.module.css — 라이브·게시판·이벤트 공통 허니 옐로 히어로 */
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 220px;
+  padding: 8px 0 40px;
+  color: var(--ink);
+  /* 히어로 바닥까지 화면 가로 전체를 허니 옐로로 채움 (아래쪽은 잘라서 본문 위에서 끝남, 헤더는 z-index가 더 높아 위에 보임) */
+  background: var(--honey);
+  box-shadow: 0 0 0 100vmax var(--honey);
+  clip-path: inset(-100vmax -100vmax 0 -100vmax);
+}
+
+.text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 600px;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--honey);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  box-shadow: 0 0 8px rgba(255, 77, 79, 0.9);
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.description {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(34, 32, 30, 0.75);
+  word-break: keep-all;
+}
+
+.extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.primaryButton,
+.ghostButton {
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 9999px;
+  padding: 12px 22px;
+  font-weight: 800;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primaryButton {
+  border: 0;
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: 0 10px 24px rgba(34, 32, 30, 0.2);
+}
+
+.primaryButton:hover {
+  background: var(--ink-hover);
+  transform: translateY(-2px);
+}
+
+.ghostButton {
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+}
+
+.ghostButton:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.primaryButton:focus-visible,
+.ghostButton:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* 홈 히어로의 Silhouette 워드마크와 같은 서체. 글자 수가 많을수록 작아져서 한 줄에 들어감 */
+.wordmark {
+  flex-shrink: 0;
+  font-family: 'Archivo Black', 'Pretendard', sans-serif;
+  font-size: clamp(56px, calc(56vw / var(--wordmark-len, 4)), 180px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .wordmark {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    min-height: 0;
+  }
+}

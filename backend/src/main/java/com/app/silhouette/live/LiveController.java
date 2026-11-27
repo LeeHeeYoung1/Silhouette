@@ -103,6 +103,21 @@ public class LiveController {
         return ResponseEntity.ok("강퇴했어요.");
     }
 
+    // 이번 방송 강퇴 목록 (방송자만, 차단된 회원은 차단 목록에서 관리)
+    @GetMapping("/{liveRoomSeq}/kick")
+    public ResponseEntity<List<LiveViewerDTO>> kicked(@RequestAttribute("id") String loginId,
+            @PathVariable long liveRoomSeq) {
+        return ResponseEntity.ok(service.kicked(loginId, liveRoomSeq));
+    }
+
+    // 강퇴 취소 (이번 방송에 다시 입장 가능)
+    @DeleteMapping("/{liveRoomSeq}/kick/{memberSeq}")
+    public ResponseEntity<String> unkick(@RequestAttribute("id") String loginId,
+            @PathVariable long liveRoomSeq, @PathVariable long memberSeq) {
+        service.unkick(loginId, liveRoomSeq, memberSeq);
+        return ResponseEntity.ok("강퇴를 취소했어요.");
+    }
+
     // 내 차단 목록
     @GetMapping("/ban")
     public ResponseEntity<List<LiveViewerDTO>> bans(@RequestAttribute("id") String loginId) {
