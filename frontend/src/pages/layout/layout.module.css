@@ -580,6 +580,11 @@
   display: none;
 }
 
+/* 라이브 방송방 안: 오른쪽 채팅 입력창을 가리지 않도록 플로팅 버튼(친구 · 채팅, AI 챗봇) 숨김 */
+.appContainer:has(:global([data-live-room])) :global([data-floating-dock]) {
+  display: none;
+}
+
 .headerRow { margin-bottom: 8px; }
 
 .header {

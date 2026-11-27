@@ -6,6 +6,8 @@ import useOnboardingGuard from '../onboarding/useOnboardingGuard';
 import useAuthStore from '../../stores/useAuthStore';
 import Client from '../../api/client';
 import { Client as StompClient } from '@stomp/stompjs';
+import FriendChatProvider from '../../components/FriendChat/FriendChatProvider';
+import FloatingDock from '../../components/FloatingDock/FloatingDock';
 import Footer from '../../components/Footer/Footer';
 
 // 기본 프로필 아바타 이미지 (SVG - 실루엣 홈 테마 잉크 & 허니 골드)
@@ -28,6 +30,7 @@ function Layout() {
   useOnboardingGuard();
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  const isChatRoomPage = /^\/(chatting|chat)\//.test(location.pathname);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('silhouette_theme') || 'light');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -503,9 +506,17 @@ function Layout() {
         )}
       </div>
 
-      <main className={styles.main}>
-        <Outlet />
-      </main>
+      {/* 친구 · 채팅 데이터는 여기서 한 번만 불러 홈 사이드바와 모든 페이지의 플로팅 버튼이 같이 씀 */}
+      <FriendChatProvider>
+        <main className={styles.main}>
+          <Outlet />
+        </main>
+
+        {/* 오른쪽 아래 친구 · 채팅 + AI 챗봇 (채팅방 화면은 입력창을 가리므로 제외, 라이브 방송방 안은 CSS로 숨김) */}
+        {token && !isAuthPage && !isChatRoomPage && (
+          <FloatingDock hideFriendOnDesktop={location.pathname === '/'} />
+        )}
+      </FriendChatProvider>
 
       {!isAuthPage && <Footer />}
     </div>

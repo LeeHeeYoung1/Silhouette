@@ -95,7 +95,7 @@ function LiveRoom({ conn, isHost, onLeave }) {
       onDisconnected={handleDisconnected}
       className={styles.roomWrap}
     >
-      <header className={styles.roomHeader}>
+      <header className={styles.roomHeader} data-live-room="">
         <div className={styles.roomInfo}>
           <div className={styles.roomTitleRow}>
             <span className={styles.liveBadge}>LIVE</span>
